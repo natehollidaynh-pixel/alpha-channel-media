@@ -10,7 +10,6 @@ if (!process.env.JWT_SECRET) {
 }
 
 // Creator login
-// Handles both /api/auth/creator/login and /api/creators/login
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -26,6 +25,22 @@ router.post('/login', async (req, res) => {
     }
 
     const creator = result.rows[0];
+
+    // Check if creator needs to set their password (first login after approval)
+    if (creator.must_set_password) {
+      const setupToken = jwt.sign(
+        { id: creator.id, type: 'password_setup' },
+        JWT_SECRET,
+        { expiresIn: '15m' }
+      );
+      return res.json({
+        success: false,
+        must_set_password: true,
+        setup_token: setupToken,
+        username: creator.username
+      });
+    }
+
     const validPassword = await bcrypt.compare(password, creator.password_hash);
 
     if (!validPassword) {
@@ -52,6 +67,76 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     console.error('Creator login error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Set password (first-time creator login)
+router.post('/set-password', async (req, res) => {
+  try {
+    const { setup_token, password } = req.body;
+
+    if (!setup_token || !password) {
+      return res.status(400).json({ error: 'Token and password are required' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    // Verify the setup token
+    let decoded;
+    try {
+      decoded = jwt.verify(setup_token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid or expired setup token. Please log in again.' });
+    }
+
+    if (decoded.type !== 'password_setup') {
+      return res.status(401).json({ error: 'Invalid token type' });
+    }
+
+    const db = req.app.locals.db;
+
+    // Verify creator still needs password setup
+    const result = await db.query('SELECT * FROM creators WHERE id = $1', [decoded.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Creator not found' });
+    }
+
+    const creator = result.rows[0];
+    if (!creator.must_set_password) {
+      return res.status(400).json({ error: 'Password already set' });
+    }
+
+    // Hash and save the password
+    const passwordHash = await bcrypt.hash(password, 10);
+    await db.query(
+      'UPDATE creators SET password_hash = $1, must_set_password = false WHERE id = $2',
+      [passwordHash, decoded.id]
+    );
+
+    // Generate a real auth token so they are logged in immediately
+    const token = jwt.sign(
+      { id: creator.id, type: 'creator' },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: creator.id,
+        username: creator.username,
+        email: creator.email,
+        firstName: creator.first_name,
+        lastName: creator.last_name,
+        artistName: creator.artist_name
+      }
+    });
+  } catch (err) {
+    console.error('Set password error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -102,13 +187,7 @@ router.post('/listener/login', async (req, res) => {
 });
 
 // Master admin login
-// Handles both /api/auth/master/login and /api/master/login
 router.post('/master/login', async (req, res) => {
-  // Also handle when mounted at /api/master (path becomes just /login)
-  handleMasterLogin(req, res);
-});
-
-async function handleMasterLogin(req, res) {
   try {
     const { password } = req.body;
 
@@ -131,6 +210,6 @@ async function handleMasterLogin(req, res) {
     console.error('Master login error:', err);
     res.status(500).json({ error: 'Server error' });
   }
-}
+});
 
 module.exports = router;

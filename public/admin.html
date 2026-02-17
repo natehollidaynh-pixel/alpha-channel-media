@@ -134,6 +134,7 @@
         <div class="tabs">
             <button class="tab active" onclick="showTab('music')">Upload Music</button>
             <button class="tab" onclick="showTab('video')">Upload Video</button>
+            <button class="tab" onclick="showTab('accessCode')">Access Code</button>
         </div>
         
         <div class="upload-section active" id="musicSection">
@@ -191,6 +192,26 @@
                 </div>
             </form>
         </div>
+        <div class="upload-section" id="accessCodeSection">
+            <h2 style="margin-bottom: 24px;">Your Access Code</h2>
+            <p style="color: var(--text-gray); margin-bottom: 20px;">
+                Set an access code that listeners can use to access your music and videos. Share this code with your audience.
+            </p>
+            <div class="form-group">
+                <label>Current Access Code</label>
+                <div id="currentCode" style="padding: 14px; background: rgba(0,0,0,0.03); border-radius: 8px; font-family: monospace; font-size: 1.2rem; letter-spacing: 1px;">
+                    Loading...
+                </div>
+            </div>
+            <form id="accessCodeForm">
+                <div class="form-group">
+                    <label>New Access Code (4-50 characters)</label>
+                    <input type="text" name="accessCode" required minlength="4" maxlength="50" placeholder="e.g. MYMUSIC2024">
+                </div>
+                <button type="submit" class="submit-btn">Save Access Code</button>
+            </form>
+            <div id="codeMessage" style="margin-top: 16px; display: none; padding: 12px; border-radius: 8px;"></div>
+        </div>
     </div>
     <script>
         const API = window.location.origin;
@@ -246,6 +267,58 @@
                 }
             } catch (error) {
                 alert('Upload failed');
+            }
+        });
+
+        // Access Code Management
+        async function loadAccessCode() {
+            try {
+                const response = await fetch(`${API}/api/creators/access-code`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                });
+                const data = await response.json();
+                document.getElementById('currentCode').textContent = data.access_code || 'Not set yet';
+            } catch (err) {
+                document.getElementById('currentCode').textContent = 'Not set yet';
+            }
+        }
+        loadAccessCode();
+
+        document.getElementById('accessCodeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const accessCode = formData.get('accessCode');
+            const msg = document.getElementById('codeMessage');
+
+            try {
+                const response = await fetch(`${API}/api/creators/access-code`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ access_code: accessCode })
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('currentCode').textContent = accessCode;
+                    msg.textContent = 'Access code saved successfully!';
+                    msg.style.color = 'var(--green-bull)';
+                    msg.style.background = 'rgba(0, 168, 107, 0.1)';
+                    msg.style.display = 'block';
+                    e.target.reset();
+                } else {
+                    msg.textContent = result.error || 'Failed to save access code';
+                    msg.style.color = 'var(--red-bear)';
+                    msg.style.background = 'rgba(211, 47, 47, 0.1)';
+                    msg.style.display = 'block';
+                }
+            } catch (err) {
+                msg.textContent = 'Error saving access code';
+                msg.style.color = 'var(--red-bear)';
+                msg.style.background = 'rgba(211, 47, 47, 0.1)';
+                msg.style.display = 'block';
             }
         });
     </script>

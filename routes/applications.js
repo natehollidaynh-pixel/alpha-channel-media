@@ -1,16 +1,6 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
 const router = express.Router();
 const { sendCreatorApplicationEmail, sendCreatorWelcomeEmail } = require('../emails/sender');
-
-function generatePassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
 
 // Submit a new creator application
 router.post('/submit', async (req, res) => {
@@ -51,17 +41,14 @@ router.post('/approve/:id', async (req, res) => {
     }
 
     const application = appResult.rows[0];
-    const tempPassword = generatePassword();
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-    // Create creator account
+    // Create creator account with NO password — they set it on first login
     await db.query(
-      `INSERT INTO creators (username, email, password_hash, first_name, last_name, artist_name, bio)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO creators (username, email, password_hash, must_set_password, first_name, last_name, artist_name, bio)
+       VALUES ($1, $2, NULL, true, $3, $4, $5, $6)`,
       [
         application.username,
         application.email,
-        passwordHash,
         application.first_name,
         application.last_name,
         application.artist_name,
@@ -75,8 +62,8 @@ router.post('/approve/:id', async (req, res) => {
       [id]
     );
 
-    // Send welcome email with credentials
-    sendCreatorWelcomeEmail(application, tempPassword).catch(err =>
+    // Send welcome email (no password — tells them to log in and set one)
+    sendCreatorWelcomeEmail(application).catch(err =>
       console.error('Failed to send welcome email:', err)
     );
 
@@ -114,6 +101,28 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('Applications fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch applications' });
+  }
+});
+
+// Get dashboard stats
+router.get('/stats', async (req, res) => {
+  try {
+    const db = req.app.locals.db;
+    const [creators, listeners, tracks, pending] = await Promise.all([
+      db.query('SELECT COUNT(*) FROM creators'),
+      db.query('SELECT COUNT(*) FROM listeners'),
+      db.query('SELECT COUNT(*) FROM songs'),
+      db.query("SELECT COUNT(*) FROM applications WHERE status = 'pending'")
+    ]);
+    res.json({
+      creators: parseInt(creators.rows[0].count),
+      listeners: parseInt(listeners.rows[0].count),
+      tracks: parseInt(tracks.rows[0].count),
+      pending: parseInt(pending.rows[0].count)
+    });
+  } catch (err) {
+    console.error('Stats fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
   }
 });
 

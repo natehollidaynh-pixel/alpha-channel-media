@@ -84,16 +84,86 @@
             <a href="welcome.html">Logout</a>
         </nav>
     </div>
-    <div class="container">
-        <h1 style="margin-bottom: 24px; color: #1a1a1a;">Video Library</h1>
+    <div class="container" id="accessGate" style="text-align:center; margin-top: 60px; max-width: 500px; margin-left: auto; margin-right: auto;">
+        <h2 style="margin-bottom: 16px; color: var(--text-dark);">Enter Access Code</h2>
+        <p style="color: var(--text-gray); margin-bottom: 24px;">Enter a creator's access code to watch their videos.</p>
+        <form id="accessForm" style="max-width: 400px; margin: 0 auto;">
+            <input type="text" id="accessCodeInput" placeholder="Enter access code" required
+                   style="width:100%; padding:14px; border:1px solid rgba(0,0,0,0.1); border-radius:12px; margin-bottom:16px; font-size:1.1rem; text-align:center; letter-spacing:1px;">
+            <button type="submit" style="width:100%; padding:14px; background:var(--green-bull); color:white; border:none; border-radius:12px; font-weight:600; cursor:pointer; font-size:1rem;">Unlock Videos</button>
+        </form>
+        <div id="accessError" style="color: var(--red-bear); margin-top: 12px; display:none;"></div>
+    </div>
+    <div class="container" id="videosContainer" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+            <h1 style="color: #1a1a1a;" id="libraryTitle">Video Library</h1>
+            <a href="#" onclick="clearAccessCode()" style="color:var(--text-gray); font-size:0.9rem;">Change code</a>
+        </div>
         <div class="videos-grid" id="videosGrid"></div>
     </div>
     <script>
         const API = window.location.origin;
-        async function loadVideos() {
-            const response = await fetch(`${API}/api/videos`);
+        let currentCreatorId = null;
+
+        // Check for stored access code (shared with player.html)
+        const storedCode = localStorage.getItem('accessCode');
+        if (storedCode) {
+            validateAndLoad(storedCode);
+        }
+
+        document.getElementById('accessForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('accessCodeInput').value.trim();
+            validateAndLoad(code);
+        });
+
+        async function validateAndLoad(code) {
+            try {
+                const response = await fetch(`${API}/api/access-code/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_code: code })
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    currentCreatorId = data.creator.id;
+                    localStorage.setItem('accessCode', code);
+                    document.getElementById('accessGate').style.display = 'none';
+                    document.getElementById('videosContainer').style.display = 'block';
+                    document.getElementById('libraryTitle').textContent =
+                        (data.creator.artist_name || data.creator.first_name) + "'s Videos";
+                    loadVideos(currentCreatorId);
+                } else {
+                    document.getElementById('accessError').textContent = 'Invalid access code';
+                    document.getElementById('accessError').style.display = 'block';
+                }
+            } catch (err) {
+                document.getElementById('accessError').textContent = 'Error validating code';
+                document.getElementById('accessError').style.display = 'block';
+            }
+        }
+
+        function clearAccessCode() {
+            localStorage.removeItem('accessCode');
+            currentCreatorId = null;
+            document.getElementById('accessGate').style.display = 'block';
+            document.getElementById('videosContainer').style.display = 'none';
+            document.getElementById('videosGrid').innerHTML = '';
+            document.getElementById('accessCodeInput').value = '';
+            document.getElementById('accessError').style.display = 'none';
+        }
+
+        async function loadVideos(creatorId) {
+            const url = creatorId ? `${API}/api/videos?creator_id=${creatorId}` : `${API}/api/videos`;
+            const response = await fetch(url);
             const data = await response.json();
             const grid = document.getElementById('videosGrid');
+            grid.innerHTML = '';
+            if (data.videos.length === 0) {
+                grid.innerHTML = '<p style="color:var(--text-gray); text-align:center; padding:40px;">No videos uploaded yet.</p>';
+                return;
+            }
             data.videos.forEach(video => {
                 const card = document.createElement('div');
                 card.className = 'video-card';
@@ -108,7 +178,6 @@
                 grid.appendChild(card);
             });
         }
-        loadVideos();
     </script>
 </body>
 </html>

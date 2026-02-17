@@ -116,8 +116,22 @@
             <a href="welcome.html">Logout</a>
         </nav>
     </div>
-    <div class="container">
-        <h1 style="margin-bottom: 24px; color: #1a1a1a;">Music Library</h1>
+    <div class="container" id="accessGate" style="text-align:center; margin-top: 60px; max-width: 500px; margin-left: auto; margin-right: auto;">
+        <h2 style="margin-bottom: 16px; color: var(--text-dark);">Enter Access Code</h2>
+        <p style="color: var(--text-gray); margin-bottom: 24px;">Enter a creator's access code to listen to their music.</p>
+        <form id="accessForm" style="max-width: 400px; margin: 0 auto;">
+            <input type="text" id="accessCodeInput" placeholder="Enter access code" required
+                   style="width:100%; padding:14px; border:1px solid rgba(0,0,0,0.1); border-radius:12px; margin-bottom:16px; font-size:1.1rem; text-align:center; letter-spacing:1px;">
+            <button type="submit" class="play-btn" style="width:100%; padding:14px; border-radius:12px; font-size:1rem;">Unlock Music</button>
+        </form>
+        <div id="accessError" style="color: var(--red-bear); margin-top: 12px; display:none;"></div>
+        <a href="#" onclick="clearAccessCode()" id="changeCodeLink" style="display:none; color:var(--text-gray); margin-top:16px; font-size:0.9rem;">Enter a different code</a>
+    </div>
+    <div class="container" id="tracksContainer" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+            <h1 style="color: #1a1a1a;" id="libraryTitle">Music Library</h1>
+            <a href="#" onclick="clearAccessCode()" style="color:var(--text-gray); font-size:0.9rem;">Change code</a>
+        </div>
         <div class="tracks" id="tracksList"></div>
     </div>
     <div class="player" id="player">
@@ -126,10 +140,67 @@
     </div>
     <script>
         const API = window.location.origin;
-        async function loadTracks() {
-            const response = await fetch(`${API}/api/tracks`);
+        let currentCreatorId = null;
+
+        // Check for stored access code
+        const storedCode = localStorage.getItem('accessCode');
+        if (storedCode) {
+            validateAndLoad(storedCode);
+        }
+
+        document.getElementById('accessForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('accessCodeInput').value.trim();
+            validateAndLoad(code);
+        });
+
+        async function validateAndLoad(code) {
+            try {
+                const response = await fetch(`${API}/api/access-code/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_code: code })
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    currentCreatorId = data.creator.id;
+                    localStorage.setItem('accessCode', code);
+                    document.getElementById('accessGate').style.display = 'none';
+                    document.getElementById('tracksContainer').style.display = 'block';
+                    document.getElementById('libraryTitle').textContent =
+                        (data.creator.artist_name || data.creator.first_name) + "'s Music";
+                    loadTracks(currentCreatorId);
+                } else {
+                    document.getElementById('accessError').textContent = 'Invalid access code';
+                    document.getElementById('accessError').style.display = 'block';
+                }
+            } catch (err) {
+                document.getElementById('accessError').textContent = 'Error validating code';
+                document.getElementById('accessError').style.display = 'block';
+            }
+        }
+
+        function clearAccessCode() {
+            localStorage.removeItem('accessCode');
+            currentCreatorId = null;
+            document.getElementById('accessGate').style.display = 'block';
+            document.getElementById('tracksContainer').style.display = 'none';
+            document.getElementById('tracksList').innerHTML = '';
+            document.getElementById('accessCodeInput').value = '';
+            document.getElementById('accessError').style.display = 'none';
+        }
+
+        async function loadTracks(creatorId) {
+            const url = creatorId ? `${API}/api/tracks?creator_id=${creatorId}` : `${API}/api/tracks`;
+            const response = await fetch(url);
             const data = await response.json();
             const tracksList = document.getElementById('tracksList');
+            tracksList.innerHTML = '';
+            if (data.tracks.length === 0) {
+                tracksList.innerHTML = '<p style="color:var(--text-gray); text-align:center; padding:40px;">No tracks uploaded yet.</p>';
+                return;
+            }
             data.tracks.forEach(track => {
                 const div = document.createElement('div');
                 div.className = 'track';
@@ -144,6 +215,7 @@
                 tracksList.appendChild(div);
             });
         }
+
         function playTrack(url, title, artist) {
             const player = document.getElementById('player');
             const audioPlayer = document.getElementById('audioPlayer');
@@ -153,7 +225,6 @@
             audioPlayer.play();
             nowPlaying.textContent = `Now Playing: ${title} - ${artist}`;
         }
-        loadTracks();
     </script>
 </body>
 </html>

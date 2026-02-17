@@ -47,7 +47,7 @@ async function sendCreatorApplicationEmail(application) {
   }
 }
 
-async function sendCreatorWelcomeEmail(application, password) {
+async function sendCreatorWelcomeEmail(application) {
   if (!resend) { console.log('Skipping email (no API key): creator welcome'); return; }
   const loginUrl = `${SITE_URL}/login.html`;
 
@@ -62,9 +62,9 @@ async function sendCreatorWelcomeEmail(application, password) {
           <p style="color: #666; margin-bottom: 32px;">Congratulations ${application.first_name}! Your creator application has been approved.</p>
 
           <div style="background: #f5f5f5; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
-            <h3 style="margin-bottom: 16px;">Your Login Credentials</h3>
+            <h3 style="margin-bottom: 16px;">Your Login Info</h3>
             <p><strong>Username:</strong> ${application.username}</p>
-            <p><strong>Temporary Password:</strong> ${password}</p>
+            <p style="color: #666; margin-top: 8px;">When you log in for the first time, you'll be prompted to set your password.</p>
           </div>
 
           <div style="text-align: center; margin-bottom: 32px;">
@@ -73,10 +73,10 @@ async function sendCreatorWelcomeEmail(application, password) {
 
           <h3 style="margin-bottom: 12px;">Next Steps:</h3>
           <ol style="color: #666; line-height: 1.8;">
-            <li>Sign in with your credentials above</li>
+            <li>Sign in with your username above</li>
+            <li>Set your password</li>
             <li>Access the Creator Dashboard</li>
             <li>Upload your first track or video</li>
-            <li>Share your music with the world!</li>
           </ol>
         </div>
       `

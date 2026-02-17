@@ -169,13 +169,14 @@
             </div>
             
             <div class="section">
-                <h2>Pending Applications</h2>
+                <h2>All Applications</h2>
                 <table>
                     <thead>
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Artist Name</th>
+                            <th>Status</th>
                             <th>Date</th>
                             <th>Actions</th>
                         </tr>
@@ -183,7 +184,7 @@
                     <tbody id="applicationsList"></tbody>
                 </table>
             </div>
-            
+
             <div class="section">
                 <h2>All Creators</h2>
                 <table>
@@ -191,11 +192,28 @@
                         <tr>
                             <th>Username</th>
                             <th>Email</th>
+                            <th>Artist Name</th>
+                            <th>Access Code</th>
                             <th>Status</th>
-                            <th>Actions</th>
+                            <th>Joined</th>
                         </tr>
                     </thead>
                     <tbody id="creatorsList"></tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>All Listeners</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listenersList"></tbody>
                 </table>
             </div>
         </div>
@@ -226,38 +244,92 @@
         });
 
         async function loadDashboard() {
-            // Load stats and applications
-            const appsResponse = await fetch(`${API}/api/applications`);
-            const apps = await appsResponse.json();
-            document.getElementById('pendingApps').textContent = apps.applications.filter(a => a.status === 'pending').length;
+            // Load real stats
+            try {
+                const statsRes = await fetch(`${API}/api/applications/stats`);
+                const stats = await statsRes.json();
+                document.getElementById('totalCreators').textContent = stats.creators;
+                document.getElementById('totalListeners').textContent = stats.listeners;
+                document.getElementById('totalTracks').textContent = stats.tracks;
+                document.getElementById('pendingApps').textContent = stats.pending;
+            } catch (e) { console.error('Failed to load stats:', e); }
 
-            const appsList = document.getElementById('applicationsList');
-            apps.applications.filter(a => a.status === 'pending').forEach(app => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${app.first_name} ${app.last_name}</td>
-                    <td>${app.email}</td>
-                    <td>${app.artist_name || '-'}</td>
-                    <td>${new Date(app.submitted_at).toLocaleDateString()}</td>
-                    <td>
-                        <button class="btn btn-approve" onclick="approveApp('${app.id}')">Approve</button>
-                        <button class="btn btn-deny" onclick="denyApp('${app.id}')">Deny</button>
-                    </td>
-                `;
-                appsList.appendChild(row);
-            });
+            // Load ALL applications
+            try {
+                const appsResponse = await fetch(`${API}/api/applications`);
+                const apps = await appsResponse.json();
+                const appsList = document.getElementById('applicationsList');
+                appsList.innerHTML = '';
+                apps.applications.forEach(app => {
+                    const row = document.createElement('tr');
+                    const statusColor = app.status === 'approved' ? 'var(--green-bull)' :
+                                         app.status === 'denied' ? 'var(--red-bear)' : 'var(--text-gray)';
+                    const actions = app.status === 'pending'
+                        ? `<button class="btn btn-approve" onclick="approveApp('${app.id}')">Approve</button>
+                           <button class="btn btn-deny" onclick="denyApp('${app.id}')">Deny</button>`
+                        : `<span style="font-size:0.85rem;color:var(--text-gray);">${app.processed_at ? new Date(app.processed_at).toLocaleDateString() : '-'}</span>`;
+                    row.innerHTML = `
+                        <td>${app.first_name} ${app.last_name}</td>
+                        <td>${app.email}</td>
+                        <td>${app.artist_name || '-'}</td>
+                        <td><span style="color:${statusColor};font-weight:500;text-transform:capitalize;">${app.status}</span></td>
+                        <td>${new Date(app.submitted_at).toLocaleDateString()}</td>
+                        <td>${actions}</td>
+                    `;
+                    appsList.appendChild(row);
+                });
+            } catch (e) { console.error('Failed to load applications:', e); }
+
+            // Load all creators
+            try {
+                const creatorsRes = await fetch(`${API}/api/admin/creators`);
+                const creatorsData = await creatorsRes.json();
+                const creatorsList = document.getElementById('creatorsList');
+                creatorsList.innerHTML = '';
+                creatorsData.creators.forEach(creator => {
+                    const row = document.createElement('tr');
+                    const statusText = creator.must_set_password ? 'Password not set' : creator.status;
+                    row.innerHTML = `
+                        <td>${creator.username}</td>
+                        <td>${creator.email}</td>
+                        <td>${creator.artist_name || '-'}</td>
+                        <td style="font-family:monospace;">${creator.access_code || '-'}</td>
+                        <td>${statusText}</td>
+                        <td>${new Date(creator.created_at).toLocaleDateString()}</td>
+                    `;
+                    creatorsList.appendChild(row);
+                });
+            } catch (e) { console.error('Failed to load creators:', e); }
+
+            // Load all listeners
+            try {
+                const listenersRes = await fetch(`${API}/api/admin/listeners`);
+                const listenersData = await listenersRes.json();
+                const listenersList = document.getElementById('listenersList');
+                listenersList.innerHTML = '';
+                listenersData.listeners.forEach(listener => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${listener.first_name} ${listener.last_name}</td>
+                        <td>${listener.username}</td>
+                        <td>${listener.email}</td>
+                        <td>${new Date(listener.created_at).toLocaleDateString()}</td>
+                    `;
+                    listenersList.appendChild(row);
+                });
+            } catch (e) { console.error('Failed to load listeners:', e); }
         }
 
         async function approveApp(id) {
             await fetch(`${API}/api/applications/approve/${id}`, { method: 'POST' });
-            location.reload();
+            loadDashboard();
         }
 
         async function denyApp(id) {
             await fetch(`${API}/api/applications/deny/${id}`, { method: 'POST' });
-            location.reload();
+            loadDashboard();
         }
-        
+
         function logout() {
             location.reload();
         }

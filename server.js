@@ -4,8 +4,10 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { Pool } = require('pg');
+const jwt = require('jsonwebtoken');
 
 const app = express();
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-me';
 
 // Middleware
 app.use(cors());
@@ -40,10 +42,10 @@ app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/content', require('./routes/content'));
 
 // Aliases to match frontend expectations
-// login.html calls /api/creators/login and /api/listeners/login
 app.use('/api/creators', require('./routes/auth'));
-// master-admin.html calls /api/master/login
-const jwt = require('jsonwebtoken');
+app.use('/api/upload', require('./routes/uploads'));
+
+// Master admin login
 app.post('/api/master/login', (req, res) => {
   const { password } = req.body;
   if (!process.env.MASTER_PASSWORD) {
@@ -52,33 +54,136 @@ app.post('/api/master/login', (req, res) => {
   if (password !== process.env.MASTER_PASSWORD) {
     return res.status(401).json({ error: 'Invalid password' });
   }
-  const token = jwt.sign(
-    { type: 'master' },
-    process.env.JWT_SECRET || 'default-secret-change-me',
-    { expiresIn: '24h' }
-  );
+  const token = jwt.sign({ type: 'master' }, JWT_SECRET, { expiresIn: '24h' });
   res.json({ success: true, token });
 });
-// admin.html calls /api/upload/music and /api/upload/video
-app.use('/api/upload', require('./routes/uploads'));
-// player.html calls /api/tracks directly
+
+// Tracks - supports optional ?creator_id= filter
 app.get('/api/tracks', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM songs ORDER BY uploaded_at DESC');
+    const { creator_id } = req.query;
+    let result;
+    if (creator_id) {
+      result = await pool.query('SELECT * FROM songs WHERE creator_id = $1 ORDER BY uploaded_at DESC', [creator_id]);
+    } else {
+      result = await pool.query('SELECT * FROM songs ORDER BY uploaded_at DESC');
+    }
     res.json({ tracks: result.rows });
   } catch (err) {
     console.error('Error fetching tracks:', err);
     res.status(500).json({ error: 'Failed to fetch tracks' });
   }
 });
-// videos.html calls /api/videos directly
+
+// Videos - supports optional ?creator_id= filter
 app.get('/api/videos', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM videos ORDER BY uploaded_at DESC');
+    const { creator_id } = req.query;
+    let result;
+    if (creator_id) {
+      result = await pool.query('SELECT * FROM videos WHERE creator_id = $1 ORDER BY uploaded_at DESC', [creator_id]);
+    } else {
+      result = await pool.query('SELECT * FROM videos ORDER BY uploaded_at DESC');
+    }
     res.json({ videos: result.rows });
   } catch (err) {
     console.error('Error fetching videos:', err);
     res.status(500).json({ error: 'Failed to fetch videos' });
+  }
+});
+
+// Validate access code
+app.post('/api/access-code/validate', async (req, res) => {
+  try {
+    const { access_code } = req.body;
+    if (!access_code) {
+      return res.status(400).json({ error: 'Access code is required' });
+    }
+    const result = await pool.query(
+      'SELECT id, username, artist_name, first_name, last_name FROM creators WHERE access_code = $1',
+      [access_code]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Invalid access code' });
+    }
+    res.json({ success: true, creator: result.rows[0] });
+  } catch (err) {
+    console.error('Access code validation error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get creator's access code (requires auth)
+app.get('/api/creators/access-code', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
+
+    const result = await pool.query('SELECT access_code FROM creators WHERE id = $1', [decoded.id]);
+    res.json({ access_code: result.rows[0]?.access_code || null });
+  } catch (err) {
+    console.error('Access code fetch error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Set/update creator's access code (requires auth)
+app.post('/api/creators/access-code', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
+
+    const { access_code } = req.body;
+    if (!access_code || access_code.length < 4 || access_code.length > 50) {
+      return res.status(400).json({ error: 'Access code must be 4-50 characters' });
+    }
+
+    // Check if code is already taken by another creator
+    const existing = await pool.query(
+      'SELECT id FROM creators WHERE access_code = $1 AND id != $2',
+      [access_code, decoded.id]
+    );
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'This access code is already in use' });
+    }
+
+    await pool.query('UPDATE creators SET access_code = $1 WHERE id = $2', [access_code, decoded.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Access code update error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin: get all creators
+app.get('/api/admin/creators', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, username, email, first_name, last_name, artist_name, access_code, must_set_password, status, created_at FROM creators ORDER BY created_at DESC'
+    );
+    res.json({ creators: result.rows });
+  } catch (err) {
+    console.error('Admin creators fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch creators' });
+  }
+});
+
+// Admin: get all listeners
+app.get('/api/admin/listeners', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, username, email, first_name, last_name, created_at FROM listeners ORDER BY created_at DESC'
+    );
+    res.json({ listeners: result.rows });
+  } catch (err) {
+    console.error('Admin listeners fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch listeners' });
   }
 });
 

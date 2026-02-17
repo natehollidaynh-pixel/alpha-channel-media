@@ -3,7 +3,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-me';
 
 // Configure multer storage
 const storage = multer.diskStorage({
@@ -63,6 +66,17 @@ router.post('/music', upload.fields([
       return res.status(400).json({ error: 'Audio file is required' });
     }
 
+    // Extract creator_id from auth token
+    let creatorId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.type === 'creator') creatorId = decoded.id;
+      } catch (e) {}
+    }
+
     const audioFile = req.files.audio[0];
     const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
     const audioUrl = `${appUrl}/${audioFile.path}`;
@@ -75,10 +89,10 @@ router.post('/music', upload.fields([
     const ext = path.extname(audioFile.originalname).toLowerCase().replace('.', '');
 
     const result = await db.query(
-      `INSERT INTO songs (title, artist, lyrics, audio_url, artwork_url, file_size, format)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO songs (creator_id, title, artist, lyrics, audio_url, artwork_url, file_size, format)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [title, artist, lyrics || null, audioUrl, artworkUrl, audioFile.size, ext]
+      [creatorId, title, artist, lyrics || null, audioUrl, artworkUrl, audioFile.size, ext]
     );
 
     res.json({ success: true, song: result.rows[0] });
@@ -101,6 +115,17 @@ router.post('/video', upload.fields([
       return res.status(400).json({ error: 'Video file is required' });
     }
 
+    // Extract creator_id from auth token
+    let creatorId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.type === 'creator') creatorId = decoded.id;
+      } catch (e) {}
+    }
+
     const videoFile = req.files.video[0];
     const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
     const videoUrl = `${appUrl}/${videoFile.path}`;
@@ -113,10 +138,10 @@ router.post('/video', upload.fields([
     const ext = path.extname(videoFile.originalname).toLowerCase().replace('.', '');
 
     const result = await db.query(
-      `INSERT INTO videos (title, description, category, video_url, thumbnail_url, file_size, format)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO videos (creator_id, title, description, category, video_url, thumbnail_url, file_size, format)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [title, description || null, category || null, videoUrl, thumbnailUrl, videoFile.size, ext]
+      [creatorId, title, description || null, category || null, videoUrl, thumbnailUrl, videoFile.size, ext]
     );
 
     res.json({ success: true, video: result.rows[0] });
