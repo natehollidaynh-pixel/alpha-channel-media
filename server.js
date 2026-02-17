@@ -92,29 +92,29 @@ app.get('/api/videos', async (req, res) => {
   }
 });
 
-// Validate access code
-app.post('/api/access-code/validate', async (req, res) => {
+// Validate listener key
+app.post('/api/listener-key/validate', async (req, res) => {
   try {
-    const { access_code } = req.body;
-    if (!access_code) {
-      return res.status(400).json({ error: 'Access code is required' });
+    const { listener_key } = req.body;
+    if (!listener_key) {
+      return res.status(400).json({ error: 'Listener key is required' });
     }
     const result = await pool.query(
-      'SELECT id, username, artist_name, first_name, last_name FROM creators WHERE access_code = $1',
-      [access_code]
+      'SELECT id, username, artist_name, first_name, last_name FROM creators WHERE listener_key = $1',
+      [listener_key]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Invalid access code' });
+      return res.status(404).json({ error: 'Invalid listener key' });
     }
     res.json({ success: true, creator: result.rows[0] });
   } catch (err) {
-    console.error('Access code validation error:', err);
+    console.error('Listener key validation error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Get creator's access code (requires auth)
-app.get('/api/creators/access-code', async (req, res) => {
+// Get creator's listener key (requires auth)
+app.get('/api/creators/listener-key', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'No token provided' });
@@ -122,16 +122,16 @@ app.get('/api/creators/access-code', async (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
 
-    const result = await pool.query('SELECT access_code FROM creators WHERE id = $1', [decoded.id]);
-    res.json({ access_code: result.rows[0]?.access_code || null });
+    const result = await pool.query('SELECT listener_key FROM creators WHERE id = $1', [decoded.id]);
+    res.json({ listener_key: result.rows[0]?.listener_key || null });
   } catch (err) {
-    console.error('Access code fetch error:', err);
+    console.error('Listener key fetch error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Set/update creator's access code (requires auth)
-app.post('/api/creators/access-code', async (req, res) => {
+// Set/update creator's listener key (requires auth)
+app.post('/api/creators/listener-key', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'No token provided' });
@@ -139,24 +139,24 @@ app.post('/api/creators/access-code', async (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
 
-    const { access_code } = req.body;
-    if (!access_code || access_code.length < 4 || access_code.length > 50) {
-      return res.status(400).json({ error: 'Access code must be 4-50 characters' });
+    const { listener_key } = req.body;
+    if (!listener_key || !/^\d{4}$/.test(listener_key)) {
+      return res.status(400).json({ error: 'Listener key must be exactly 4 digits' });
     }
 
-    // Check if code is already taken by another creator
+    // Check if key is already taken by another creator
     const existing = await pool.query(
-      'SELECT id FROM creators WHERE access_code = $1 AND id != $2',
-      [access_code, decoded.id]
+      'SELECT id FROM creators WHERE listener_key = $1 AND id != $2',
+      [listener_key, decoded.id]
     );
     if (existing.rows.length > 0) {
-      return res.status(400).json({ error: 'This access code is already in use' });
+      return res.status(400).json({ error: 'This listener key is already in use' });
     }
 
-    await pool.query('UPDATE creators SET access_code = $1 WHERE id = $2', [access_code, decoded.id]);
+    await pool.query('UPDATE creators SET listener_key = $1 WHERE id = $2', [listener_key, decoded.id]);
     res.json({ success: true });
   } catch (err) {
-    console.error('Access code update error:', err);
+    console.error('Listener key update error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -165,7 +165,7 @@ app.post('/api/creators/access-code', async (req, res) => {
 app.get('/api/admin/creators', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, email, first_name, last_name, artist_name, access_code, must_set_password, status, created_at FROM creators ORDER BY created_at DESC'
+      'SELECT id, username, email, first_name, last_name, artist_name, listener_key, pin_hash IS NOT NULL AS pin_set, status, created_at FROM creators ORDER BY created_at DESC'
     );
     res.json({ creators: result.rows });
   } catch (err) {

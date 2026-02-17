@@ -9,13 +9,12 @@ CREATE TABLE IF NOT EXISTS creators (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255),
-    must_set_password BOOLEAN DEFAULT true,
+    pin_hash VARCHAR(255),
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     artist_name VARCHAR(100),
     bio TEXT,
-    access_code VARCHAR(50),
+    listener_key VARCHAR(4),
     status VARCHAR(20) DEFAULT 'active',
     created_at TIMESTAMP DEFAULT NOW()
 );

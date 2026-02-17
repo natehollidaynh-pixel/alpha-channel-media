@@ -64,7 +64,7 @@ async function sendCreatorWelcomeEmail(application) {
           <div style="background: #f5f5f5; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
             <h3 style="margin-bottom: 16px;">Your Login Info</h3>
             <p><strong>Username:</strong> ${application.username}</p>
-            <p style="color: #666; margin-top: 8px;">When you log in for the first time, you'll be prompted to set your password.</p>
+            <p style="color: #666; margin-top: 8px;">Your admin will provide you with a PIN to log in.</p>
           </div>
 
           <div style="text-align: center; margin-bottom: 32px;">
@@ -73,8 +73,8 @@ async function sendCreatorWelcomeEmail(application) {
 
           <h3 style="margin-bottom: 12px;">Next Steps:</h3>
           <ol style="color: #666; line-height: 1.8;">
-            <li>Sign in with your username above</li>
-            <li>Set your password</li>
+            <li>Receive your PIN from the admin</li>
+            <li>Sign in with your username and PIN</li>
             <li>Access the Creator Dashboard</li>
             <li>Upload your first track or video</li>
           </ol>

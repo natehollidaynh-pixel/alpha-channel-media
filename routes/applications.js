@@ -1,4 +1,6 @@
 const express = require('express');
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const router = express.Router();
 const { sendCreatorApplicationEmail, sendCreatorWelcomeEmail } = require('../emails/sender');
 
@@ -42,10 +44,10 @@ router.post('/approve/:id', async (req, res) => {
 
     const application = appResult.rows[0];
 
-    // Create creator account with NO password — they set it on first login
+    // Create creator account with NO pin — admin generates it separately
     await db.query(
-      `INSERT INTO creators (username, email, password_hash, must_set_password, first_name, last_name, artist_name, bio)
-       VALUES ($1, $2, NULL, true, $3, $4, $5, $6)`,
+      `INSERT INTO creators (username, email, pin_hash, first_name, last_name, artist_name, bio)
+       VALUES ($1, $2, NULL, $3, $4, $5, $6)`,
       [
         application.username,
         application.email,
@@ -62,7 +64,7 @@ router.post('/approve/:id', async (req, res) => {
       [id]
     );
 
-    // Send welcome email (no password — tells them to log in and set one)
+    // Send welcome email (tells them admin will provide PIN)
     sendCreatorWelcomeEmail(application).catch(err =>
       console.error('Failed to send welcome email:', err)
     );
@@ -71,6 +73,40 @@ router.post('/approve/:id', async (req, res) => {
   } catch (err) {
     console.error('Application approve error:', err);
     res.status(500).json({ error: 'Failed to approve application' });
+  }
+});
+
+// Generate PIN for a creator (admin action)
+router.post('/generate-pin/:creatorId', async (req, res) => {
+  try {
+    const { creatorId } = req.params;
+    const db = req.app.locals.db;
+
+    // Verify creator exists
+    const result = await db.query('SELECT id, username FROM creators WHERE id = $1', [creatorId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Creator not found' });
+    }
+
+    // Generate 6-digit numeric PIN
+    const pin = crypto.randomInt(100000, 999999).toString();
+
+    // Hash the PIN
+    const pinHash = await bcrypt.hash(pin, 10);
+
+    // Store the hash
+    await db.query('UPDATE creators SET pin_hash = $1 WHERE id = $2', [pinHash, creatorId]);
+
+    // Return plaintext PIN (shown once to admin)
+    res.json({
+      success: true,
+      pin: pin,
+      username: result.rows[0].username,
+      message: 'PIN generated. Share this with the creator. It will not be shown again.'
+    });
+  } catch (err) {
+    console.error('Generate PIN error:', err);
+    res.status(500).json({ error: 'Failed to generate PIN' });
   }
 });
 

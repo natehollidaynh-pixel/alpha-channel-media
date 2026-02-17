@@ -21,13 +21,14 @@
             background: var(--pearl-white);
             min-height: 100vh;
             padding: 20px;
+            padding-bottom: 120px;
             position: relative;
         }
         body::before {
             content: '';
             position: fixed;
             inset: 0;
-            background: 
+            background:
                 radial-gradient(circle at 15% 25%, var(--green-glow) 0%, transparent 45%),
                 radial-gradient(circle at 85% 75%, var(--red-glow) 0%, transparent 45%);
             pointer-events: none;
@@ -80,6 +81,7 @@
             align-items: center;
             justify-content: center;
             font-size: 2rem;
+            overflow: hidden;
         }
         .track-info h3 { color: var(--text-dark); margin-bottom: 4px; }
         .track-info p { color: var(--text-gray); font-size: 0.9rem; }
@@ -106,31 +108,87 @@
         }
         .player.active { display: block; }
         audio { width: 100%; margin-top: 12px; }
+        .gate-input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 6px;
+            font-family: monospace;
+        }
+        .gate-input:focus {
+            outline: none;
+            border-color: var(--green-bull);
+            box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.1);
+        }
+        .gate-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--green-bull);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { padding: 12px; padding-bottom: 120px; }
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+                padding: 16px;
+            }
+            nav a { margin-left: 0; margin: 0 12px; }
+            .track {
+                grid-template-columns: 60px 1fr;
+                gap: 12px;
+            }
+            .track .play-btn {
+                grid-column: 1 / -1;
+                width: 100%;
+                text-align: center;
+            }
+            .artwork { width: 60px; height: 60px; }
+            .player { padding: 12px 16px; }
+        }
+        @media (max-width: 480px) {
+            .header { border-radius: 16px; }
+            .logo { font-size: 1.5rem; }
+            .track { padding: 16px; border-radius: 12px; }
+            .play-btn { padding: 10px 16px; font-size: 0.9rem; }
+            .gate-input { font-size: 1.3rem; letter-spacing: 4px; }
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="logo">🎵 Alpha Channel Media</div>
+        <div class="logo">Alpha Channel Media</div>
         <nav>
             <a href="videos.html">Videos</a>
             <a href="welcome.html">Logout</a>
         </nav>
     </div>
     <div class="container" id="accessGate" style="text-align:center; margin-top: 60px; max-width: 500px; margin-left: auto; margin-right: auto;">
-        <h2 style="margin-bottom: 16px; color: var(--text-dark);">Enter Access Code</h2>
-        <p style="color: var(--text-gray); margin-bottom: 24px;">Enter a creator's access code to listen to their music.</p>
+        <h2 style="margin-bottom: 16px; color: var(--text-dark);">Enter Listener Key</h2>
+        <p style="color: var(--text-gray); margin-bottom: 24px;">Enter a creator's 4-digit key to listen to their music.</p>
         <form id="accessForm" style="max-width: 400px; margin: 0 auto;">
-            <input type="text" id="accessCodeInput" placeholder="Enter access code" required
-                   style="width:100%; padding:14px; border:1px solid rgba(0,0,0,0.1); border-radius:12px; margin-bottom:16px; font-size:1.1rem; text-align:center; letter-spacing:1px;">
-            <button type="submit" class="play-btn" style="width:100%; padding:14px; border-radius:12px; font-size:1rem;">Unlock Music</button>
+            <input type="text" id="listenerKeyInput" class="gate-input" placeholder="0000" required
+                   inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
+            <button type="submit" class="gate-btn">Unlock Music</button>
         </form>
         <div id="accessError" style="color: var(--red-bear); margin-top: 12px; display:none;"></div>
-        <a href="#" onclick="clearAccessCode()" id="changeCodeLink" style="display:none; color:var(--text-gray); margin-top:16px; font-size:0.9rem;">Enter a different code</a>
     </div>
     <div class="container" id="tracksContainer" style="display:none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
             <h1 style="color: #1a1a1a;" id="libraryTitle">Music Library</h1>
-            <a href="#" onclick="clearAccessCode()" style="color:var(--text-gray); font-size:0.9rem;">Change code</a>
+            <a href="#" onclick="clearListenerKey()" style="color:var(--text-gray); font-size:0.9rem;">Change key</a>
         </div>
         <div class="tracks" id="tracksList"></div>
     </div>
@@ -142,52 +200,52 @@
         const API = window.location.origin;
         let currentCreatorId = null;
 
-        // Check for stored access code
-        const storedCode = localStorage.getItem('accessCode');
-        if (storedCode) {
-            validateAndLoad(storedCode);
+        // Check for stored listener key
+        const storedKey = localStorage.getItem('listenerKey');
+        if (storedKey) {
+            validateAndLoad(storedKey);
         }
 
         document.getElementById('accessForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const code = document.getElementById('accessCodeInput').value.trim();
-            validateAndLoad(code);
+            const key = document.getElementById('listenerKeyInput').value.trim();
+            validateAndLoad(key);
         });
 
-        async function validateAndLoad(code) {
+        async function validateAndLoad(key) {
             try {
-                const response = await fetch(`${API}/api/access-code/validate`, {
+                const response = await fetch(`${API}/api/listener-key/validate`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ access_code: code })
+                    body: JSON.stringify({ listener_key: key })
                 });
                 const data = await response.json();
 
                 if (response.ok && data.success) {
                     currentCreatorId = data.creator.id;
-                    localStorage.setItem('accessCode', code);
+                    localStorage.setItem('listenerKey', key);
                     document.getElementById('accessGate').style.display = 'none';
                     document.getElementById('tracksContainer').style.display = 'block';
                     document.getElementById('libraryTitle').textContent =
                         (data.creator.artist_name || data.creator.first_name) + "'s Music";
                     loadTracks(currentCreatorId);
                 } else {
-                    document.getElementById('accessError').textContent = 'Invalid access code';
+                    document.getElementById('accessError').textContent = 'Invalid listener key';
                     document.getElementById('accessError').style.display = 'block';
                 }
             } catch (err) {
-                document.getElementById('accessError').textContent = 'Error validating code';
+                document.getElementById('accessError').textContent = 'Error validating key';
                 document.getElementById('accessError').style.display = 'block';
             }
         }
 
-        function clearAccessCode() {
-            localStorage.removeItem('accessCode');
+        function clearListenerKey() {
+            localStorage.removeItem('listenerKey');
             currentCreatorId = null;
             document.getElementById('accessGate').style.display = 'block';
             document.getElementById('tracksContainer').style.display = 'none';
             document.getElementById('tracksList').innerHTML = '';
-            document.getElementById('accessCodeInput').value = '';
+            document.getElementById('listenerKeyInput').value = '';
             document.getElementById('accessError').style.display = 'none';
         }
 

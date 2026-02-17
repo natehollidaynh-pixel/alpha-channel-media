@@ -27,7 +27,7 @@
             content: '';
             position: fixed;
             inset: 0;
-            background: 
+            background:
                 radial-gradient(circle at 15% 25%, var(--green-glow) 0%, transparent 45%),
                 radial-gradient(circle at 85% 75%, var(--red-glow) 0%, transparent 45%);
             pointer-events: none;
@@ -57,6 +57,7 @@
             margin-bottom: 16px;
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 8px;
+            font-size: 1rem;
         }
         .login-box button {
             width: 100%;
@@ -67,6 +68,7 @@
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
+            font-size: 1rem;
         }
         .header {
             position: relative;
@@ -106,11 +108,13 @@
             padding: 32px;
             border-radius: 20px;
             margin-bottom: 24px;
+            overflow-x: auto;
         }
         .section h2 { margin-bottom: 24px; }
         table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 600px;
         }
         th, td {
             text-align: left;
@@ -125,29 +129,116 @@
             cursor: pointer;
             font-weight: 500;
             margin-right: 8px;
+            font-size: 0.85rem;
         }
         .btn-approve { background: var(--green-bull); color: white; }
         .btn-deny { background: var(--red-bear); color: white; }
+        .btn-pin { background: #1a73e8; color: white; }
         .hidden { display: none; }
+
+        /* PIN Modal */
+        .pin-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .pin-modal.active { display: flex; }
+        .pin-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+        }
+        .pin-display {
+            font-size: 2.5rem;
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--green-bull);
+            letter-spacing: 8px;
+            padding: 20px;
+            background: rgba(0, 168, 107, 0.1);
+            border-radius: 12px;
+            margin: 16px 0;
+        }
+        .pin-warning {
+            color: var(--red-bear);
+            font-size: 0.85rem;
+            margin-bottom: 24px;
+        }
+        .pin-done-btn {
+            padding: 12px 32px;
+            background: var(--green-bull);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+                padding: 16px;
+            }
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .stat-card { padding: 16px; }
+            .stat-number { font-size: 2rem; }
+            .section { padding: 20px 16px; border-radius: 16px; }
+            th, td { padding: 10px 8px; font-size: 0.85rem; }
+            .login-box { padding: 30px 24px; }
+            .btn { padding: 6px 12px; font-size: 0.8rem; margin-right: 4px; margin-bottom: 4px; }
+        }
+        @media (max-width: 480px) {
+            .stat-number { font-size: 1.6rem; }
+            .stat-label { font-size: 0.8rem; }
+            .section { padding: 16px 12px; }
+            .section h2 { font-size: 1.2rem; }
+            .pin-display { font-size: 2rem; letter-spacing: 6px; }
+        }
     </style>
 </head>
 <body>
     <div class="login-modal" id="loginModal">
         <div class="login-box">
-            <h2>👑 Master Admin</h2>
+            <h2>Master Admin</h2>
             <form id="masterLogin">
                 <input type="password" placeholder="Master Password" required>
                 <button type="submit">Login</button>
             </form>
         </div>
     </div>
-    
+
+    <!-- PIN Modal -->
+    <div class="pin-modal" id="pinModal">
+        <div class="pin-box">
+            <h3 style="margin-bottom:8px;">Creator PIN Generated</h3>
+            <p style="color:var(--text-gray); margin-bottom:4px;" id="pinUsername"></p>
+            <div class="pin-display" id="pinDisplay"></div>
+            <p class="pin-warning">Copy this PIN now. It will not be shown again.</p>
+            <button class="pin-done-btn" onclick="closePinModal()">Done</button>
+        </div>
+    </div>
+
     <div class="hidden" id="dashboard">
         <div class="header">
-            <div class="logo">👑 Master Admin Dashboard</div>
-            <button onclick="logout()" style="padding: 10px 20px; background: var(--red-bear); color: white; border: none; border-radius: 8px; cursor: pointer;">Logout</button>
+            <div class="logo">Master Admin Dashboard</div>
+            <button onclick="logout()" style="padding: 10px 20px; background: var(--red-bear); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">Logout</button>
         </div>
-        
+
         <div class="container">
             <div class="stats">
                 <div class="stat-card">
@@ -167,7 +258,7 @@
                     <div class="stat-label">Pending</div>
                 </div>
             </div>
-            
+
             <div class="section">
                 <h2>All Applications</h2>
                 <table>
@@ -193,9 +284,10 @@
                             <th>Username</th>
                             <th>Email</th>
                             <th>Artist Name</th>
-                            <th>Access Code</th>
-                            <th>Status</th>
+                            <th>Listener Key</th>
+                            <th>PIN Status</th>
                             <th>Joined</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="creatorsList"></tbody>
@@ -218,7 +310,7 @@
             </div>
         </div>
     </div>
-    
+
     <script>
         const API = window.location.origin;
 
@@ -288,14 +380,15 @@
                 creatorsList.innerHTML = '';
                 creatorsData.creators.forEach(creator => {
                     const row = document.createElement('tr');
-                    const statusText = creator.must_set_password ? 'Password not set' : creator.status;
+                    const pinStatus = creator.pin_set ? '<span style="color:var(--green-bull);font-weight:500;">Active</span>' : '<span style="color:var(--red-bear);font-weight:500;">No PIN</span>';
                     row.innerHTML = `
                         <td>${creator.username}</td>
                         <td>${creator.email}</td>
                         <td>${creator.artist_name || '-'}</td>
-                        <td style="font-family:monospace;">${creator.access_code || '-'}</td>
-                        <td>${statusText}</td>
+                        <td style="font-family:monospace;letter-spacing:2px;">${creator.listener_key || '-'}</td>
+                        <td>${pinStatus}</td>
                         <td>${new Date(creator.created_at).toLocaleDateString()}</td>
+                        <td><button class="btn btn-pin" onclick="generatePin('${creator.id}', '${creator.username}')">Generate PIN</button></td>
                     `;
                     creatorsList.appendChild(row);
                 });
@@ -328,6 +421,30 @@
         async function denyApp(id) {
             await fetch(`${API}/api/applications/deny/${id}`, { method: 'POST' });
             loadDashboard();
+        }
+
+        async function generatePin(creatorId, username) {
+            if (!confirm(`Generate a new PIN for "${username}"? This will replace any existing PIN.`)) return;
+            try {
+                const response = await fetch(`${API}/api/applications/generate-pin/${creatorId}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    document.getElementById('pinUsername').textContent = `Username: ${result.username}`;
+                    document.getElementById('pinDisplay').textContent = result.pin;
+                    document.getElementById('pinModal').classList.add('active');
+                    loadDashboard();
+                } else {
+                    alert(result.error || 'Failed to generate PIN');
+                }
+            } catch (err) {
+                alert('Error generating PIN');
+            }
+        }
+
+        function closePinModal() {
+            document.getElementById('pinModal').classList.remove('active');
         }
 
         function logout() {

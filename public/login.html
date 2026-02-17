@@ -29,7 +29,7 @@
             content: '';
             position: fixed;
             inset: 0;
-            background: 
+            background:
                 radial-gradient(circle at 15% 25%, var(--green-glow) 0%, transparent 45%),
                 radial-gradient(circle at 85% 75%, var(--red-glow) 0%, transparent 45%);
             pointer-events: none;
@@ -62,11 +62,17 @@
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.7);
+            font-size: 1rem;
         }
         input:focus {
             outline: none;
             border-color: var(--green-bull);
             box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.1);
+        }
+        .hint {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            margin-top: 6px;
         }
         .submit-btn {
             width: 100%;
@@ -91,6 +97,16 @@
             margin-bottom: 20px;
             display: none;
         }
+
+        @media (max-width: 768px) {
+            .container { padding: 40px 30px; }
+            h1 { font-size: 1.8rem; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 30px 20px; border-radius: 24px; }
+            h1 { font-size: 1.5rem; }
+            .submit-btn { font-size: 1rem; }
+        }
     </style>
 </head>
 <body>
@@ -103,13 +119,14 @@
                 <input type="text" name="username" required>
             </div>
             <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="password" required>
+                <label>PIN or Password</label>
+                <input type="password" name="credential" required>
+                <p class="hint">Creators: enter your 6-digit PIN &middot; Listeners: enter your password</p>
             </div>
             <button type="submit" class="submit-btn">Login</button>
         </form>
         <div class="back-link">
-            <a href="welcome.html">← Back to home</a>
+            <a href="welcome.html">&larr; Back to home</a>
         </div>
     </div>
     <script>
@@ -117,27 +134,17 @@
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const data = {
-                username: formData.get('username'),
-                password: formData.get('password')
-            };
+            const username = formData.get('username');
+            const credential = formData.get('credential');
 
-            // Try creator login
+            // Try creator login (with PIN)
             try {
                 const response = await fetch(`${API}/api/creators/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({ username, pin: credential })
                 });
                 const result = await response.json();
-
-                // Creator needs to set password (first login after approval)
-                if (result.must_set_password) {
-                    localStorage.setItem('setupToken', result.setup_token);
-                    localStorage.setItem('setupUsername', result.username);
-                    window.location.href = 'set-password.html';
-                    return;
-                }
 
                 if (response.ok && result.success) {
                     if (result.token) localStorage.setItem('authToken', result.token);
@@ -146,12 +153,12 @@
                 }
             } catch (e) {}
 
-            // Try listener login
+            // Try listener login (with password)
             try {
                 const response = await fetch(`${API}/api/listeners/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({ username, password: credential })
                 });
                 if (response.ok) {
                     const result = await response.json();

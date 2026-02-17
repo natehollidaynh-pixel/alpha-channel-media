@@ -85,6 +85,18 @@
         }
         .back-link { text-align: center; margin-top: 24px; }
         .back-link a { color: var(--text-gray); text-decoration: none; }
+
+        @media (max-width: 768px) {
+            .container { padding: 40px 30px; }
+            h1 { font-size: 2rem; }
+            .logo { font-size: 3rem; }
+            .name-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 30px 20px; border-radius: 24px; }
+            h1 { font-size: 1.7rem; }
+            .submit-btn { font-size: 1rem; padding: 14px; }
+        }
     </style>
 </head>
 <body>
