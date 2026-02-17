@@ -1,12 +1,18 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend = null;
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+} else {
+  console.warn('WARNING: RESEND_API_KEY not set. Emails will be disabled.');
+}
 
 const SITE_URL = process.env.APP_URL || 'http://localhost:3000';
 const ADMIN_EMAIL = 'natehollidaynh@gmail.com';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'Alpha Channel Media <onboarding@resend.dev>';
 
 async function sendCreatorApplicationEmail(application) {
+  if (!resend) { console.log('Skipping email (no API key): creator application'); return; }
   const approveUrl = `${SITE_URL}/master-admin.html?action=approve&id=${application.id}`;
   const denyUrl = `${SITE_URL}/master-admin.html?action=deny&id=${application.id}`;
 
@@ -42,6 +48,7 @@ async function sendCreatorApplicationEmail(application) {
 }
 
 async function sendCreatorWelcomeEmail(application, password) {
+  if (!resend) { console.log('Skipping email (no API key): creator welcome'); return; }
   const loginUrl = `${SITE_URL}/login.html`;
 
   try {
@@ -81,6 +88,7 @@ async function sendCreatorWelcomeEmail(application, password) {
 }
 
 async function sendListenerConfirmationEmail(listener) {
+  if (!resend) { console.log('Skipping email (no API key): listener confirmation'); return; }
   const loginUrl = `${SITE_URL}/login.html`;
 
   try {
@@ -111,6 +119,7 @@ async function sendListenerConfirmationEmail(listener) {
 }
 
 async function sendAdminListenerNotification(listener) {
+  if (!resend) { console.log('Skipping email (no API key): admin listener notification'); return; }
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
