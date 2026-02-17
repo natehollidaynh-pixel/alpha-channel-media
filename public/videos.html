@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Videos - Alpha Channel Media</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --pearl-white: #fafafa;
+            --green-bull: #00a86b;
+            --green-glow: rgba(0, 168, 107, 0.35);
+            --red-bear: #d32f2f;
+            --red-glow: rgba(211, 47, 47, 0.35);
+            --text-dark: #1a1a1a;
+            --text-gray: #666666;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--pearl-white);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 15% 25%, var(--green-glow) 0%, transparent 45%),
+                radial-gradient(circle at 85% 75%, var(--red-glow) 0%, transparent 45%);
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .header {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(25px);
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { font-size: 2rem; }
+        nav a { color: var(--text-dark); text-decoration: none; margin-left: 24px; }
+        .container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        .video-card {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .video-card:hover { transform: translateY(-4px); }
+        .thumbnail {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: rgba(0, 168, 107, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+        .video-info { padding: 16px; }
+        .video-info h3 { margin-bottom: 8px; color: var(--text-dark); }
+        .video-info p { color: var(--text-gray); font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🎬 Videos</div>
+        <nav>
+            <a href="player.html">Music</a>
+            <a href="welcome.html">Logout</a>
+        </nav>
+    </div>
+    <div class="container">
+        <h1 style="margin-bottom: 24px; color: #1a1a1a;">Video Library</h1>
+        <div class="videos-grid" id="videosGrid"></div>
+    </div>
+    <script>
+        const API = window.location.origin;
+        async function loadVideos() {
+            const response = await fetch(`${API}/api/videos`);
+            const data = await response.json();
+            const grid = document.getElementById('videosGrid');
+            data.videos.forEach(video => {
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.onclick = () => window.open(video.video_url, '_blank');
+                card.innerHTML = `
+                    <div class="thumbnail">${video.thumbnail_url ? `<img src="${video.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;">` : '🎬'}</div>
+                    <div class="video-info">
+                        <h3>${video.title}</h3>
+                        <p>${video.category || 'Video'}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        loadVideos();
+    </script>
+</body>
+</html>

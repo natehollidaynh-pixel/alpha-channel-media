@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome - Alpha Channel Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --pearl-white: #fafafa;
+            --white: #ffffff;
+            --green-bull: #00a86b;
+            --green-glow: rgba(0, 168, 107, 0.35);
+            --red-bear: #d32f2f;
+            --red-glow: rgba(211, 47, 47, 0.35);
+            --text-dark: #1a1a1a;
+            --text-gray: #666666;
+            --glass-bg: rgba(255, 255, 255, 0.4);
+            --glass-border: rgba(0, 0, 0, 0.08);
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--pearl-white);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+            padding: 40px 20px;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 15% 25%, var(--green-glow) 0%, transparent 45%),
+                radial-gradient(circle at 85% 75%, var(--red-glow) 0%, transparent 45%);
+            animation: auraFloat 25s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        @keyframes auraFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+            33% { transform: translate(4%, -4%) scale(1.05); opacity: 0.7; }
+            66% { transform: translate(-4%, 4%) scale(0.95); opacity: 0.6; }
+        }
+        
+        .glass-container {
+            position: relative;
+            z-index: 1;
+            max-width: 700px;
+            width: 90%;
+            padding: 60px 50px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-radius: 32px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.05),
+                0 0 0 1px rgba(255, 255, 255, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            text-align: center;
+            animation: glassEntry 0.8s ease-out;
+        }
+        
+        @keyframes glassEntry {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .logo {
+            font-size: 4.5rem;
+            margin-bottom: 24px;
+            filter: drop-shadow(0 4px 12px rgba(0, 168, 107, 0.15));
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+        
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .title {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--green-bull) 0%, var(--text-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+        
+        .subtitle {
+            font-size: 1.15rem;
+            color: var(--text-gray);
+            margin-bottom: 50px;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+        
+        .question {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 36px;
+        }
+        
+        .choice-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+        
+        .choice-btn {
+            position: relative;
+            padding: 48px 24px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 24px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        
+        .choice-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.4) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        
+        .choice-btn:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .choice-btn:hover::before {
+            opacity: 1;
+        }
+        
+        .choice-btn:nth-child(1):hover {
+            box-shadow: 0 20px 60px var(--green-glow);
+            border-color: var(--green-bull);
+        }
+        
+        .choice-btn:nth-child(2):hover {
+            box-shadow: 0 20px 60px var(--red-glow);
+            border-color: var(--red-bear);
+        }
+        
+        .choice-icon {
+            font-size: 3.5rem;
+            margin-bottom: 16px;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+        
+        .choice-btn:hover .choice-icon {
+            transform: scale(1.1);
+        }
+        
+        .choice-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+        
+        .choice-desc {
+            font-size: 0.95rem;
+            color: var(--text-gray);
+            font-weight: 400;
+        }
+        
+        .login-link {
+            margin-top: 36px;
+            padding-top: 36px;
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+            font-size: 0.95rem;
+            color: var(--text-gray);
+        }
+        
+        .login-link a {
+            color: var(--green-bull);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .login-link a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--green-bull);
+            transition: width 0.3s ease;
+        }
+        
+        .login-link a:hover::after {
+            width: 100%;
+        }
+        
+        .master-link {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 10px 18px;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            color: rgba(0, 0, 0, 0.4);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            opacity: 0.4;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .master-link:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--text-dark);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+        
+        @media (max-width: 768px) {
+            .glass-container { padding: 40px 30px; }
+            .title { font-size: 2.2rem; }
+            .subtitle { font-size: 1rem; }
+            .choice-buttons { grid-template-columns: 1fr; gap: 16px; }
+            .choice-btn { padding: 36px 20px; }
+            .logo { font-size: 3.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-container">
+        <div class="logo">🎵</div>
+        <h1 class="title">Welcome to Alpha Channel Media</h1>
+        <p class="subtitle">Your platform for discovering and sharing incredible music from independent artists</p>
+        
+        <p class="question">Are you a Creator or a Listener?</p>
+        
+        <div class="choice-buttons">
+            <a href="creator-signup.html" class="choice-btn">
+                <span class="choice-icon">🎤</span>
+                <div class="choice-title">I'm a Creator</div>
+                <div class="choice-desc">Upload and share your music</div>
+            </a>
+            
+            <a href="listener-signup.html" class="choice-btn">
+                <span class="choice-icon">🎧</span>
+                <div class="choice-title">I'm a Listener</div>
+                <div class="choice-desc">Discover amazing music</div>
+            </a>
+        </div>
+        
+        <div class="login-link">
+            Already have an account? <a href="login.html">Sign in here</a>
+        </div>
+    </div>
+    
+    <a href="master-admin.html" class="master-link">👑 Master</a>
+</body>
+</html>

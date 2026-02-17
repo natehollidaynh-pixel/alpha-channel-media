@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Alpha Channel Media</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --pearl-white: #fafafa;
+            --green-bull: #00a86b;
+            --green-glow: rgba(0, 168, 107, 0.35);
+            --red-bear: #d32f2f;
+            --red-glow: rgba(211, 47, 47, 0.35);
+            --text-dark: #1a1a1a;
+            --text-gray: #666666;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--pearl-white);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 15% 25%, var(--green-glow) 0%, transparent 45%),
+                radial-gradient(circle at 85% 75%, var(--red-glow) 0%, transparent 45%);
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 450px;
+            width: 90%;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(25px);
+            border-radius: 32px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            padding: 50px 40px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            text-align: center;
+            margin-bottom: 32px;
+            background: linear-gradient(135deg, var(--green-bull), var(--text-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 500; margin-bottom: 8px; }
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.7);
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--green-bull);
+            box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.1);
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--green-bull), #008555);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .back-link { text-align: center; margin-top: 24px; }
+        .back-link a { color: var(--text-gray); text-decoration: none; }
+        .error {
+            background: rgba(211, 47, 47, 0.1);
+            border: 1px solid var(--red-bear);
+            color: var(--red-bear);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sign In</h1>
+        <div class="error" id="errorMsg"></div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type="submit" class="submit-btn">Login</button>
+        </form>
+        <div class="back-link">
+            <a href="welcome.html">← Back to home</a>
+        </div>
+    </div>
+    <script>
+        const API = window.location.origin;
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {
+                username: formData.get('username'),
+                password: formData.get('password')
+            };
+            
+            // Try creator login
+            try {
+                const response = await fetch(`${API}/api/creators/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.token) localStorage.setItem('authToken', result.token);
+                    window.location.href = 'admin.html';
+                    return;
+                }
+            } catch (e) {}
+            
+            // Try listener login
+            try {
+                const response = await fetch(`${API}/api/listeners/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.token) localStorage.setItem('authToken', result.token);
+                    window.location.href = 'player.html';
+                    return;
+                }
+            } catch (e) {}
+            
+            document.getElementById('errorMsg').textContent = 'Invalid credentials';
+            document.getElementById('errorMsg').style.display = 'block';
+        });
+    </script>
+</body>
+</html>

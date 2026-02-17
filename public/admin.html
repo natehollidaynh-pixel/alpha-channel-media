@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Dashboard - Alpha Channel Media</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --pearl-white: #fafafa;
+            --green-bull: #00a86b;
+            --green-glow: rgba(0, 168, 107, 0.35);
+            --red-bear: #d32f2f;
+            --red-glow: rgba(211, 47, 47, 0.35);
+            --text-dark: #1a1a1a;
+            --text-gray: #666666;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--pearl-white);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 15% 25%, var(--green-glow) 0%, transparent 45%),
+                radial-gradient(circle at 85% 75%, var(--red-glow) 0%, transparent 45%);
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .header {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(25px);
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { font-size: 1.5rem; font-weight: 600; }
+        nav a { color: var(--text-dark); text-decoration: none; margin-left: 24px; }
+        .container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
+        .tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .tab.active {
+            background: var(--green-bull);
+            color: white;
+        }
+        .upload-section {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 32px;
+            display: none;
+        }
+        .upload-section.active { display: block; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 500; margin-bottom: 8px; }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.7);
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--green-bull);
+        }
+        textarea { min-height: 100px; }
+        .file-input {
+            padding: 20px;
+            border: 2px dashed rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .submit-btn {
+            padding: 14px 32px;
+            background: var(--green-bull);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 12px;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--green-bull);
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🎛️ Creator Dashboard</div>
+        <nav>
+            <a href="player.html">Music</a>
+            <a href="videos.html">Videos</a>
+            <a href="welcome.html">Logout</a>
+        </nav>
+    </div>
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('music')">Upload Music</button>
+            <button class="tab" onclick="showTab('video')">Upload Video</button>
+        </div>
+        
+        <div class="upload-section active" id="musicSection">
+            <h2 style="margin-bottom: 24px;">Upload New Track</h2>
+            <form id="musicForm">
+                <div class="form-group">
+                    <label>Track Title *</label>
+                    <input type="text" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label>Artist Name *</label>
+                    <input type="text" name="artist" required>
+                </div>
+                <div class="form-group">
+                    <label>Audio File *</label>
+                    <input type="file" accept="audio/*" name="audio" required>
+                </div>
+                <div class="form-group">
+                    <label>Artwork</label>
+                    <input type="file" accept="image/*" name="artwork">
+                </div>
+                <div class="form-group">
+                    <label>Lyrics</label>
+                    <textarea name="lyrics"></textarea>
+                </div>
+                <button type="submit" class="submit-btn">Upload Track</button>
+                <div class="progress" id="musicProgress">
+                    <div class="progress-bar" id="musicBar"></div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="upload-section" id="videoSection">
+            <h2 style="margin-bottom: 24px;">Upload New Video</h2>
+            <form id="videoForm">
+                <div class="form-group">
+                    <label>Video Title *</label>
+                    <input type="text" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label>Video File *</label>
+                    <input type="file" accept="video/*" name="video" required>
+                </div>
+                <div class="form-group">
+                    <label>Thumbnail</label>
+                    <input type="file" accept="image/*" name="thumbnail">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description"></textarea>
+                </div>
+                <button type="submit" class="submit-btn">Upload Video</button>
+                <div class="progress" id="videoProgress">
+                    <div class="progress-bar" id="videoBar"></div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        const API = window.location.origin;
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.upload-section').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Section').classList.add('active');
+        }
+        
+        document.getElementById('musicForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const progress = document.getElementById('musicProgress');
+            const bar = document.getElementById('musicBar');
+            progress.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API}/api/upload/music`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+                    body: formData
+                });
+                if (response.ok) {
+                    bar.style.width = '100%';
+                    alert('Track uploaded successfully!');
+                    e.target.reset();
+                    setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 2000);
+                }
+            } catch (error) {
+                alert('Upload failed');
+            }
+        });
+        
+        document.getElementById('videoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const progress = document.getElementById('videoProgress');
+            const bar = document.getElementById('videoBar');
+            progress.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API}/api/upload/video`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+                    body: formData
+                });
+                if (response.ok) {
+                    bar.style.width = '100%';
+                    alert('Video uploaded successfully!');
+                    e.target.reset();
+                    setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 2000);
+                }
+            } catch (error) {
+                alert('Upload failed');
+            }
+        });
+    </script>
+</body>
+</html>
