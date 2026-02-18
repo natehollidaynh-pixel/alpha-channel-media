@@ -273,14 +273,31 @@
         .npb-time-bar:hover .npb-time-fill::after { opacity: 1; }
         .npb-right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
         .npb-vol-slider {
-            -webkit-appearance: none; appearance: none; width: 100px; height: 4px;
-            background: var(--border); border-radius: 2px; outline: none;
+            position: relative; width: 100px; height: 20px; cursor: pointer;
+            display: flex; align-items: center;
         }
-        .npb-vol-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
-            background: var(--green); cursor: pointer;
+        .npb-vol-track {
+            position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+            height: 3px; background: var(--border); border-radius: 2px;
         }
-        .npb-vol-icon { width: 18px; height: 18px; fill: var(--text-secondary); }
+        .npb-vol-fill {
+            height: 100%; background: var(--green); border-radius: 2px; width: 80%;
+            transition: width 0.05s linear;
+        }
+        .npb-vol-dot {
+            position: absolute; top: 50%; transform: translate(-50%, -50%);
+            width: 12px; height: 12px; border-radius: 50%;
+            background: var(--green); left: 80%;
+            box-shadow: 0 0 6px rgba(0,0,0,0.15);
+            transition: width 0.2s ease, height 0.2s ease, box-shadow 0.2s ease;
+            pointer-events: none;
+        }
+        .npb-vol-slider.dragging .npb-vol-dot,
+        .npb-vol-slider:hover .npb-vol-dot {
+            width: 16px; height: 16px;
+            box-shadow: 0 0 12px var(--green-glow);
+        }
+        .npb-vol-icon { width: 18px; height: 18px; fill: var(--text-secondary); cursor: pointer; }
 
         /* Empty state */
         .empty-tracks { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
@@ -433,8 +450,11 @@
                 </div>
             </div>
             <div class="npb-right">
-                <svg class="npb-vol-icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
-                <input type="range" class="npb-vol-slider" min="0" max="100" value="80" oninput="setVolume(this.value)">
+                <svg class="npb-vol-icon" viewBox="0 0 24 24" onclick="toggleMute()"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                <div class="npb-vol-slider" id="volSlider">
+                    <div class="npb-vol-track"><div class="npb-vol-fill" id="volFill"></div></div>
+                    <div class="npb-vol-dot" id="volDot"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -701,7 +721,64 @@
             document.getElementById('repeatBtn').classList.toggle('active-mode', repeatOn);
         }
 
-        function setVolume(val) { audio.volume = val / 100; }
+        // ===== CUSTOM VOLUME SLIDER =====
+        var volSlider = document.getElementById('volSlider');
+        var volFill = document.getElementById('volFill');
+        var volDot = document.getElementById('volDot');
+        var volDragging = false;
+        var currentVol = 80;
+        var prevVol = 80;
+
+        function setVolume(val) {
+            currentVol = Math.max(0, Math.min(100, val));
+            audio.volume = currentVol / 100;
+            volFill.style.width = currentVol + '%';
+            volDot.style.left = currentVol + '%';
+            // Scale dot: 10px at 0%, 16px at 100%
+            var dotSize = 10 + (currentVol / 100) * 6;
+            volDot.style.width = dotSize + 'px';
+            volDot.style.height = dotSize + 'px';
+        }
+
+        function volFromEvent(e) {
+            var rect = volSlider.getBoundingClientRect();
+            var pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+            setVolume(pct);
+        }
+
+        volSlider.addEventListener('mousedown', function(e) {
+            volDragging = true;
+            volSlider.classList.add('dragging');
+            volFromEvent(e);
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (volDragging) volFromEvent(e);
+        });
+        document.addEventListener('mouseup', function() {
+            if (volDragging) { volDragging = false; volSlider.classList.remove('dragging'); }
+        });
+        // Touch support
+        volSlider.addEventListener('touchstart', function(e) {
+            volDragging = true;
+            volSlider.classList.add('dragging');
+            volFromEvent(e.touches[0]);
+            e.preventDefault();
+        }, { passive: false });
+        document.addEventListener('touchmove', function(e) {
+            if (volDragging) volFromEvent(e.touches[0]);
+        });
+        document.addEventListener('touchend', function() {
+            if (volDragging) { volDragging = false; volSlider.classList.remove('dragging'); }
+        });
+
+        function toggleMute() {
+            if (currentVol > 0) { prevVol = currentVol; setVolume(0); }
+            else { setVolume(prevVol || 80); }
+        }
+
+        // Initialize volume display
+        setVolume(80);
 
         function seekFromBar(e, bar) {
             if (!audio.duration) return;
