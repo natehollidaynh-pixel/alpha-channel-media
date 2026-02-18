@@ -14,6 +14,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Increase timeout for large file uploads (10 minutes)
+app.use(function(req, res, next) {
+  if (req.url.startsWith('/api/upload')) {
+    req.setTimeout(600000);
+    res.setTimeout(600000);
+  }
+  next();
+});
+
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 

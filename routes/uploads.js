@@ -1,6 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 const cloudinary = require('cloudinary').v2;
@@ -15,8 +17,18 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Use memory storage so we can stream to Cloudinary
-const storage = multer.memoryStorage();
+// Use disk storage (temp dir) to avoid memory issues with large files
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const tmpDir = path.join(os.tmpdir(), 'acm-uploads');
+    fs.mkdirSync(tmpDir, { recursive: true });
+    cb(null, tmpDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, uuidv4() + ext);
+  }
+});
 
 // File filter
 const fileFilter = (req, file, cb) => {
@@ -40,15 +52,14 @@ const upload = multer({
   fileFilter
 });
 
-// Helper: upload buffer to Cloudinary
-function uploadToCloudinary(buffer, options) {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
-      if (error) reject(error);
-      else resolve(result);
-    });
-    stream.end(buffer);
-  });
+// Helper: upload file from disk to Cloudinary (streams, no memory issues)
+function uploadFileToCloudinary(filePath, options) {
+  return cloudinary.uploader.upload(filePath, options);
+}
+
+// Helper: clean up temp files
+function cleanupFile(filePath) {
+  try { if (filePath) fs.unlinkSync(filePath); } catch (e) {}
 }
 
 // Upload music
@@ -56,6 +67,7 @@ router.post('/music', upload.fields([
   { name: 'audio', maxCount: 1 },
   { name: 'artwork', maxCount: 1 }
 ]), async (req, res) => {
+  const tempFiles = [];
   try {
     const db = req.app.locals.db;
     const { title, artist, lyrics } = req.body;
@@ -76,14 +88,15 @@ router.post('/music', upload.fields([
     }
 
     const audioFile = req.files.audio[0];
+    tempFiles.push(audioFile.path);
     const ext = path.extname(audioFile.originalname).toLowerCase().replace('.', '');
 
-    // Upload audio to Cloudinary
-    const audioResult = await uploadToCloudinary(audioFile.buffer, {
+    // Upload audio to Cloudinary from disk
+    const audioResult = await uploadFileToCloudinary(audioFile.path, {
       resource_type: 'video', // Cloudinary uses 'video' for audio files
       folder: 'alpha-channel/audio',
       public_id: uuidv4(),
-      format: ext
+      timeout: 600000 // 10 min timeout for large files
     });
     const audioUrl = audioResult.secure_url;
 
@@ -91,7 +104,8 @@ router.post('/music', upload.fields([
     let artworkUrl = null;
     if (req.files.artwork) {
       const artworkFile = req.files.artwork[0];
-      const artResult = await uploadToCloudinary(artworkFile.buffer, {
+      tempFiles.push(artworkFile.path);
+      const artResult = await uploadFileToCloudinary(artworkFile.path, {
         resource_type: 'image',
         folder: 'alpha-channel/artwork',
         public_id: uuidv4()
@@ -109,7 +123,10 @@ router.post('/music', upload.fields([
     res.json({ success: true, song: result.rows[0] });
   } catch (err) {
     console.error('Music upload error:', err);
-    res.status(500).json({ error: 'Failed to upload music' });
+    res.status(500).json({ error: 'Failed to upload music: ' + (err.message || 'Unknown error') });
+  } finally {
+    // Always clean up temp files
+    tempFiles.forEach(cleanupFile);
   }
 });
 
@@ -118,6 +135,7 @@ router.post('/video', upload.fields([
   { name: 'video', maxCount: 1 },
   { name: 'thumbnail', maxCount: 1 }
 ]), async (req, res) => {
+  const tempFiles = [];
   try {
     const db = req.app.locals.db;
     const { title, description, category } = req.body;
@@ -138,14 +156,15 @@ router.post('/video', upload.fields([
     }
 
     const videoFile = req.files.video[0];
+    tempFiles.push(videoFile.path);
     const ext = path.extname(videoFile.originalname).toLowerCase().replace('.', '');
 
-    // Upload video to Cloudinary
-    const videoResult = await uploadToCloudinary(videoFile.buffer, {
+    // Upload video to Cloudinary from disk
+    const videoResult = await uploadFileToCloudinary(videoFile.path, {
       resource_type: 'video',
       folder: 'alpha-channel/videos',
       public_id: uuidv4(),
-      format: ext
+      timeout: 600000 // 10 min timeout for large files
     });
     const videoUrl = videoResult.secure_url;
 
@@ -153,7 +172,8 @@ router.post('/video', upload.fields([
     let thumbnailUrl = null;
     if (req.files.thumbnail) {
       const thumbFile = req.files.thumbnail[0];
-      const thumbResult = await uploadToCloudinary(thumbFile.buffer, {
+      tempFiles.push(thumbFile.path);
+      const thumbResult = await uploadFileToCloudinary(thumbFile.path, {
         resource_type: 'image',
         folder: 'alpha-channel/thumbnails',
         public_id: uuidv4()
@@ -171,7 +191,10 @@ router.post('/video', upload.fields([
     res.json({ success: true, video: result.rows[0] });
   } catch (err) {
     console.error('Video upload error:', err);
-    res.status(500).json({ error: 'Failed to upload video' });
+    res.status(500).json({ error: 'Failed to upload video: ' + (err.message || 'Unknown error') });
+  } finally {
+    // Always clean up temp files
+    tempFiles.forEach(cleanupFile);
   }
 });
 
