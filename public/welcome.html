@@ -168,38 +168,45 @@
         .choice-btn {
             position: relative;
             padding: 44px 24px;
-            backdrop-filter: blur(10px);
             border-radius: 20px;
             cursor: pointer;
             text-decoration: none;
-            color: white;
+            color: var(--text);
             transition: all 0.3s ease;
             overflow: hidden;
         }
 
-        /* Creator button - red tones */
+        /* Creator button - translucent red hue */
         .choice-btn.creator-btn {
-            background: linear-gradient(135deg, #b82e2e, #d44040, #c13535);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 8px 32px rgba(184, 46, 46, 0.3);
+            background: linear-gradient(135deg, rgba(184, 46, 46, 0.15), rgba(212, 64, 64, 0.22), rgba(184, 46, 46, 0.12));
+            border: 1px solid rgba(184, 46, 46, 0.2);
+            box-shadow: 0 8px 32px rgba(184, 46, 46, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px) saturate(140%);
+            -webkit-backdrop-filter: blur(20px) saturate(140%);
+            color: var(--text);
         }
         .choice-btn.creator-btn:hover {
             transform: translateY(-6px);
-            box-shadow: 0 12px 48px rgba(184, 46, 46, 0.4);
+            background: linear-gradient(135deg, rgba(184, 46, 46, 0.22), rgba(212, 64, 64, 0.3), rgba(184, 46, 46, 0.18));
+            box-shadow: 0 12px 48px rgba(184, 46, 46, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
         }
-        .choice-btn.creator-btn .choice-icon svg { fill: white; opacity: 0.8; }
+        .choice-btn.creator-btn .choice-icon svg { fill: var(--red); opacity: 0.9; }
 
-        /* Listener button - green tones */
+        /* Listener button - translucent green hue */
         .choice-btn.listener-btn {
-            background: linear-gradient(135deg, #006e45, #00a86b, #008555);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 8px 32px rgba(0, 110, 69, 0.3);
+            background: linear-gradient(135deg, rgba(0, 110, 69, 0.15), rgba(0, 168, 107, 0.22), rgba(0, 110, 69, 0.12));
+            border: 1px solid rgba(0, 110, 69, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 110, 69, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px) saturate(140%);
+            -webkit-backdrop-filter: blur(20px) saturate(140%);
+            color: var(--text);
         }
         .choice-btn.listener-btn:hover {
             transform: translateY(-6px);
-            box-shadow: 0 12px 48px rgba(0, 110, 69, 0.4);
+            background: linear-gradient(135deg, rgba(0, 110, 69, 0.22), rgba(0, 168, 107, 0.3), rgba(0, 110, 69, 0.18));
+            box-shadow: 0 12px 48px rgba(0, 110, 69, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
         }
-        .choice-btn.listener-btn .choice-icon svg { fill: white; opacity: 0.8; }
+        .choice-btn.listener-btn .choice-icon svg { fill: var(--green); opacity: 0.9; }
 
         .choice-icon {
             width: 48px;
@@ -212,13 +219,15 @@
         .choice-title {
             font-size: 1.3rem;
             font-weight: 600;
-            color: white;
+            color: var(--text);
             margin-bottom: 8px;
         }
+        .creator-btn .choice-title { color: var(--red); }
+        .listener-btn .choice-title { color: var(--green); }
 
         .choice-desc {
             font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--text-secondary);
             font-weight: 400;
         }
 
