@@ -187,6 +187,109 @@ app.get('/api/admin/listeners', async (req, res) => {
   }
 });
 
+// Creator profile info (requires auth)
+app.get('/api/creators/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
+
+    const result = await pool.query(
+      'SELECT id, username, email, first_name, last_name, artist_name, listener_key, created_at FROM creators WHERE id = $1',
+      [decoded.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Creator not found' });
+    res.json({ creator: result.rows[0] });
+  } catch (err) {
+    console.error('Creator profile error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Creator's own tracks (requires auth)
+app.get('/api/creators/my-tracks', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
+
+    const result = await pool.query(
+      'SELECT * FROM songs WHERE creator_id = $1 ORDER BY uploaded_at DESC',
+      [decoded.id]
+    );
+    res.json({ tracks: result.rows });
+  } catch (err) {
+    console.error('Creator tracks error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Creator's own videos (requires auth)
+app.get('/api/creators/my-videos', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
+
+    const result = await pool.query(
+      'SELECT * FROM videos WHERE creator_id = $1 ORDER BY uploaded_at DESC',
+      [decoded.id]
+    );
+    res.json({ videos: result.rows });
+  } catch (err) {
+    console.error('Creator videos error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete a creator's track (requires auth)
+app.delete('/api/creators/tracks/:trackId', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
+
+    const result = await pool.query(
+      'DELETE FROM songs WHERE id = $1 AND creator_id = $2 RETURNING *',
+      [req.params.trackId, decoded.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Track not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete track error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete a creator's video (requires auth)
+app.delete('/api/creators/videos/:videoId', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
+
+    const result = await pool.query(
+      'DELETE FROM videos WHERE id = $1 AND creator_id = $2 RETURNING *',
+      [req.params.videoId, decoded.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Video not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete video error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });

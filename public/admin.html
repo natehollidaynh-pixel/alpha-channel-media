@@ -51,20 +51,20 @@
         nav a { color: var(--text-secondary); text-decoration: none; margin-left: 24px; font-weight: 500; }
         nav a:hover { color: var(--green); }
         .container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
-        .tabs { display: flex; gap: 12px; margin-bottom: 32px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 32px; flex-wrap: wrap; }
         .tab {
-            padding: 12px 24px; background: var(--surface); border: 1px solid var(--panel-border);
-            border-radius: 12px; cursor: pointer; font-weight: 500; font-size: 0.95rem;
+            padding: 10px 20px; background: var(--surface); border: 1px solid var(--panel-border);
+            border-radius: 12px; cursor: pointer; font-weight: 500; font-size: 0.9rem;
             -webkit-tap-highlight-color: transparent; color: var(--text); transition: all 0.2s;
         }
         .tab.active { background: var(--green); color: white; border-color: var(--green); }
-        .upload-section {
+        .tab-section {
             background: var(--surface); backdrop-filter: blur(10px); border-radius: 20px;
             border: 1px solid var(--panel-border); box-shadow: var(--panel-glow);
             padding: 32px; display: none;
         }
-        .upload-section.active { display: block; }
-        .upload-section h2 { margin-bottom: 24px; color: var(--text); }
+        .tab-section.active { display: block; }
+        .tab-section h2 { margin-bottom: 24px; color: var(--text); }
         .form-group { margin-bottom: 20px; }
         label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text); }
         input, textarea, select {
@@ -97,6 +97,109 @@
             padding: 14px; background: var(--input-bg); border: 1px solid var(--border);
             border-radius: 8px; font-family: monospace; font-size: 1.5rem; letter-spacing: 6px; text-align: center;
         }
+
+        /* My Content styles */
+        .content-stats {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px;
+        }
+        .content-stat {
+            background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
+            padding: 16px; text-align: center;
+        }
+        .content-stat .num { font-size: 2rem; font-weight: 700; color: var(--green); }
+        .content-stat .lbl { color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px; }
+        .content-subtitle { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 24px 0 16px; display: flex; align-items: center; gap: 10px; }
+        .content-subtitle svg { width: 20px; height: 20px; fill: var(--green); }
+        .content-list { display: flex; flex-direction: column; gap: 12px; }
+        .content-item {
+            display: flex; align-items: center; gap: 16px; padding: 14px; background: var(--input-bg);
+            border: 1px solid var(--border); border-radius: 12px; transition: all 0.2s;
+        }
+        .content-item:hover { border-color: var(--green); }
+        .content-item .ci-art {
+            width: 56px; height: 56px; border-radius: 10px; background: var(--green-glow);
+            display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
+        }
+        .content-item .ci-art img { width: 100%; height: 100%; object-fit: cover; }
+        .content-item .ci-art svg { width: 24px; height: 24px; fill: var(--text-secondary); opacity: 0.5; }
+        .content-item .ci-info { flex: 1; min-width: 0; }
+        .content-item .ci-info h4 { color: var(--text); font-size: 0.95rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .content-item .ci-info p { color: var(--text-secondary); font-size: 0.8rem; }
+        .content-item .ci-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .ci-btn {
+            padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.8rem;
+            font-weight: 500; transition: opacity 0.2s;
+        }
+        .ci-btn:hover { opacity: 0.8; }
+        .ci-btn-play { background: var(--green); color: white; }
+        .ci-btn-del { background: var(--red-glow); color: var(--red); border: 1px solid var(--red); }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+        .empty-state svg { width: 48px; height: 48px; fill: var(--text-secondary); opacity: 0.3; margin-bottom: 12px; }
+
+        /* Preview player styles */
+        .preview-player {
+            max-width: 480px; margin: 0 auto; background: var(--surface-solid); border-radius: 24px;
+            border: 1px solid var(--panel-border); box-shadow: var(--panel-glow); overflow: hidden;
+        }
+        .pp-hero {
+            position: relative; width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, var(--green-glow), var(--red-glow));
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .pp-hero img { width: 100%; height: 100%; object-fit: cover; }
+        .pp-hero svg { width: 80px; height: 80px; fill: var(--text-secondary); opacity: 0.3; }
+        .pp-info { padding: 24px; text-align: center; }
+        .pp-title { font-size: 1.3rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+        .pp-artist { font-size: 0.95rem; color: var(--green); font-weight: 500; margin-bottom: 20px; }
+        .pp-progress { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 8px; cursor: pointer; position: relative; }
+        .pp-progress-fill { height: 100%; background: var(--green); border-radius: 2px; width: 0%; transition: width 0.1s linear; position: relative; }
+        .pp-progress-fill::after {
+            content: ''; position: absolute; right: -6px; top: -4px; width: 12px; height: 12px;
+            background: var(--green); border-radius: 50%; opacity: 0; transition: opacity 0.2s;
+        }
+        .pp-progress:hover .pp-progress-fill::after { opacity: 1; }
+        .pp-times { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 20px; }
+        .pp-controls { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 20px; }
+        .pp-ctrl-btn {
+            background: none; border: none; cursor: pointer; padding: 8px; display: flex;
+            align-items: center; justify-content: center; transition: transform 0.15s;
+        }
+        .pp-ctrl-btn:hover { transform: scale(1.1); }
+        .pp-ctrl-btn:active { transform: scale(0.95); }
+        .pp-ctrl-btn svg { fill: var(--text); }
+        .pp-ctrl-btn.pp-play-btn {
+            width: 56px; height: 56px; background: var(--green); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .pp-ctrl-btn.pp-play-btn svg { fill: white; width: 24px; height: 24px; }
+        .pp-volume { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
+        .pp-volume svg { width: 18px; height: 18px; fill: var(--text-secondary); }
+        .pp-volume-slider {
+            -webkit-appearance: none; appearance: none; width: 120px; height: 4px; background: var(--border);
+            border-radius: 2px; outline: none;
+        }
+        .pp-volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+            background: var(--green); cursor: pointer;
+        }
+        .pp-queue { padding: 0 24px 24px; }
+        .pp-queue-title { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .pp-track {
+            display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 10px;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .pp-track:hover { background: var(--input-bg); }
+        .pp-track.active { background: var(--green-glow); }
+        .pp-track-num { width: 24px; text-align: center; font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
+        .pp-track-art {
+            width: 40px; height: 40px; border-radius: 8px; background: var(--green-glow);
+            display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
+        }
+        .pp-track-art img { width: 100%; height: 100%; object-fit: cover; }
+        .pp-track-art svg { width: 18px; height: 18px; fill: var(--text-secondary); opacity: 0.5; }
+        .pp-track-info { flex: 1; min-width: 0; }
+        .pp-track-info h4 { font-size: 0.9rem; color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pp-track-info p { font-size: 0.75rem; color: var(--text-secondary); }
+
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-solid);
             border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 48px;
@@ -114,16 +217,25 @@
             body { padding: 12px; padding-bottom: 100px; }
             .header { flex-direction: column; gap: 16px; text-align: center; padding: 16px; }
             .logo { margin-left: 0; } .header nav { display: none; }
-            .tabs { flex-wrap: wrap; gap: 8px; }
-            .tab { flex: 1; min-width: calc(50% - 8px); padding: 10px 16px; font-size: 0.9rem; text-align: center; }
-            .upload-section { padding: 24px 20px; }
+            .tabs { gap: 6px; }
+            .tab { flex: 1; min-width: calc(50% - 6px); padding: 10px 12px; font-size: 0.85rem; text-align: center; }
+            .tab-section { padding: 24px 20px; }
+            .content-stats { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            .content-item { gap: 12px; padding: 12px; }
+            .content-item .ci-art { width: 48px; height: 48px; }
+            .ci-btn { padding: 6px 10px; font-size: 0.75rem; }
+            .preview-player { border-radius: 20px; }
         }
         @media (max-width: 480px) {
             .header { border-radius: 16px; } .logo { font-size: 1.2rem; }
-            .tab { min-width: 100%; padding: 10px; }
-            .upload-section { padding: 20px 16px; border-radius: 16px; }
+            .tab { min-width: calc(50% - 6px); padding: 8px 10px; font-size: 0.8rem; }
+            .tab-section { padding: 20px 16px; border-radius: 16px; }
             .key-input-row { flex-direction: column; }
             .random-btn { width: 100%; text-align: center; }
+            .content-stats { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+            .content-stat { padding: 12px 8px; }
+            .content-stat .num { font-size: 1.5rem; }
+            .content-item .ci-actions { flex-direction: column; gap: 4px; }
         }
     </style>
 </head>
@@ -141,11 +253,35 @@
     </div>
     <div class="container">
         <div class="tabs">
-            <button class="tab active" onclick="showTab('music', this)">Upload Music</button>
+            <button class="tab active" onclick="showTab('myContent', this)">My Content</button>
+            <button class="tab" onclick="showTab('music', this)">Upload Music</button>
             <button class="tab" onclick="showTab('video', this)">Upload Video</button>
             <button class="tab" onclick="showTab('listenerKey', this)">Listener Key</button>
+            <button class="tab" onclick="showTab('preview', this)">Preview</button>
         </div>
-        <div class="upload-section active" id="musicSection">
+
+        <!-- MY CONTENT TAB -->
+        <div class="tab-section active" id="myContentSection">
+            <h2>My Content</h2>
+            <div class="content-stats">
+                <div class="content-stat"><div class="num" id="myTrackCount">0</div><div class="lbl">Tracks</div></div>
+                <div class="content-stat"><div class="num" id="myVideoCount">0</div><div class="lbl">Videos</div></div>
+                <div class="content-stat"><div class="num" id="myKeyStatus">-</div><div class="lbl">Listener Key</div></div>
+            </div>
+            <div class="content-subtitle">
+                <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                Tracks
+            </div>
+            <div class="content-list" id="myTracksList"></div>
+            <div class="content-subtitle" style="margin-top:32px;">
+                <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                Videos
+            </div>
+            <div class="content-list" id="myVideosList"></div>
+        </div>
+
+        <!-- UPLOAD MUSIC TAB -->
+        <div class="tab-section" id="musicSection">
             <h2>Upload New Track</h2>
             <form id="musicForm">
                 <div class="form-group"><label>Track Title *</label><input type="text" name="title" required></div>
@@ -158,7 +294,9 @@
                 <div class="status-msg" id="musicStatus"></div>
             </form>
         </div>
-        <div class="upload-section" id="videoSection">
+
+        <!-- UPLOAD VIDEO TAB -->
+        <div class="tab-section" id="videoSection">
             <h2>Upload New Video</h2>
             <form id="videoForm">
                 <div class="form-group"><label>Video Title *</label><input type="text" name="title" required></div>
@@ -170,7 +308,9 @@
                 <div class="status-msg" id="videoStatus"></div>
             </form>
         </div>
-        <div class="upload-section" id="listenerKeySection">
+
+        <!-- LISTENER KEY TAB -->
+        <div class="tab-section" id="listenerKeySection">
             <h2>Your Listener Key</h2>
             <p style="color:var(--text-secondary); margin-bottom:20px;">Set a 4-digit key that listeners enter to access your music and videos. Share this key with your audience.</p>
             <div class="form-group"><label>Current Listener Key</label><div class="key-display" id="currentKey">Loading...</div></div>
@@ -186,19 +326,196 @@
             </form>
             <div class="status-msg" id="keyMessage"></div>
         </div>
+
+        <!-- PREVIEW AS LISTENER TAB -->
+        <div class="tab-section" id="previewSection">
+            <h2>Preview as Listener</h2>
+            <p style="color:var(--text-secondary); margin-bottom:24px;">This is how listeners see your music when they enter your key.</p>
+            <div class="preview-player" id="previewPlayer">
+                <div class="pp-hero" id="ppHero">
+                    <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                </div>
+                <div class="pp-info">
+                    <div class="pp-title" id="ppTitle">No tracks yet</div>
+                    <div class="pp-artist" id="ppArtist">Upload some music to preview</div>
+                    <div class="pp-progress" id="ppProgressBar">
+                        <div class="pp-progress-fill" id="ppProgressFill"></div>
+                    </div>
+                    <div class="pp-times">
+                        <span id="ppCurrentTime">0:00</span>
+                        <span id="ppDuration">0:00</span>
+                    </div>
+                    <div class="pp-controls">
+                        <button class="pp-ctrl-btn" onclick="ppShuffle()" title="Shuffle">
+                            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                        </button>
+                        <button class="pp-ctrl-btn" onclick="ppPrev()" title="Previous">
+                            <svg width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                        </button>
+                        <button class="pp-ctrl-btn pp-play-btn" onclick="ppTogglePlay()" id="ppPlayBtn" title="Play">
+                            <svg viewBox="0 0 24 24" id="ppPlayIcon"><path d="M8 5v14l11-7z"/></svg>
+                        </button>
+                        <button class="pp-ctrl-btn" onclick="ppNext()" title="Next">
+                            <svg width="24" height="24" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                        </button>
+                        <button class="pp-ctrl-btn" onclick="ppRepeat()" title="Repeat">
+                            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+                        </button>
+                    </div>
+                    <div class="pp-volume">
+                        <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                        <input type="range" class="pp-volume-slider" min="0" max="100" value="80" oninput="ppSetVolume(this.value)">
+                    </div>
+                </div>
+                <div class="pp-queue" id="ppQueue">
+                    <div class="pp-queue-title">Queue</div>
+                    <div id="ppQueueList"></div>
+                </div>
+            </div>
+            <audio id="ppAudio"></audio>
+        </div>
     </div>
+
     <nav class="bottom-nav">
         <a href="welcome.html"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
         <a href="master-admin.html"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>Admin</a>
     </nav>
+
     <script>
         var API = window.location.origin;
+        var authToken = localStorage.getItem('authToken');
+        var creatorProfile = null;
+        var myTracks = [];
+        var myVideos = [];
+
+        // Preview player state
+        var ppTracks = [];
+        var ppCurrentIndex = 0;
+        var ppIsPlaying = false;
+        var ppShuffleOn = false;
+        var ppRepeatOn = false;
+        var ppAudio = document.getElementById('ppAudio');
+
         function showTab(tab, btn) {
             document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-            document.querySelectorAll('.upload-section').forEach(function(s) { s.classList.remove('active'); });
+            document.querySelectorAll('.tab-section').forEach(function(s) { s.classList.remove('active'); });
             btn.classList.add('active');
             document.getElementById(tab + 'Section').classList.add('active');
+            if (tab === 'myContent') loadMyContent();
+            if (tab === 'preview') loadPreview();
         }
+
+        // Load creator profile
+        async function loadCreatorProfile() {
+            try {
+                var response = await fetch(API + '/api/creators/me', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                if (response.ok) {
+                    var data = await response.json();
+                    creatorProfile = data.creator;
+                    document.querySelector('.logo').textContent = (creatorProfile.artist_name || creatorProfile.first_name) + "'s Dashboard";
+                }
+            } catch (err) { console.error('Profile load error:', err); }
+        }
+
+        // Load My Content
+        async function loadMyContent() {
+            try {
+                var tracksRes = await fetch(API + '/api/creators/my-tracks', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                var tracksData = await tracksRes.json();
+                myTracks = tracksData.tracks || [];
+
+                var videosRes = await fetch(API + '/api/creators/my-videos', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                var videosData = await videosRes.json();
+                myVideos = videosData.videos || [];
+
+                document.getElementById('myTrackCount').textContent = myTracks.length;
+                document.getElementById('myVideoCount').textContent = myVideos.length;
+                document.getElementById('myKeyStatus').textContent = creatorProfile && creatorProfile.listener_key ? creatorProfile.listener_key : '-';
+
+                renderMyTracks();
+                renderMyVideos();
+            } catch (err) { console.error('Content load error:', err); }
+        }
+
+        function renderMyTracks() {
+            var list = document.getElementById('myTracksList');
+            if (myTracks.length === 0) {
+                list.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg><p>No tracks uploaded yet</p></div>';
+                return;
+            }
+            list.innerHTML = '';
+            myTracks.forEach(function(track) {
+                var item = document.createElement('div');
+                item.className = 'content-item';
+                var artHtml = track.artwork_url
+                    ? '<img src="' + track.artwork_url + '">'
+                    : '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+                var date = new Date(track.uploaded_at).toLocaleDateString();
+                var size = track.file_size ? (track.file_size / (1024 * 1024)).toFixed(1) + ' MB' : '';
+                item.innerHTML = '<div class="ci-art">' + artHtml + '</div>' +
+                    '<div class="ci-info"><h4>' + track.title + '</h4><p>' + track.artist + ' &middot; ' + date + (size ? ' &middot; ' + size : '') + '</p></div>' +
+                    '<div class="ci-actions"><button class="ci-btn ci-btn-play" onclick="previewTrack(\'' + track.audio_url + '\')">Play</button>' +
+                    '<button class="ci-btn ci-btn-del" onclick="deleteTrack(\'' + track.id + '\')">Delete</button></div>';
+                list.appendChild(item);
+            });
+        }
+
+        function renderMyVideos() {
+            var list = document.getElementById('myVideosList');
+            if (myVideos.length === 0) {
+                list.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg><p>No videos uploaded yet</p></div>';
+                return;
+            }
+            list.innerHTML = '';
+            myVideos.forEach(function(video) {
+                var item = document.createElement('div');
+                item.className = 'content-item';
+                var artHtml = video.thumbnail_url
+                    ? '<img src="' + video.thumbnail_url + '">'
+                    : '<svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>';
+                var date = new Date(video.uploaded_at).toLocaleDateString();
+                item.innerHTML = '<div class="ci-art">' + artHtml + '</div>' +
+                    '<div class="ci-info"><h4>' + video.title + '</h4><p>' + (video.category || 'Video') + ' &middot; ' + date + '</p></div>' +
+                    '<div class="ci-actions"><button class="ci-btn ci-btn-play" onclick="window.open(\'' + video.video_url + '\', \'_blank\')">Watch</button>' +
+                    '<button class="ci-btn ci-btn-del" onclick="deleteVideo(\'' + video.id + '\')">Delete</button></div>';
+                list.appendChild(item);
+            });
+        }
+
+        function previewTrack(url) {
+            ppAudio.src = url;
+            ppAudio.play();
+        }
+
+        async function deleteTrack(trackId) {
+            if (!confirm('Delete this track? This cannot be undone.')) return;
+            try {
+                var response = await fetch(API + '/api/creators/tracks/' + trackId, {
+                    method: 'DELETE', headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                if (response.ok) loadMyContent();
+                else alert('Failed to delete track');
+            } catch (err) { alert('Error deleting track'); }
+        }
+
+        async function deleteVideo(videoId) {
+            if (!confirm('Delete this video? This cannot be undone.')) return;
+            try {
+                var response = await fetch(API + '/api/creators/videos/' + videoId, {
+                    method: 'DELETE', headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                if (response.ok) loadMyContent();
+                else alert('Failed to delete video');
+            } catch (err) { alert('Error deleting video'); }
+        }
+
+        // Upload music
         document.getElementById('musicForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             var formData = new FormData(e.target);
@@ -210,7 +527,7 @@
             progress.style.display = 'block'; bar.style.width = '30%'; status.style.display = 'none';
             try {
                 var response = await fetch(API + '/api/upload/music', {
-                    method: 'POST', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('authToken') }, body: formData
+                    method: 'POST', headers: { 'Authorization': 'Bearer ' + authToken }, body: formData
                 });
                 var result = await response.json();
                 if (response.ok && result.success) {
@@ -221,6 +538,8 @@
             btn.disabled = false; btn.textContent = 'Upload Track';
             setTimeout(function() { progress.style.display = 'none'; bar.style.width = '0%'; }, 3000);
         });
+
+        // Upload video
         document.getElementById('videoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             var formData = new FormData(e.target);
@@ -232,7 +551,7 @@
             progress.style.display = 'block'; bar.style.width = '30%'; status.style.display = 'none';
             try {
                 var response = await fetch(API + '/api/upload/video', {
-                    method: 'POST', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('authToken') }, body: formData
+                    method: 'POST', headers: { 'Authorization': 'Bearer ' + authToken }, body: formData
                 });
                 var result = await response.json();
                 if (response.ok && result.success) {
@@ -243,19 +562,20 @@
             btn.disabled = false; btn.textContent = 'Upload Video';
             setTimeout(function() { progress.style.display = 'none'; bar.style.width = '0%'; }, 3000);
         });
+
+        // Listener Key
         function generateRandomKey() {
             document.getElementById('listenerKeyInput').value = Math.floor(1000 + Math.random() * 9000).toString();
         }
         async function loadListenerKey() {
             try {
                 var response = await fetch(API + '/api/creators/listener-key', {
-                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('authToken') }
+                    headers: { 'Authorization': 'Bearer ' + authToken }
                 });
                 var data = await response.json();
                 document.getElementById('currentKey').textContent = data.listener_key || 'Not set yet';
             } catch (err) { document.getElementById('currentKey').textContent = 'Not set yet'; }
         }
-        loadListenerKey();
         document.getElementById('listenerKeyForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             var listenerKey = new FormData(e.target).get('listenerKey');
@@ -263,16 +583,151 @@
             if (!/^\d{4}$/.test(listenerKey)) { msg.className = 'status-msg error'; msg.textContent = 'Must be exactly 4 digits'; return; }
             try {
                 var response = await fetch(API + '/api/creators/listener-key', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('authToken') },
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
                     body: JSON.stringify({ listener_key: listenerKey })
                 });
                 var result = await response.json();
                 if (response.ok) {
                     document.getElementById('currentKey').textContent = listenerKey;
+                    if (creatorProfile) creatorProfile.listener_key = listenerKey;
                     msg.className = 'status-msg success'; msg.textContent = 'Listener key saved!'; e.target.reset();
                 } else { msg.className = 'status-msg error'; msg.textContent = result.error || 'Failed to save'; }
             } catch (err) { msg.className = 'status-msg error'; msg.textContent = 'Error saving key'; }
         });
+
+        // ===== PREVIEW PLAYER =====
+        async function loadPreview() {
+            try {
+                var res = await fetch(API + '/api/creators/my-tracks', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                var data = await res.json();
+                ppTracks = data.tracks || [];
+                ppCurrentIndex = 0;
+                renderQueue();
+                if (ppTracks.length > 0) {
+                    loadPPTrack(0);
+                } else {
+                    document.getElementById('ppTitle').textContent = 'No tracks yet';
+                    document.getElementById('ppArtist').textContent = 'Upload music to see the listener preview';
+                    document.getElementById('ppHero').innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+                }
+            } catch (err) { console.error('Preview load error:', err); }
+        }
+
+        function loadPPTrack(index) {
+            if (index < 0 || index >= ppTracks.length) return;
+            ppCurrentIndex = index;
+            var track = ppTracks[index];
+            document.getElementById('ppTitle').textContent = track.title;
+            document.getElementById('ppArtist').textContent = track.artist;
+            if (track.artwork_url) {
+                document.getElementById('ppHero').innerHTML = '<img src="' + track.artwork_url + '">';
+            } else {
+                document.getElementById('ppHero').innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+            }
+            ppAudio.src = track.audio_url;
+            document.getElementById('ppProgressFill').style.width = '0%';
+            document.getElementById('ppCurrentTime').textContent = '0:00';
+            document.getElementById('ppDuration').textContent = '0:00';
+            highlightQueueTrack(index);
+        }
+
+        function ppTogglePlay() {
+            if (ppTracks.length === 0) return;
+            if (ppIsPlaying) {
+                ppAudio.pause();
+            } else {
+                ppAudio.play();
+            }
+        }
+
+        ppAudio.addEventListener('play', function() {
+            ppIsPlaying = true;
+            document.getElementById('ppPlayIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        });
+        ppAudio.addEventListener('pause', function() {
+            ppIsPlaying = false;
+            document.getElementById('ppPlayIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+        });
+        ppAudio.addEventListener('timeupdate', function() {
+            if (ppAudio.duration) {
+                var pct = (ppAudio.currentTime / ppAudio.duration) * 100;
+                document.getElementById('ppProgressFill').style.width = pct + '%';
+                document.getElementById('ppCurrentTime').textContent = formatTime(ppAudio.currentTime);
+                document.getElementById('ppDuration').textContent = formatTime(ppAudio.duration);
+            }
+        });
+        ppAudio.addEventListener('ended', function() {
+            if (ppRepeatOn) {
+                ppAudio.currentTime = 0; ppAudio.play();
+            } else {
+                ppNext();
+            }
+        });
+
+        // Click on progress bar to seek
+        document.getElementById('ppProgressBar').addEventListener('click', function(e) {
+            if (!ppAudio.duration) return;
+            var rect = this.getBoundingClientRect();
+            var pct = (e.clientX - rect.left) / rect.width;
+            ppAudio.currentTime = pct * ppAudio.duration;
+        });
+
+        function ppNext() {
+            if (ppTracks.length === 0) return;
+            var next = ppShuffleOn ? Math.floor(Math.random() * ppTracks.length) : ppCurrentIndex + 1;
+            if (next >= ppTracks.length) next = 0;
+            loadPPTrack(next);
+            ppAudio.play();
+        }
+        function ppPrev() {
+            if (ppTracks.length === 0) return;
+            if (ppAudio.currentTime > 3) { ppAudio.currentTime = 0; return; }
+            var prev = ppCurrentIndex - 1;
+            if (prev < 0) prev = ppTracks.length - 1;
+            loadPPTrack(prev);
+            ppAudio.play();
+        }
+        function ppShuffle() { ppShuffleOn = !ppShuffleOn; }
+        function ppRepeat() { ppRepeatOn = !ppRepeatOn; }
+        function ppSetVolume(val) { ppAudio.volume = val / 100; }
+
+        function formatTime(s) {
+            var m = Math.floor(s / 60);
+            var sec = Math.floor(s % 60);
+            return m + ':' + (sec < 10 ? '0' : '') + sec;
+        }
+
+        function renderQueue() {
+            var el = document.getElementById('ppQueueList');
+            if (ppTracks.length === 0) {
+                el.innerHTML = '<p style="color:var(--text-secondary); font-size:0.85rem; padding:12px;">No tracks to show</p>';
+                return;
+            }
+            el.innerHTML = '';
+            ppTracks.forEach(function(track, i) {
+                var div = document.createElement('div');
+                div.className = 'pp-track' + (i === ppCurrentIndex ? ' active' : '');
+                div.setAttribute('data-index', i);
+                div.onclick = function() { loadPPTrack(i); ppAudio.play(); };
+                var artHtml = track.artwork_url
+                    ? '<img src="' + track.artwork_url + '">'
+                    : '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+                div.innerHTML = '<div class="pp-track-num">' + (i + 1) + '</div>' +
+                    '<div class="pp-track-art">' + artHtml + '</div>' +
+                    '<div class="pp-track-info"><h4>' + track.title + '</h4><p>' + track.artist + '</p></div>';
+                el.appendChild(div);
+            });
+        }
+
+        function highlightQueueTrack(index) {
+            document.querySelectorAll('.pp-track').forEach(function(t, i) {
+                t.classList.toggle('active', i === index);
+            });
+        }
+
+        // Theme
         function toggleTheme() {
             var html = document.documentElement;
             var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -283,6 +738,11 @@
             if (saved) document.documentElement.setAttribute('data-theme', saved);
             else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
         })();
+
+        // Init
+        loadCreatorProfile();
+        loadListenerKey();
+        loadMyContent();
     </script>
 </body>
 </html>
