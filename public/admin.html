@@ -515,103 +515,171 @@
             } catch (err) { alert('Error deleting video'); }
         }
 
-        // Upload helper using XMLHttpRequest for real progress tracking
-        function uploadWithProgress(url, formData, progressBar, progressFill, statusEl, btn, originalText, form) {
-            return new Promise(function(resolve) {
-                var xhr = new XMLHttpRequest();
-                btn.disabled = true;
-                progressBar.style.display = 'block';
-                progressFill.style.width = '0%';
-                statusEl.style.display = 'none';
-                statusEl.className = 'status-msg';
+        // Get Cloudinary upload signature from server
+        async function getUploadSignature(folder) {
+            var response = await fetch(API + '/api/upload/sign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                body: JSON.stringify({ folder: folder })
+            });
+            if (!response.ok) throw new Error('Failed to get upload signature');
+            return response.json();
+        }
 
-                // Track upload progress (browser → server)
-                xhr.upload.addEventListener('progress', function(e) {
-                    if (e.lengthComputable) {
-                        var pct = Math.round((e.loaded / e.total) * 70); // 0-70% is upload
-                        progressFill.style.width = pct + '%';
-                        btn.textContent = 'Uploading... ' + pct + '%';
-                    }
-                });
+        // Upload file directly to Cloudinary from the browser
+        function uploadToCloudinary(file, folder, resourceType, progressFill, btn) {
+            return new Promise(async function(resolve, reject) {
+                try {
+                    var sig = await getUploadSignature(folder);
+                    var formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('api_key', sig.api_key);
+                    formData.append('timestamp', sig.timestamp);
+                    formData.append('signature', sig.signature);
+                    formData.append('folder', sig.folder);
 
-                // Upload to server complete, now server is processing → Cloudinary
-                xhr.upload.addEventListener('load', function() {
-                    progressFill.style.width = '75%';
-                    btn.textContent = 'Processing...';
-                });
-
-                xhr.addEventListener('load', function() {
-                    try {
-                        var result = JSON.parse(xhr.responseText);
-                        if (xhr.status >= 200 && xhr.status < 300 && result.success) {
-                            progressFill.style.width = '100%';
-                            statusEl.className = 'status-msg success';
-                            statusEl.textContent = 'Uploaded successfully!';
-                            form.reset();
-                        } else {
-                            statusEl.className = 'status-msg error';
-                            statusEl.textContent = result.error || 'Upload failed.';
+                    var xhr = new XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable) {
+                            var pct = Math.round((e.loaded / e.total) * 90);
+                            progressFill.style.width = pct + '%';
+                            btn.textContent = 'Uploading... ' + pct + '%';
                         }
-                    } catch (e) {
-                        statusEl.className = 'status-msg error';
-                        statusEl.textContent = 'Upload failed — unexpected response.';
-                    }
-                    btn.disabled = false; btn.textContent = originalText;
-                    setTimeout(function() { progressBar.style.display = 'none'; progressFill.style.width = '0%'; }, 4000);
-                    resolve();
-                });
-
-                xhr.addEventListener('error', function() {
-                    statusEl.className = 'status-msg error';
-                    statusEl.textContent = 'Network error — check your connection and try again.';
-                    btn.disabled = false; btn.textContent = originalText;
-                    progressBar.style.display = 'none';
-                    resolve();
-                });
-
-                xhr.addEventListener('timeout', function() {
-                    statusEl.className = 'status-msg error';
-                    statusEl.textContent = 'Upload timed out — try a smaller file or check your connection.';
-                    btn.disabled = false; btn.textContent = originalText;
-                    progressBar.style.display = 'none';
-                    resolve();
-                });
-
-                xhr.open('POST', url);
-                xhr.timeout = 600000; // 10 min timeout
-                xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
-                xhr.send(formData);
+                    });
+                    xhr.addEventListener('load', function() {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            var result = JSON.parse(xhr.responseText);
+                            resolve(result.secure_url);
+                        } else {
+                            try {
+                                var err = JSON.parse(xhr.responseText);
+                                reject(new Error(err.error && err.error.message ? err.error.message : 'Upload failed'));
+                            } catch(e) { reject(new Error('Upload failed')); }
+                        }
+                    });
+                    xhr.addEventListener('error', function() { reject(new Error('Network error during upload')); });
+                    xhr.addEventListener('timeout', function() { reject(new Error('Upload timed out')); });
+                    xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + sig.cloud_name + '/' + resourceType + '/upload');
+                    xhr.timeout = 600000;
+                    xhr.send(formData);
+                } catch (err) { reject(err); }
             });
         }
 
-        // Upload music
-        document.getElementById('musicForm').addEventListener('submit', function(e) {
+        // Upload music: browser → Cloudinary directly, then save URL to server
+        document.getElementById('musicForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            uploadWithProgress(
-                API + '/api/upload/music',
-                new FormData(e.target),
-                document.getElementById('musicProgress'),
-                document.getElementById('musicBar'),
-                document.getElementById('musicStatus'),
-                document.getElementById('musicSubmitBtn'),
-                'Upload Track',
-                e.target
-            );
+            var form = e.target;
+            var btn = document.getElementById('musicSubmitBtn');
+            var progress = document.getElementById('musicProgress');
+            var bar = document.getElementById('musicBar');
+            var status = document.getElementById('musicStatus');
+
+            var audioInput = form.querySelector('input[name="audio"]');
+            var artworkInput = form.querySelector('input[name="artwork"]');
+            if (!audioInput.files[0]) { alert('Please select an audio file'); return; }
+
+            btn.disabled = true; btn.textContent = 'Uploading...';
+            progress.style.display = 'block'; bar.style.width = '0%';
+            status.style.display = 'none'; status.className = 'status-msg';
+
+            try {
+                // Upload audio directly to Cloudinary
+                var audioUrl = await uploadToCloudinary(audioInput.files[0], 'alpha-channel/audio', 'video', bar, btn);
+
+                // Upload artwork if provided
+                var artworkUrl = null;
+                if (artworkInput.files[0]) {
+                    btn.textContent = 'Uploading artwork...';
+                    artworkUrl = await uploadToCloudinary(artworkInput.files[0], 'alpha-channel/artwork', 'image', bar, btn);
+                }
+
+                // Save to database via server
+                btn.textContent = 'Saving...'; bar.style.width = '95%';
+                var ext = audioInput.files[0].name.split('.').pop().toLowerCase();
+                var response = await fetch(API + '/api/upload/music', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({
+                        title: form.querySelector('input[name="title"]').value,
+                        artist: form.querySelector('input[name="artist"]').value,
+                        lyrics: form.querySelector('textarea[name="lyrics"]').value || null,
+                        audio_url: audioUrl,
+                        artwork_url: artworkUrl,
+                        file_size: audioInput.files[0].size,
+                        format: ext
+                    })
+                });
+                var result = await response.json();
+                if (response.ok && result.success) {
+                    bar.style.width = '100%'; status.className = 'status-msg success';
+                    status.textContent = 'Track uploaded successfully!'; form.reset();
+                } else {
+                    status.className = 'status-msg error';
+                    status.textContent = result.error || 'Failed to save track.';
+                }
+            } catch (err) {
+                status.className = 'status-msg error';
+                status.textContent = 'Upload error: ' + err.message;
+            }
+            btn.disabled = false; btn.textContent = 'Upload Track';
+            setTimeout(function() { progress.style.display = 'none'; bar.style.width = '0%'; }, 4000);
         });
 
-        // Upload video
-        document.getElementById('videoForm').addEventListener('submit', function(e) {
+        // Upload video: browser → Cloudinary directly, then save URL to server
+        document.getElementById('videoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            uploadWithProgress(
-                API + '/api/upload/video',
-                new FormData(e.target),
-                document.getElementById('videoProgress'),
-                document.getElementById('videoBar'),
-                document.getElementById('videoStatus'),
-                document.getElementById('videoSubmitBtn'),
-                'Upload Video',
-                e.target
-            );
+            var form = e.target;
+            var btn = document.getElementById('videoSubmitBtn');
+            var progress = document.getElementById('videoProgress');
+            var bar = document.getElementById('videoBar');
+            var status = document.getElementById('videoStatus');
+
+            var videoInput = form.querySelector('input[name="video"]');
+            var thumbInput = form.querySelector('input[name="thumbnail"]');
+            if (!videoInput.files[0]) { alert('Please select a video file'); return; }
+
+            btn.disabled = true; btn.textContent = 'Uploading...';
+            progress.style.display = 'block'; bar.style.width = '0%';
+            status.style.display = 'none'; status.className = 'status-msg';
+
+            try {
+                var videoUrl = await uploadToCloudinary(videoInput.files[0], 'alpha-channel/videos', 'video', bar, btn);
+
+                var thumbnailUrl = null;
+                if (thumbInput.files[0]) {
+                    btn.textContent = 'Uploading thumbnail...';
+                    thumbnailUrl = await uploadToCloudinary(thumbInput.files[0], 'alpha-channel/thumbnails', 'image', bar, btn);
+                }
+
+                btn.textContent = 'Saving...'; bar.style.width = '95%';
+                var ext = videoInput.files[0].name.split('.').pop().toLowerCase();
+                var response = await fetch(API + '/api/upload/video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({
+                        title: form.querySelector('input[name="title"]').value,
+                        description: form.querySelector('textarea[name="description"]').value || null,
+                        video_url: videoUrl,
+                        thumbnail_url: thumbnailUrl,
+                        file_size: videoInput.files[0].size,
+                        format: ext
+                    })
+                });
+                var result = await response.json();
+                if (response.ok && result.success) {
+                    bar.style.width = '100%'; status.className = 'status-msg success';
+                    status.textContent = 'Video uploaded successfully!'; form.reset();
+                } else {
+                    status.className = 'status-msg error';
+                    status.textContent = result.error || 'Failed to save video.';
+                }
+            } catch (err) {
+                status.className = 'status-msg error';
+                status.textContent = 'Upload error: ' + err.message;
+            }
+            btn.disabled = false; btn.textContent = 'Upload Video';
+            setTimeout(function() { progress.style.display = 'none'; bar.style.width = '0%'; }, 4000);
         });
 
         // Listener Key

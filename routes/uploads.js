@@ -1,9 +1,4 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 const cloudinary = require('cloudinary').v2;
 const router = express.Router();
@@ -17,199 +12,94 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Use disk storage (temp dir) to avoid memory issues with large files
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const tmpDir = path.join(os.tmpdir(), 'acm-uploads');
-    fs.mkdirSync(tmpDir, { recursive: true });
-    cb(null, tmpDir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, uuidv4() + ext);
+// Helper: extract creator ID from auth token
+function getCreatorId(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return null;
+  try {
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded.type === 'creator' ? decoded.id : null;
+  } catch (e) { return null; }
+}
+
+// Generate a Cloudinary signature for direct browser upload
+router.post('/sign', (req, res) => {
+  try {
+    const creatorId = getCreatorId(req);
+    if (!creatorId) return res.status(401).json({ error: 'Not authenticated' });
+
+    const { folder, resource_type } = req.body;
+    const timestamp = Math.round(new Date().getTime() / 1000);
+
+    const params = {
+      timestamp,
+      folder: folder || 'alpha-channel/audio'
+    };
+
+    const signature = cloudinary.utils.api_sign_request(params, process.env.CLOUDINARY_API_SECRET);
+
+    res.json({
+      signature,
+      timestamp,
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      folder: params.folder
+    });
+  } catch (err) {
+    console.error('Sign error:', err);
+    res.status(500).json({ error: 'Failed to generate upload signature' });
   }
 });
 
-// File filter
-const fileFilter = (req, file, cb) => {
-  const audioExts = ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma', '.alac', '.ape'];
-  const videoExts = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v'];
-  const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
-
-  const ext = path.extname(file.originalname).toLowerCase();
-  const allAllowed = [...audioExts, ...videoExts, ...imageExts];
-
-  if (allAllowed.includes(ext)) {
-    cb(null, true);
-  } else {
-    cb(new Error(`File type ${ext} is not supported`), false);
-  }
-};
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
-  fileFilter
-});
-
-// Helper: upload file from disk to Cloudinary (streams, no memory issues)
-function uploadFileToCloudinary(filePath, options) {
-  return cloudinary.uploader.upload(filePath, options);
-}
-
-// Helper: clean up temp files
-function cleanupFile(filePath) {
-  try { if (filePath) fs.unlinkSync(filePath); } catch (e) {}
-}
-
-// Upload music
-router.post('/music', upload.fields([
-  { name: 'audio', maxCount: 1 },
-  { name: 'artwork', maxCount: 1 }
-]), async (req, res) => {
-  const tempFiles = [];
+// Save music record (after browser uploads directly to Cloudinary)
+router.post('/music', express.json(), async (req, res) => {
   try {
     const db = req.app.locals.db;
-    const { title, artist, lyrics } = req.body;
+    const creatorId = getCreatorId(req);
+    const { title, artist, lyrics, audio_url, artwork_url, file_size, format } = req.body;
 
-    if (!req.files || !req.files.audio) {
-      return res.status(400).json({ error: 'Audio file is required' });
-    }
-
-    // Extract creator_id from auth token
-    let creatorId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded.type === 'creator') creatorId = decoded.id;
-      } catch (e) {}
-    }
-
-    const audioFile = req.files.audio[0];
-    tempFiles.push(audioFile.path);
-    const ext = path.extname(audioFile.originalname).toLowerCase().replace('.', '');
-
-    // Upload audio to Cloudinary from disk
-    const audioResult = await uploadFileToCloudinary(audioFile.path, {
-      resource_type: 'video', // Cloudinary uses 'video' for audio files
-      folder: 'alpha-channel/audio',
-      public_id: uuidv4(),
-      timeout: 600000 // 10 min timeout for large files
-    });
-    const audioUrl = audioResult.secure_url;
-
-    // Upload artwork to Cloudinary if provided
-    let artworkUrl = null;
-    if (req.files.artwork) {
-      const artworkFile = req.files.artwork[0];
-      tempFiles.push(artworkFile.path);
-      const artResult = await uploadFileToCloudinary(artworkFile.path, {
-        resource_type: 'image',
-        folder: 'alpha-channel/artwork',
-        public_id: uuidv4()
-      });
-      artworkUrl = artResult.secure_url;
+    if (!title || !artist || !audio_url) {
+      return res.status(400).json({ error: 'Title, artist, and audio URL are required' });
     }
 
     const result = await db.query(
       `INSERT INTO songs (creator_id, title, artist, lyrics, audio_url, artwork_url, file_size, format)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [creatorId, title, artist, lyrics || null, audioUrl, artworkUrl, audioFile.size, ext]
+      [creatorId, title, artist, lyrics || null, audio_url, artwork_url || null, file_size || 0, format || 'mp3']
     );
 
     res.json({ success: true, song: result.rows[0] });
   } catch (err) {
-    console.error('Music upload error:', err);
-    res.status(500).json({ error: 'Failed to upload music: ' + (err.message || 'Unknown error') });
-  } finally {
-    // Always clean up temp files
-    tempFiles.forEach(cleanupFile);
+    console.error('Save music error:', err);
+    res.status(500).json({ error: 'Failed to save track' });
   }
 });
 
-// Upload video
-router.post('/video', upload.fields([
-  { name: 'video', maxCount: 1 },
-  { name: 'thumbnail', maxCount: 1 }
-]), async (req, res) => {
-  const tempFiles = [];
+// Save video record (after browser uploads directly to Cloudinary)
+router.post('/video', express.json(), async (req, res) => {
   try {
     const db = req.app.locals.db;
-    const { title, description, category } = req.body;
+    const creatorId = getCreatorId(req);
+    const { title, description, category, video_url, thumbnail_url, file_size, format } = req.body;
 
-    if (!req.files || !req.files.video) {
-      return res.status(400).json({ error: 'Video file is required' });
-    }
-
-    // Extract creator_id from auth token
-    let creatorId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded.type === 'creator') creatorId = decoded.id;
-      } catch (e) {}
-    }
-
-    const videoFile = req.files.video[0];
-    tempFiles.push(videoFile.path);
-    const ext = path.extname(videoFile.originalname).toLowerCase().replace('.', '');
-
-    // Upload video to Cloudinary from disk
-    const videoResult = await uploadFileToCloudinary(videoFile.path, {
-      resource_type: 'video',
-      folder: 'alpha-channel/videos',
-      public_id: uuidv4(),
-      timeout: 600000 // 10 min timeout for large files
-    });
-    const videoUrl = videoResult.secure_url;
-
-    // Upload thumbnail to Cloudinary if provided
-    let thumbnailUrl = null;
-    if (req.files.thumbnail) {
-      const thumbFile = req.files.thumbnail[0];
-      tempFiles.push(thumbFile.path);
-      const thumbResult = await uploadFileToCloudinary(thumbFile.path, {
-        resource_type: 'image',
-        folder: 'alpha-channel/thumbnails',
-        public_id: uuidv4()
-      });
-      thumbnailUrl = thumbResult.secure_url;
+    if (!title || !video_url) {
+      return res.status(400).json({ error: 'Title and video URL are required' });
     }
 
     const result = await db.query(
       `INSERT INTO videos (creator_id, title, description, category, video_url, thumbnail_url, file_size, format)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [creatorId, title, description || null, category || null, videoUrl, thumbnailUrl, videoFile.size, ext]
+      [creatorId, title, description || null, category || null, video_url, thumbnail_url || null, file_size || 0, format || 'mp4']
     );
 
     res.json({ success: true, video: result.rows[0] });
   } catch (err) {
-    console.error('Video upload error:', err);
-    res.status(500).json({ error: 'Failed to upload video: ' + (err.message || 'Unknown error') });
-  } finally {
-    // Always clean up temp files
-    tempFiles.forEach(cleanupFile);
+    console.error('Save video error:', err);
+    res.status(500).json({ error: 'Failed to save video' });
   }
-});
-
-// Handle multer errors
-router.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'File too large. Maximum size is 500MB.' });
-    }
-    return res.status(400).json({ error: err.message });
-  }
-  if (err) {
-    return res.status(400).json({ error: err.message });
-  }
-  next();
 });
 
 module.exports = router;
