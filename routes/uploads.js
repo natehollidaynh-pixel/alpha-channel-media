@@ -1,35 +1,22 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
+const cloudinary = require('cloudinary').v2;
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-me';
 
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: async function (req, file, cb) {
-    let folder = 'uploads/';
-    if (file.fieldname === 'audio') folder += 'audio/';
-    else if (file.fieldname === 'video') folder += 'videos/';
-    else if (file.fieldname === 'artwork') folder += 'artwork/';
-    else if (file.fieldname === 'thumbnail') folder += 'thumbnails/';
-    else folder += 'other/';
-
-    try {
-      await fs.promises.mkdir(path.join(process.cwd(), folder), { recursive: true });
-    } catch (err) {
-      // Directory may already exist
-    }
-    cb(null, folder);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, uuidv4() + ext);
-  }
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+// Use memory storage so we can stream to Cloudinary
+const storage = multer.memoryStorage();
 
 // File filter
 const fileFilter = (req, file, cb) => {
@@ -52,6 +39,17 @@ const upload = multer({
   limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
   fileFilter
 });
+
+// Helper: upload buffer to Cloudinary
+function uploadToCloudinary(buffer, options) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) reject(error);
+      else resolve(result);
+    });
+    stream.end(buffer);
+  });
+}
 
 // Upload music
 router.post('/music', upload.fields([
@@ -78,15 +76,28 @@ router.post('/music', upload.fields([
     }
 
     const audioFile = req.files.audio[0];
-    const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const audioUrl = `${appUrl}/${audioFile.path}`;
+    const ext = path.extname(audioFile.originalname).toLowerCase().replace('.', '');
 
+    // Upload audio to Cloudinary
+    const audioResult = await uploadToCloudinary(audioFile.buffer, {
+      resource_type: 'video', // Cloudinary uses 'video' for audio files
+      folder: 'alpha-channel/audio',
+      public_id: uuidv4(),
+      format: ext
+    });
+    const audioUrl = audioResult.secure_url;
+
+    // Upload artwork to Cloudinary if provided
     let artworkUrl = null;
     if (req.files.artwork) {
-      artworkUrl = `${appUrl}/${req.files.artwork[0].path}`;
+      const artworkFile = req.files.artwork[0];
+      const artResult = await uploadToCloudinary(artworkFile.buffer, {
+        resource_type: 'image',
+        folder: 'alpha-channel/artwork',
+        public_id: uuidv4()
+      });
+      artworkUrl = artResult.secure_url;
     }
-
-    const ext = path.extname(audioFile.originalname).toLowerCase().replace('.', '');
 
     const result = await db.query(
       `INSERT INTO songs (creator_id, title, artist, lyrics, audio_url, artwork_url, file_size, format)
@@ -127,15 +138,28 @@ router.post('/video', upload.fields([
     }
 
     const videoFile = req.files.video[0];
-    const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const videoUrl = `${appUrl}/${videoFile.path}`;
+    const ext = path.extname(videoFile.originalname).toLowerCase().replace('.', '');
 
+    // Upload video to Cloudinary
+    const videoResult = await uploadToCloudinary(videoFile.buffer, {
+      resource_type: 'video',
+      folder: 'alpha-channel/videos',
+      public_id: uuidv4(),
+      format: ext
+    });
+    const videoUrl = videoResult.secure_url;
+
+    // Upload thumbnail to Cloudinary if provided
     let thumbnailUrl = null;
     if (req.files.thumbnail) {
-      thumbnailUrl = `${appUrl}/${req.files.thumbnail[0].path}`;
+      const thumbFile = req.files.thumbnail[0];
+      const thumbResult = await uploadToCloudinary(thumbFile.buffer, {
+        resource_type: 'image',
+        folder: 'alpha-channel/thumbnails',
+        public_id: uuidv4()
+      });
+      thumbnailUrl = thumbResult.secure_url;
     }
-
-    const ext = path.extname(videoFile.originalname).toLowerCase().replace('.', '');
 
     const result = await db.query(
       `INSERT INTO videos (creator_id, title, description, category, video_url, thumbnail_url, file_size, format)
