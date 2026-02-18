@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,258 +8,172 @@
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --pearl-white: #fafafa;
-            --green-bull: #00a86b;
-            --green-glow: rgba(0, 168, 107, 0.35);
-            --red-bear: #d32f2f;
-            --red-glow: rgba(211, 47, 47, 0.35);
-            --text-dark: #1a1a1a;
-            --text-gray: #666666;
+            --bg: #f5f5f5; --surface: rgba(255,255,255,0.6); --surface-solid: #ffffff;
+            --green: #006e45; --green-glow: rgba(0,110,69,0.25); --red: #a12020; --red-glow: rgba(161,32,32,0.2);
+            --text: #111111; --text-secondary: #555555; --border: rgba(0,0,0,0.08);
+            --panel-glow: 0 0 30px rgba(0,110,69,0.12), 0 0 60px rgba(161,32,32,0.08);
+            --panel-border: rgba(0,0,0,0.06); --input-bg: rgba(255,255,255,0.7);
         }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--pearl-white);
-            min-height: 100vh;
-            padding: 20px;
-            padding-bottom: 120px;
-            position: relative;
+        [data-theme="dark"] {
+            --bg: #0e0e0e; --surface: rgba(30,30,30,0.7); --surface-solid: #1a1a1a;
+            --green: #00c97a; --green-glow: rgba(0,201,122,0.2); --red: #e04545; --red-glow: rgba(224,69,69,0.15);
+            --text: #eaeaea; --text-secondary: #999999; --border: rgba(255,255,255,0.08);
+            --panel-glow: 0 0 40px rgba(0,201,122,0.1), 0 0 80px rgba(224,69,69,0.06);
+            --panel-border: rgba(255,255,255,0.06); --input-bg: rgba(40,40,40,0.7);
         }
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background:
-                radial-gradient(circle at 15% 25%, var(--green-glow) 0%, transparent 45%),
-                radial-gradient(circle at 85% 75%, var(--red-glow) 0%, transparent 45%);
-            pointer-events: none;
-            opacity: 0.5;
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; padding-bottom: 140px; }
+        .back-arrow {
+            position: fixed; top: 20px; left: 20px; width: 40px; height: 40px; border-radius: 50%;
+            background: var(--surface); border: 1px solid var(--border); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 100;
+            backdrop-filter: blur(10px); text-decoration: none; transition: all 0.3s;
         }
+        .back-arrow:hover { box-shadow: var(--panel-glow); }
+        .back-arrow svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+        .theme-toggle {
+            position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 50%;
+            background: var(--surface); border: 1px solid var(--border); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 100;
+            backdrop-filter: blur(10px); transition: all 0.3s;
+        }
+        .theme-toggle:hover { box-shadow: var(--panel-glow); }
+        .theme-toggle svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+        .theme-toggle .icon-sun { display: none; }
+        [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+        [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
         .header {
-            position: relative;
-            z-index: 1;
-            max-width: 1200px;
-            margin: 0 auto 40px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(25px);
-            border-radius: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            position: relative; z-index: 1; max-width: 1200px; margin: 0 auto 40px; padding: 20px;
+            background: var(--surface); backdrop-filter: blur(25px); border-radius: 20px;
+            border: 1px solid var(--panel-border); box-shadow: var(--panel-glow);
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .logo { font-size: 2rem; }
-        nav a {
-            color: var(--text-dark);
-            text-decoration: none;
-            margin-left: 24px;
-            font-weight: 500;
-        }
-        .container {
-            position: relative;
-            z-index: 1;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+        .logo { font-size: 1.4rem; font-weight: 600; color: var(--text); margin-left: 40px; }
+        nav a { color: var(--text-secondary); text-decoration: none; margin-left: 24px; font-weight: 500; font-size: 0.9rem; }
+        nav a:hover { color: var(--green); }
+        .container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
         .tracks { display: grid; gap: 16px; }
         .track {
-            background: rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 16px;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: 80px 1fr auto;
-            gap: 20px;
-            align-items: center;
+            background: var(--surface); backdrop-filter: blur(10px); border: 1px solid var(--panel-border);
+            border-radius: 16px; padding: 20px; display: grid; grid-template-columns: 80px 1fr auto;
+            gap: 20px; align-items: center; box-shadow: var(--panel-glow); transition: transform 0.2s;
         }
+        .track:hover { transform: translateY(-2px); }
         .artwork {
-            width: 80px;
-            height: 80px;
-            border-radius: 12px;
-            background: rgba(0, 168, 107, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            overflow: hidden;
+            width: 80px; height: 80px; border-radius: 12px; background: var(--green-glow);
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-        .track-info h3 { color: var(--text-dark); margin-bottom: 4px; }
-        .track-info p { color: var(--text-gray); font-size: 0.9rem; }
+        .artwork svg { width: 32px; height: 32px; fill: var(--text-secondary); opacity: 0.5; }
+        .track-info h3 { color: var(--text); margin-bottom: 4px; }
+        .track-info p { color: var(--text-secondary); font-size: 0.9rem; }
         .play-btn {
-            padding: 12px 24px;
-            background: var(--green-bull);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
+            padding: 12px 24px; background: var(--green); color: white; border: none;
+            border-radius: 8px; cursor: pointer; font-weight: 500; transition: opacity 0.2s;
         }
+        .play-btn:hover { opacity: 0.85; }
         .player {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(25px);
-            padding: 20px;
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
-            display: none;
-            z-index: 100;
+            position: fixed; bottom: 60px; left: 0; right: 0; background: var(--surface-solid);
+            backdrop-filter: blur(25px); padding: 16px 20px; border-top: 1px solid var(--border);
+            display: none; z-index: 100;
         }
         .player.active { display: block; }
-        audio { width: 100%; margin-top: 12px; }
+        .player .now-playing { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px; }
+        audio { width: 100%; }
         .gate-input {
-            width: 100%;
-            padding: 14px;
-            border: 1px solid rgba(0,0,0,0.1);
-            border-radius: 12px;
-            margin-bottom: 16px;
-            font-size: 1.5rem;
-            text-align: center;
-            letter-spacing: 6px;
-            font-family: monospace;
+            width: 100%; padding: 16px; border: 1px solid var(--border); border-radius: 12px;
+            margin-bottom: 16px; font-size: 1.5rem; text-align: center; letter-spacing: 6px;
+            font-family: monospace; background: var(--input-bg); color: var(--text);
         }
-        .gate-input:focus {
-            outline: none;
-            border-color: var(--green-bull);
-            box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.1);
-        }
+        .gate-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
         .gate-btn {
-            width: 100%;
-            padding: 14px;
-            background: var(--green-bull);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 1rem;
+            width: 100%; padding: 16px; background: var(--green); color: white; border: none;
+            border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: opacity 0.2s;
         }
-
-        /* Mobile Responsive */
+        .gate-btn:hover { opacity: 0.85; }
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-solid);
+            border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 48px;
+            padding: 10px 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); z-index: 1000;
+        }
+        .bottom-nav a {
+            display: flex; flex-direction: column; align-items: center; text-decoration: none;
+            color: var(--text-secondary); font-size: 0.7rem; font-weight: 500; padding: 4px 16px;
+            -webkit-tap-highlight-color: transparent; gap: 4px; transition: color 0.2s;
+        }
+        .bottom-nav a.active { color: var(--green); }
+        .bottom-nav a:hover { color: var(--green); }
+        .bottom-nav a svg { width: 22px; height: 22px; fill: currentColor; }
         @media (max-width: 768px) {
-            body { padding: 12px; padding-bottom: 120px; }
-            .header {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
-                padding: 16px;
-            }
-            nav a { margin-left: 0; margin: 0 12px; }
-            .track {
-                grid-template-columns: 60px 1fr;
-                gap: 12px;
-            }
-            .track .play-btn {
-                grid-column: 1 / -1;
-                width: 100%;
-                text-align: center;
-            }
+            body { padding: 12px; padding-bottom: 140px; }
+            .header { flex-direction: column; gap: 12px; text-align: center; padding: 16px; }
+            .logo { margin-left: 0; }
+            .track { grid-template-columns: 60px 1fr; gap: 12px; }
+            .track .play-btn { grid-column: 1 / -1; width: 100%; text-align: center; }
             .artwork { width: 60px; height: 60px; }
-            .player { padding: 12px 16px; }
             .header nav { display: none; }
         }
         @media (max-width: 480px) {
-            .header { border-radius: 16px; }
-            .logo { font-size: 1.5rem; }
+            .header { border-radius: 16px; } .logo { font-size: 1.2rem; }
             .track { padding: 16px; border-radius: 12px; }
-            .play-btn { padding: 10px 16px; font-size: 0.9rem; }
             .gate-input { font-size: 1.3rem; letter-spacing: 4px; }
         }
-
-        /* Bottom Navigation Bar */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 0;
-            padding-bottom: max(8px, env(safe-area-inset-bottom));
-            z-index: 1000;
-        }
-        .bottom-nav a {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--text-gray);
-            font-size: 0.7rem;
-            font-weight: 500;
-            padding: 6px 12px;
-            -webkit-tap-highlight-color: transparent;
-            gap: 4px;
-        }
-        .bottom-nav a.active { color: var(--green-bull); }
-        .bottom-nav a span.nav-icon { font-size: 1.4rem; }
     </style>
 </head>
 <body>
+    <a href="welcome.html" class="back-arrow" aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </a>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
     <div class="header">
         <div class="logo">Alpha Channel Media</div>
-        <nav>
-            <a href="videos.html">Videos</a>
-            <a href="welcome.html">Logout</a>
-        </nav>
+        <nav><a href="videos.html">Videos</a><a href="welcome.html">Logout</a></nav>
     </div>
-    <div class="container" id="accessGate" style="text-align:center; margin-top: 60px; max-width: 500px; margin-left: auto; margin-right: auto;">
-        <h2 style="margin-bottom: 16px; color: var(--text-dark);">Enter Listener Key</h2>
-        <p style="color: var(--text-gray); margin-bottom: 24px;">Enter a creator's 4-digit key to listen to their music.</p>
-        <form id="accessForm" style="max-width: 400px; margin: 0 auto;">
-            <input type="text" id="listenerKeyInput" class="gate-input" placeholder="0000" required
-                   inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
+    <div class="container" id="accessGate" style="text-align:center; margin-top:60px; max-width:500px; margin-left:auto; margin-right:auto;">
+        <h2 style="margin-bottom:16px; color:var(--text);">Enter Listener Key</h2>
+        <p style="color:var(--text-secondary); margin-bottom:24px;">Enter a creator's 4-digit key to listen to their music.</p>
+        <form id="accessForm" style="max-width:400px; margin:0 auto;">
+            <input type="text" id="listenerKeyInput" class="gate-input" placeholder="0000" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
             <button type="submit" class="gate-btn">Unlock Music</button>
         </form>
-        <div id="accessError" style="color: var(--red-bear); margin-top: 12px; display:none;"></div>
+        <div id="accessError" style="color:var(--red); margin-top:12px; display:none;"></div>
     </div>
     <div class="container" id="tracksContainer" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
-            <h1 style="color: #1a1a1a;" id="libraryTitle">Music Library</h1>
-            <a href="#" onclick="clearListenerKey()" style="color:var(--text-gray); font-size:0.9rem;">Change key</a>
+            <h1 style="color:var(--text);" id="libraryTitle">Music Library</h1>
+            <a href="#" onclick="clearListenerKey()" style="color:var(--text-secondary); font-size:0.9rem; text-decoration:none;">Change key</a>
         </div>
         <div class="tracks" id="tracksList"></div>
     </div>
     <div class="player" id="player">
-        <div id="nowPlaying"></div>
+        <div class="now-playing" id="nowPlaying"></div>
         <audio id="audioPlayer" controls></audio>
     </div>
     <script>
         const API = window.location.origin;
         let currentCreatorId = null;
-
-        // Check for stored listener key
         const storedKey = localStorage.getItem('listenerKey');
-        if (storedKey) {
-            validateAndLoad(storedKey);
-        }
+        if (storedKey) validateAndLoad(storedKey);
 
         document.getElementById('accessForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const key = document.getElementById('listenerKeyInput').value.trim();
-            validateAndLoad(key);
+            validateAndLoad(document.getElementById('listenerKeyInput').value.trim());
         });
 
         async function validateAndLoad(key) {
             try {
-                const response = await fetch(`${API}/api/listener-key/validate`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                const response = await fetch(API + '/api/listener-key/validate', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ listener_key: key })
                 });
                 const data = await response.json();
-
                 if (response.ok && data.success) {
                     currentCreatorId = data.creator.id;
                     localStorage.setItem('listenerKey', key);
                     document.getElementById('accessGate').style.display = 'none';
                     document.getElementById('tracksContainer').style.display = 'block';
-                    document.getElementById('libraryTitle').textContent =
-                        (data.creator.artist_name || data.creator.first_name) + "'s Music";
+                    document.getElementById('libraryTitle').textContent = (data.creator.artist_name || data.creator.first_name) + "'s Music";
                     loadTracks(currentCreatorId);
                 } else {
                     document.getElementById('accessError').textContent = 'Invalid listener key';
@@ -272,8 +186,7 @@
         }
 
         function clearListenerKey() {
-            localStorage.removeItem('listenerKey');
-            currentCreatorId = null;
+            localStorage.removeItem('listenerKey'); currentCreatorId = null;
             document.getElementById('accessGate').style.display = 'block';
             document.getElementById('tracksContainer').style.display = 'none';
             document.getElementById('tracksList').innerHTML = '';
@@ -282,45 +195,48 @@
         }
 
         async function loadTracks(creatorId) {
-            const url = creatorId ? `${API}/api/tracks?creator_id=${creatorId}` : `${API}/api/tracks`;
-            const response = await fetch(url);
-            const data = await response.json();
-            const tracksList = document.getElementById('tracksList');
+            var url = creatorId ? API + '/api/tracks?creator_id=' + creatorId : API + '/api/tracks';
+            var response = await fetch(url);
+            var data = await response.json();
+            var tracksList = document.getElementById('tracksList');
             tracksList.innerHTML = '';
             if (data.tracks.length === 0) {
-                tracksList.innerHTML = '<p style="color:var(--text-gray); text-align:center; padding:40px;">No tracks uploaded yet.</p>';
+                tracksList.innerHTML = '<p style="color:var(--text-secondary); text-align:center; padding:40px;">No tracks uploaded yet.</p>';
                 return;
             }
-            data.tracks.forEach(track => {
-                const div = document.createElement('div');
+            data.tracks.forEach(function(track) {
+                var div = document.createElement('div');
                 div.className = 'track';
-                div.innerHTML = `
-                    <div class="artwork">${track.artwork_url ? `<img src="${track.artwork_url}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">` : '🎵'}</div>
-                    <div class="track-info">
-                        <h3>${track.title}</h3>
-                        <p>${track.artist}</p>
-                    </div>
-                    <button class="play-btn" onclick="playTrack('${track.audio_url}', '${track.title}', '${track.artist}')">Play</button>
-                `;
+                div.innerHTML = '<div class="artwork">' + (track.artwork_url ? '<img src="' + track.artwork_url + '" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>') + '</div>' +
+                    '<div class="track-info"><h3>' + track.title + '</h3><p>' + track.artist + '</p></div>' +
+                    '<button class="play-btn" onclick="playTrack(\'' + track.audio_url + '\', \'' + track.title.replace(/'/g, "\\'") + '\', \'' + track.artist.replace(/'/g, "\\'") + '\')">Play</button>';
                 tracksList.appendChild(div);
             });
         }
 
         function playTrack(url, title, artist) {
-            const player = document.getElementById('player');
-            const audioPlayer = document.getElementById('audioPlayer');
-            const nowPlaying = document.getElementById('nowPlaying');
+            var player = document.getElementById('player');
+            var audioPlayer = document.getElementById('audioPlayer');
             player.classList.add('active');
             audioPlayer.src = url;
             audioPlayer.play();
-            nowPlaying.textContent = `Now Playing: ${title} - ${artist}`;
+            document.getElementById('nowPlaying').textContent = 'Now Playing: ' + title + ' - ' + artist;
         }
+
+        function toggleTheme() {
+            var html = document.documentElement;
+            var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next); localStorage.setItem('theme', next);
+        }
+        (function() {
+            var saved = localStorage.getItem('theme');
+            if (saved) document.documentElement.setAttribute('data-theme', saved);
+            else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+        })();
     </script>
     <nav class="bottom-nav">
-        <a href="admin.html"><span class="nav-icon">🎛️</span>Dashboard</a>
-        <a href="player.html" class="active"><span class="nav-icon">🎵</span>Music</a>
-        <a href="videos.html"><span class="nav-icon">🎬</span>Videos</a>
-        <a href="welcome.html"><span class="nav-icon">🚪</span>Logout</a>
+        <a href="welcome.html"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+        <a href="master-admin.html"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>Admin</a>
     </nav>
 </body>
 </html>

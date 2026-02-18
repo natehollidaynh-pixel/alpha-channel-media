@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,191 +8,235 @@
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --pearl-white: #fafafa;
-            --green-bull: #00a86b;
-            --green-glow: rgba(0, 168, 107, 0.35);
-            --red-bear: #d32f2f;
-            --red-glow: rgba(211, 47, 47, 0.35);
-            --text-dark: #1a1a1a;
-            --text-gray: #666666;
+            --bg: #f5f5f5; --surface: rgba(255,255,255,0.6); --surface-solid: #ffffff;
+            --green: #006e45; --green-glow: rgba(0,110,69,0.25); --red: #a12020; --red-glow: rgba(161,32,32,0.2);
+            --text: #111111; --text-secondary: #555555; --border: rgba(0,0,0,0.08);
+            --panel-glow: 0 0 30px rgba(0,110,69,0.12), 0 0 60px rgba(161,32,32,0.08);
+            --panel-border: rgba(0,0,0,0.06); --input-bg: rgba(255,255,255,0.7);
+        }
+        [data-theme="dark"] {
+            --bg: #0e0e0e; --surface: rgba(30,30,30,0.7); --surface-solid: #1a1a1a;
+            --green: #00c97a; --green-glow: rgba(0,201,122,0.2); --red: #e04545; --red-glow: rgba(224,69,69,0.15);
+            --text: #eaeaea; --text-secondary: #999999; --border: rgba(255,255,255,0.08);
+            --panel-glow: 0 0 40px rgba(0,201,122,0.1), 0 0 80px rgba(224,69,69,0.06);
+            --panel-border: rgba(255,255,255,0.06); --input-bg: rgba(40,40,40,0.7);
         }
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--pearl-white);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px 20px 100px;
-            position: relative;
+            font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 20px 20px 80px;
         }
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: 
-                radial-gradient(circle at 15% 25%, var(--green-glow) 0%, transparent 45%),
-                radial-gradient(circle at 85% 75%, var(--red-glow) 0%, transparent 45%);
-            pointer-events: none;
-            opacity: 0.5;
+        .back-arrow {
+            position: fixed; top: 20px; left: 20px; width: 40px; height: 40px;
+            border-radius: 50%; background: var(--surface); border: 1px solid var(--border);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 100; backdrop-filter: blur(10px); text-decoration: none; transition: all 0.3s;
         }
+        .back-arrow:hover { box-shadow: var(--panel-glow); }
+        .back-arrow svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+        .theme-toggle {
+            position: fixed; top: 20px; right: 20px; width: 40px; height: 40px;
+            border-radius: 50%; background: var(--surface); border: 1px solid var(--border);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 100; backdrop-filter: blur(10px); transition: all 0.3s;
+        }
+        .theme-toggle:hover { box-shadow: var(--panel-glow); }
+        .theme-toggle svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+        .theme-toggle .icon-sun { display: none; }
+        [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+        [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
         .container {
-            position: relative;
-            z-index: 1;
-            max-width: 500px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(25px);
-            border-radius: 32px;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            padding: 50px 40px;
+            position: relative; z-index: 1; max-width: 500px; width: 100%;
+            background: var(--surface); backdrop-filter: blur(25px); border-radius: 24px;
+            border: 1px solid var(--panel-border); box-shadow: var(--panel-glow);
+            padding: 50px 40px; animation: fadeIn 0.6s ease-out;
         }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         .header { text-align: center; margin-bottom: 40px; }
-        .logo { font-size: 4rem; margin-bottom: 16px; }
-        h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.5rem;
-            background: linear-gradient(135deg, var(--green-bull), var(--text-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 12px;
-        }
+        .logo-icon { width: 48px; height: 48px; margin: 0 auto 16px; opacity: 0.7; }
+        .logo-icon svg { width: 100%; height: 100%; }
+        h1 { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; color: var(--text); margin-bottom: 12px; }
         .form-group { margin-bottom: 20px; }
-        label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text-dark); }
+        label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text); }
         input {
-            width: 100%;
-            padding: 14px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.7);
+            width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px;
+            background: var(--input-bg); font-size: 16px; color: var(--text); font-family: 'Inter', sans-serif;
         }
-        input:focus {
-            outline: none;
-            border-color: var(--green-bull);
-            box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.1);
-        }
+        input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
         .name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .submit-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, var(--green-bull), #008555);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.05rem;
-            font-weight: 600;
-            cursor: pointer;
+            width: 100%; padding: 16px; background: var(--green); color: white; border: none;
+            border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: all 0.3s;
         }
+        .submit-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .error-msg { color: var(--red); margin-top: 12px; display: none; text-align: center; }
         .back-link { text-align: center; margin-top: 24px; }
-        .back-link a { color: var(--text-gray); text-decoration: none; }
+        .back-link a { color: var(--text-secondary); text-decoration: none; }
+        .back-link a:hover { color: var(--green); }
 
-        @media (max-width: 768px) {
-            .container { padding: 40px 30px; }
-            h1 { font-size: 2rem; }
-            .logo { font-size: 3rem; }
-            .name-row { grid-template-columns: 1fr; }
+        /* Popup Modal */
+        .popup-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000;
+            display: none; align-items: center; justify-content: center; padding: 20px;
         }
-        @media (max-width: 480px) {
-            .container { padding: 30px 20px; border-radius: 24px; }
-            h1 { font-size: 1.7rem; }
-            .submit-btn { font-size: 1rem; padding: 14px; }
+        .popup-overlay.active { display: flex; }
+        .popup-box {
+            background: var(--surface-solid); border-radius: 24px; padding: 48px 40px;
+            max-width: 440px; width: 100%; text-align: center; box-shadow: var(--panel-glow);
         }
+        .popup-icon { width: 56px; height: 56px; margin: 0 auto 20px; opacity: 0.6; }
+        .popup-icon svg { width: 100%; height: 100%; }
+        .popup-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+        .popup-desc { color: var(--text-secondary); margin-bottom: 28px; line-height: 1.5; }
+        .popup-input {
+            width: 100%; padding: 16px; border: 1px solid var(--border); border-radius: 12px;
+            font-size: 1.5rem; text-align: center; letter-spacing: 6px; font-family: monospace;
+            background: var(--input-bg); color: var(--text); margin-bottom: 16px;
+        }
+        .popup-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+        .popup-btn {
+            width: 100%; padding: 16px; background: var(--green); color: white; border: none;
+            border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        .popup-btn:hover { opacity: 0.9; }
+        .popup-skip { display: block; margin-top: 16px; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; cursor: pointer; }
+        .popup-error { color: var(--red); margin-top: 8px; display: none; font-size: 0.9rem; }
 
-        /* Bottom Navigation Bar */
         .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 0;
-            padding-bottom: max(8px, env(safe-area-inset-bottom));
-            z-index: 1000;
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-solid);
+            border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 48px;
+            padding: 10px 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); z-index: 1000;
         }
         .bottom-nav a {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--text-gray);
-            font-size: 0.7rem;
-            font-weight: 500;
-            padding: 6px 12px;
-            -webkit-tap-highlight-color: transparent;
-            gap: 4px;
+            display: flex; flex-direction: column; align-items: center; text-decoration: none;
+            color: var(--text-secondary); font-size: 0.7rem; font-weight: 500; padding: 4px 16px;
+            -webkit-tap-highlight-color: transparent; gap: 4px; transition: color 0.2s;
         }
-        .bottom-nav a.active { color: var(--green-bull); }
-        .bottom-nav a span.nav-icon { font-size: 1.4rem; }
+        .bottom-nav a.active { color: var(--green); }
+        .bottom-nav a:hover { color: var(--green); }
+        .bottom-nav a svg { width: 22px; height: 22px; fill: currentColor; }
+        @media (max-width: 768px) {
+            .container { padding: 40px 30px; } h1 { font-size: 1.8rem; }
+            .name-row { grid-template-columns: 1fr; }
+            .popup-box { padding: 36px 28px; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 30px 20px; border-radius: 20px; } h1 { font-size: 1.5rem; }
+            .popup-box { padding: 32px 20px; border-radius: 20px; }
+        }
     </style>
 </head>
 <body>
+    <a href="welcome.html" class="back-arrow" aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </a>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+
     <div class="container">
         <div class="header">
-            <div class="logo">🎧</div>
+            <div class="logo-icon"><svg viewBox="0 0 24 24" fill="var(--text)" opacity="0.7"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/></svg></div>
             <h1>Join as Listener</h1>
-            <p style="color: #666;">Start discovering amazing music</p>
+            <p style="color: var(--text-secondary);">Start discovering amazing music</p>
         </div>
         <form id="listenerForm">
             <div class="name-row">
-                <div class="form-group">
-                    <label>First Name *</label>
-                    <input type="text" name="firstName" required>
-                </div>
-                <div class="form-group">
-                    <label>Last Name *</label>
-                    <input type="text" name="lastName" required>
-                </div>
+                <div class="form-group"><label>First Name *</label><input type="text" name="firstName" required></div>
+                <div class="form-group"><label>Last Name *</label><input type="text" name="lastName" required></div>
             </div>
-            <div class="form-group">
-                <label>Email *</label>
-                <input type="email" name="email" required>
-            </div>
-            <div class="form-group">
-                <label>Username *</label>
-                <input type="text" name="username" required>
-            </div>
-            <div class="form-group">
-                <label>Password *</label>
-                <input type="password" name="password" required>
-            </div>
+            <div class="form-group"><label>Email *</label><input type="email" name="email" required></div>
+            <div class="form-group"><label>Username *</label><input type="text" name="username" required></div>
             <button type="submit" class="submit-btn">Create Account</button>
+            <div class="error-msg" id="errorMsg"></div>
         </form>
-        <div class="back-link">
-            <a href="welcome.html">← Back to home</a>
+        <div class="back-link"><a href="welcome.html">Back to home</a></div>
+    </div>
+
+    <!-- Listener Key Popup -->
+    <div class="popup-overlay" id="keyPopup">
+        <div class="popup-box">
+            <div class="popup-icon"><svg viewBox="0 0 24 24" fill="var(--text)" opacity="0.6"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
+            <div class="popup-title">Find Your Favorite Creator's Music</div>
+            <p class="popup-desc">Enter a creator's 4-digit listener key to start listening to their music and videos.</p>
+            <form id="keyForm">
+                <input type="text" class="popup-input" id="popupKeyInput" placeholder="0000"
+                       inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required>
+                <button type="submit" class="popup-btn">Unlock Music</button>
+                <div class="popup-error" id="popupError"></div>
+            </form>
+            <a class="popup-skip" onclick="skipPopup()">Skip for now</a>
         </div>
     </div>
+
     <script>
         const API = window.location.origin;
         document.getElementById('listenerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
+            const errEl = document.getElementById('errorMsg');
+            errEl.style.display = 'none';
             try {
                 const response = await fetch(`${API}/api/listeners/create`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
                 });
                 const result = await response.json();
                 if (response.ok && result.token) {
                     localStorage.setItem('authToken', result.token);
-                    window.location.href = 'player.html';
+                    // Show the listener key popup
+                    document.getElementById('keyPopup').classList.add('active');
+                } else {
+                    errEl.textContent = result.error || 'Error creating account.';
+                    errEl.style.display = 'block';
                 }
             } catch (error) {
-                alert('Error creating account.');
+                errEl.textContent = 'Error creating account.';
+                errEl.style.display = 'block';
             }
         });
+
+        document.getElementById('keyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const key = document.getElementById('popupKeyInput').value.trim();
+            const errEl = document.getElementById('popupError');
+            errEl.style.display = 'none';
+            try {
+                const response = await fetch(`${API}/api/listener-key/validate`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ listener_key: key })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    localStorage.setItem('listenerKey', key);
+                    window.location.href = 'player.html';
+                } else {
+                    errEl.textContent = 'Invalid listener key. Please try again.';
+                    errEl.style.display = 'block';
+                }
+            } catch (err) {
+                errEl.textContent = 'Error validating key.';
+                errEl.style.display = 'block';
+            }
+        });
+
+        function skipPopup() { window.location.href = 'player.html'; }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next); localStorage.setItem('theme', next);
+        }
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved) document.documentElement.setAttribute('data-theme', saved);
+            else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+        })();
     </script>
     <nav class="bottom-nav">
-        <a href="welcome.html"><span class="nav-icon">🏠</span>Home</a>
-        <a href="login.html"><span class="nav-icon">🔑</span>Login</a>
-        <a href="creator-signup.html"><span class="nav-icon">🎤</span>Creator</a>
-        <a href="listener-signup.html" class="active"><span class="nav-icon">🎧</span>Listener</a>
+        <a href="welcome.html"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+        <a href="master-admin.html"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>Admin</a>
     </nav>
 </body>
 </html>

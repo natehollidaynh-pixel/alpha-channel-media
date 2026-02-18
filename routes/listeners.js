@@ -6,15 +6,19 @@ const { sendListenerConfirmationEmail, sendAdminListenerNotification } = require
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-me';
 
-// Create a new listener account
+// Create a new listener account (no password required)
 router.post('/create', async (req, res) => {
   try {
-    const { firstName, lastName, email, username, password } = req.body;
+    const { firstName, lastName, email, username } = req.body;
     const db = req.app.locals.db;
 
-    // Check if username or email already exists
+    if (!firstName || !lastName || !email || !username) {
+      return res.status(400).json({ error: 'First name, last name, email, and username are required' });
+    }
+
+    // Check if username or email already exists (case-sensitive username)
     const existing = await db.query(
-      'SELECT id FROM listeners WHERE username = $1 OR email = $2',
+      'SELECT id FROM listeners WHERE username = $1 OR LOWER(email) = LOWER($2)',
       [username, email]
     );
 
@@ -22,13 +26,11 @@ router.post('/create', async (req, res) => {
       return res.status(400).json({ error: 'Username or email already exists' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
     const result = await db.query(
       `INSERT INTO listeners (username, email, password_hash, first_name, last_name)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [username, email, passwordHash, firstName, lastName]
+      [username, email, null, firstName, lastName]
     );
 
     const listener = result.rows[0];
@@ -57,12 +59,13 @@ router.post('/create', async (req, res) => {
   }
 });
 
-// Listener login (mounted at /api/listeners/login from server.js alias)
+// Listener login (case-sensitive username)
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const db = req.app.locals.db;
 
+    // Case-sensitive username lookup
     const result = await db.query(
       'SELECT * FROM listeners WHERE username = $1',
       [username]
@@ -73,6 +76,28 @@ router.post('/login', async (req, res) => {
     }
 
     const listener = result.rows[0];
+
+    // If listener has no password (new flow), just check username match
+    if (!listener.password_hash) {
+      const token = jwt.sign(
+        { id: listener.id, type: 'listener' },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: listener.id,
+          username: listener.username,
+          email: listener.email,
+          firstName: listener.first_name,
+          lastName: listener.last_name
+        }
+      });
+    }
+
+    // If password exists (legacy accounts), validate it
     const validPassword = await bcrypt.compare(password, listener.password_hash);
 
     if (!validPassword) {

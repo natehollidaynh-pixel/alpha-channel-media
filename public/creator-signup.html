@@ -1,382 +1,183 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Creator Application - Alpha Channel Media</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-        
         :root {
-            --pearl-white: #fafafa;
-            --white: #ffffff;
-            --green-bull: #00a86b;
-            --green-glow: rgba(0, 168, 107, 0.35);
-            --red-bear: #d32f2f;
-            --red-glow: rgba(211, 47, 47, 0.35);
-            --text-dark: #1a1a1a;
-            --text-gray: #666666;
-            --glass-bg: rgba(255, 255, 255, 0.4);
-            --glass-border: rgba(0, 0, 0, 0.08);
+            --bg: #f5f5f5; --surface: rgba(255,255,255,0.6); --surface-solid: #ffffff;
+            --green: #006e45; --green-glow: rgba(0,110,69,0.25); --red: #a12020; --red-glow: rgba(161,32,32,0.2);
+            --text: #111111; --text-secondary: #555555; --border: rgba(0,0,0,0.08);
+            --panel-glow: 0 0 30px rgba(0,110,69,0.12), 0 0 60px rgba(161,32,32,0.08);
+            --panel-border: rgba(0,0,0,0.06); --input-bg: rgba(255,255,255,0.7);
         }
-        
+        [data-theme="dark"] {
+            --bg: #0e0e0e; --surface: rgba(30,30,30,0.7); --surface-solid: #1a1a1a;
+            --green: #00c97a; --green-glow: rgba(0,201,122,0.2); --red: #e04545; --red-glow: rgba(224,69,69,0.15);
+            --text: #eaeaea; --text-secondary: #999999; --border: rgba(255,255,255,0.08);
+            --panel-glow: 0 0 40px rgba(0,201,122,0.1), 0 0 80px rgba(224,69,69,0.06);
+            --panel-border: rgba(255,255,255,0.06); --input-bg: rgba(40,40,40,0.7);
+        }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--pearl-white);
-            color: var(--text-dark);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px 100px;
-            position: relative;
-            overflow-x: hidden;
+            font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 40px 20px 80px;
         }
-        
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: 
-                radial-gradient(circle at 15% 25%, var(--green-glow) 0%, transparent 45%),
-                radial-gradient(circle at 85% 75%, var(--red-glow) 0%, transparent 45%);
-            animation: auraFloat 25s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
+        .back-arrow {
+            position: fixed; top: 20px; left: 20px; width: 40px; height: 40px;
+            border-radius: 50%; background: var(--surface); border: 1px solid var(--border);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 100; backdrop-filter: blur(10px); text-decoration: none; transition: all 0.3s;
         }
-        
-        @keyframes auraFloat {
-            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
-            33% { transform: translate(4%, -4%) scale(1.05); opacity: 0.7; }
-            66% { transform: translate(-4%, 4%) scale(0.95); opacity: 0.6; }
+        .back-arrow:hover { box-shadow: var(--panel-glow); }
+        .back-arrow svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+        .theme-toggle {
+            position: fixed; top: 20px; right: 20px; width: 40px; height: 40px;
+            border-radius: 50%; background: var(--surface); border: 1px solid var(--border);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 100; backdrop-filter: blur(10px); transition: all 0.3s;
         }
-        
+        .theme-toggle:hover { box-shadow: var(--panel-glow); }
+        .theme-toggle svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+        .theme-toggle .icon-sun { display: none; }
+        [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+        [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
         .container {
-            position: relative;
-            z-index: 1;
-            max-width: 700px;
-            width: 100%;
-            background: var(--glass-bg);
-            backdrop-filter: blur(25px) saturate(180%);
-            -webkit-backdrop-filter: blur(25px) saturate(180%);
-            border-radius: 32px;
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(255, 255, 255, 0.6);
-            padding: 50px 40px;
-            animation: slideUp 0.6s ease-out;
+            position: relative; z-index: 1; max-width: 700px; width: 100%;
+            background: var(--surface); backdrop-filter: blur(25px); border-radius: 24px;
+            border: 1px solid var(--panel-border); box-shadow: var(--panel-glow);
+            padding: 50px 40px; animation: fadeIn 0.6s ease-out;
         }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .logo { font-size: 3.5rem; margin-bottom: 16px; }
-        
+        @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+        .header { text-align: center; margin-bottom: 40px; }
+        .logo-icon { width: 48px; height: 48px; margin: 0 auto 16px; opacity: 0.7; }
+        .logo-icon svg { width: 100%; height: 100%; }
         h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--green-bull) 0%, var(--text-dark) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 12px;
+            font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700;
+            color: var(--text); margin-bottom: 12px;
         }
-        
-        .subtitle {
-            font-size: 1.05rem;
-            color: var(--text-gray);
-            line-height: 1.5;
-        }
-        
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 40px;
-        }
-        
-        .step {
-            background: rgba(255, 255, 255, 0.5);
-            padding: 16px;
-            border-radius: 16px;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        
+        .subtitle { font-size: 1rem; color: var(--text-secondary); line-height: 1.5; }
+        .steps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 40px; }
+        .step { background: var(--surface); padding: 16px; border-radius: 16px; border: 1px solid var(--panel-border); }
         .step-number {
-            display: inline-block;
-            width: 28px;
-            height: 28px;
-            background: var(--green-bull);
-            color: white;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 28px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 8px;
+            display: inline-block; width: 28px; height: 28px; background: var(--green);
+            color: white; border-radius: 50%; text-align: center; line-height: 28px;
+            font-weight: 600; font-size: 0.9rem; margin-bottom: 8px;
         }
-        
-        .step-title {
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 4px;
-            font-size: 0.95rem;
-        }
-        
-        .step-desc {
-            font-size: 0.85rem;
-            color: var(--text-gray);
-            line-height: 1.4;
-        }
-        
-        .form-group {
-            margin-bottom: 24px;
-        }
-        
-        label {
-            display: block;
-            font-weight: 500;
-            color: var(--text-dark);
-            margin-bottom: 8px;
-            font-size: 0.95rem;
-        }
-        
+        .step-title { font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 0.95rem; }
+        .step-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; }
+        .form-group { margin-bottom: 24px; }
+        label { display: block; font-weight: 500; color: var(--text); margin-bottom: 8px; font-size: 0.95rem; }
         input, textarea {
-            width: 100%;
-            padding: 14px 16px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            background: rgba(255, 255, 255, 0.7);
-            color: var(--text-dark);
-            transition: all 0.3s ease;
+            width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px;
+            font-family: 'Inter', sans-serif; font-size: 16px; background: var(--input-bg);
+            color: var(--text); transition: all 0.3s;
         }
-        
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: var(--green-bull);
-            background: var(--white);
-            box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.1);
-        }
-        
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-        
-        .name-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-        
+        input:focus, textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+        textarea { resize: vertical; min-height: 100px; }
+        .name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .submit-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, var(--green-bull) 0%, #008555 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.05rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 12px;
+            width: 100%; padding: 16px; background: var(--green); color: white; border: none;
+            border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s; margin-top: 12px;
         }
-        
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px var(--green-glow);
-        }
-        
-        .back-link {
-            text-align: center;
-            margin-top: 24px;
-        }
-        
-        .back-link a {
-            color: var(--text-gray);
-            text-decoration: none;
-            font-size: 0.95rem;
-        }
-        
-        .back-link a:hover {
-            color: var(--green-bull);
-        }
-        
+        .submit-btn:hover { opacity: 0.9; transform: translateY(-2px); }
         .success-message {
-            display: none;
-            background: rgba(0, 168, 107, 0.1);
-            border: 1px solid var(--green-bull);
-            color: var(--green-bull);
-            padding: 16px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            font-weight: 500;
+            display: none; background: var(--green-glow); border: 1px solid var(--green);
+            color: var(--green); padding: 16px; border-radius: 12px; margin-bottom: 24px; font-weight: 500;
         }
-        
-        @media (max-width: 768px) {
-            .container { padding: 40px 30px; }
-            h1 { font-size: 2rem; }
-            .steps { grid-template-columns: 1fr; }
-            .name-row { grid-template-columns: 1fr; }
-        }
-
-        /* Bottom Navigation Bar */
+        .back-link { text-align: center; margin-top: 24px; }
+        .back-link a { color: var(--text-secondary); text-decoration: none; font-size: 0.95rem; }
+        .back-link a:hover { color: var(--green); }
         .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 0;
-            padding-bottom: max(8px, env(safe-area-inset-bottom));
-            z-index: 1000;
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-solid);
+            border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 48px;
+            padding: 10px 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); z-index: 1000;
         }
         .bottom-nav a {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--text-gray);
-            font-size: 0.7rem;
-            font-weight: 500;
-            padding: 6px 12px;
-            -webkit-tap-highlight-color: transparent;
-            gap: 4px;
+            display: flex; flex-direction: column; align-items: center; text-decoration: none;
+            color: var(--text-secondary); font-size: 0.7rem; font-weight: 500; padding: 4px 16px;
+            -webkit-tap-highlight-color: transparent; gap: 4px; transition: color 0.2s;
         }
-        .bottom-nav a.active { color: var(--green-bull); }
-        .bottom-nav a span.nav-icon { font-size: 1.4rem; }
+        .bottom-nav a.active { color: var(--green); }
+        .bottom-nav a:hover { color: var(--green); }
+        .bottom-nav a svg { width: 22px; height: 22px; fill: currentColor; }
+        @media (max-width: 768px) {
+            .container { padding: 40px 30px; } h1 { font-size: 1.8rem; }
+            .steps { grid-template-columns: 1fr; } .name-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) { .container { padding: 30px 20px; border-radius: 20px; } h1 { font-size: 1.5rem; } }
     </style>
 </head>
 <body>
+    <a href="welcome.html" class="back-arrow" aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </a>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
     <div class="container">
         <div class="header">
-            <div class="logo">🎤</div>
+            <div class="logo-icon"><svg viewBox="0 0 24 24" fill="var(--text)" opacity="0.7"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></div>
             <h1>Creator Application</h1>
             <p class="subtitle">Join Alpha Channel Media and share your music with the world</p>
         </div>
-        
         <div class="steps">
-            <div class="step">
-                <div class="step-number">1</div>
-                <div class="step-title">Apply</div>
-                <div class="step-desc">Fill out this application form</div>
-            </div>
-            <div class="step">
-                <div class="step-number">2</div>
-                <div class="step-title">Review</div>
-                <div class="step-desc">We'll review your application</div>
-            </div>
-            <div class="step">
-                <div class="step-number">3</div>
-                <div class="step-title">Approved</div>
-                <div class="step-desc">Get your login credentials</div>
-            </div>
-            <div class="step">
-                <div class="step-number">4</div>
-                <div class="step-title">Upload</div>
-                <div class="step-desc">Start sharing your music!</div>
-            </div>
+            <div class="step"><div class="step-number">1</div><div class="step-title">Apply</div><div class="step-desc">Fill out this application form</div></div>
+            <div class="step"><div class="step-number">2</div><div class="step-title">Review</div><div class="step-desc">We'll review your application</div></div>
+            <div class="step"><div class="step-number">3</div><div class="step-title">Approved</div><div class="step-desc">Get your login credentials</div></div>
+            <div class="step"><div class="step-number">4</div><div class="step-title">Upload</div><div class="step-desc">Start sharing your music!</div></div>
         </div>
-        
-        <div class="success-message" id="successMessage">
-            ✓ Application submitted successfully! We'll review it and get back to you soon.
-        </div>
-        
+        <div class="success-message" id="successMessage">Application submitted successfully! We'll review it and get back to you soon.</div>
         <form id="creatorForm">
             <div class="name-row">
-                <div class="form-group">
-                    <label for="firstName">First Name *</label>
-                    <input type="text" id="firstName" name="firstName" required>
-                </div>
-                <div class="form-group">
-                    <label for="lastName">Last Name *</label>
-                    <input type="text" id="lastName" name="lastName" required>
-                </div>
+                <div class="form-group"><label for="firstName">First Name *</label><input type="text" id="firstName" name="firstName" required></div>
+                <div class="form-group"><label for="lastName">Last Name *</label><input type="text" id="lastName" name="lastName" required></div>
             </div>
-            
-            <div class="form-group">
-                <label for="email">Email *</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="username">Preferred Username *</label>
-                <input type="text" id="username" name="username" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="artistName">Artist/Stage Name</label>
-                <input type="text" id="artistName" name="artistName">
-            </div>
-            
-            <div class="form-group">
-                <label for="bio">Tell us about your music</label>
-                <textarea id="bio" name="bio" placeholder="Genre, style, influences..."></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="reason">Why do you want to join Alpha Channel Media?</label>
-                <textarea id="reason" name="reason"></textarea>
-            </div>
-            
+            <div class="form-group"><label for="email">Email *</label><input type="email" id="email" name="email" required></div>
+            <div class="form-group"><label for="username">Preferred Username *</label><input type="text" id="username" name="username" required></div>
+            <div class="form-group"><label for="artistName">Artist / Stage Name</label><input type="text" id="artistName" name="artistName"></div>
+            <div class="form-group"><label for="bio">Tell us about your music</label><textarea id="bio" name="bio" placeholder="Genre, style, influences..."></textarea></div>
+            <div class="form-group"><label for="reason">Why do you want to join Alpha Channel Media?</label><textarea id="reason" name="reason"></textarea></div>
             <button type="submit" class="submit-btn">Submit Application</button>
         </form>
-        
-        <div class="back-link">
-            <a href="welcome.html">← Back to home</a>
-        </div>
+        <div class="back-link"><a href="welcome.html">Back to home</a></div>
     </div>
-    
     <script>
         const API = window.location.origin;
-        
         document.getElementById('creatorForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
-            
             try {
                 const response = await fetch(`${API}/api/applications/submit`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
                 });
-                
                 if (response.ok) {
                     document.getElementById('successMessage').style.display = 'block';
                     e.target.reset();
-                    setTimeout(() => {
-                        window.location.href = 'welcome.html';
-                    }, 3000);
+                    setTimeout(() => { window.location.href = 'welcome.html'; }, 3000);
                 }
-            } catch (error) {
-                alert('Error submitting application. Please try again.');
-            }
+            } catch (error) { alert('Error submitting application. Please try again.'); }
         });
+        function toggleTheme() {
+            const html = document.documentElement;
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next); localStorage.setItem('theme', next);
+        }
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved) document.documentElement.setAttribute('data-theme', saved);
+            else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+        })();
     </script>
     <nav class="bottom-nav">
-        <a href="welcome.html"><span class="nav-icon">🏠</span>Home</a>
-        <a href="login.html"><span class="nav-icon">🔑</span>Login</a>
-        <a href="creator-signup.html" class="active"><span class="nav-icon">🎤</span>Creator</a>
-        <a href="listener-signup.html"><span class="nav-icon">🎧</span>Listener</a>
+        <a href="welcome.html"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+        <a href="master-admin.html"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>Admin</a>
     </nav>
 </body>
 </html>
