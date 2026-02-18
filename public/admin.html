@@ -515,52 +515,103 @@
             } catch (err) { alert('Error deleting video'); }
         }
 
-        // Upload music
-        document.getElementById('musicForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            var formData = new FormData(e.target);
-            var btn = document.getElementById('musicSubmitBtn');
-            var progress = document.getElementById('musicProgress');
-            var bar = document.getElementById('musicBar');
-            var status = document.getElementById('musicStatus');
-            btn.disabled = true; btn.textContent = 'Uploading...';
-            progress.style.display = 'block'; bar.style.width = '30%'; status.style.display = 'none';
-            try {
-                var response = await fetch(API + '/api/upload/music', {
-                    method: 'POST', headers: { 'Authorization': 'Bearer ' + authToken }, body: formData
+        // Upload helper using XMLHttpRequest for real progress tracking
+        function uploadWithProgress(url, formData, progressBar, progressFill, statusEl, btn, originalText, form) {
+            return new Promise(function(resolve) {
+                var xhr = new XMLHttpRequest();
+                btn.disabled = true;
+                progressBar.style.display = 'block';
+                progressFill.style.width = '0%';
+                statusEl.style.display = 'none';
+                statusEl.className = 'status-msg';
+
+                // Track upload progress (browser → server)
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        var pct = Math.round((e.loaded / e.total) * 70); // 0-70% is upload
+                        progressFill.style.width = pct + '%';
+                        btn.textContent = 'Uploading... ' + pct + '%';
+                    }
                 });
-                var result = await response.json();
-                if (response.ok && result.success) {
-                    bar.style.width = '100%'; status.className = 'status-msg success';
-                    status.textContent = 'Track uploaded successfully!'; e.target.reset();
-                } else { status.className = 'status-msg error'; status.textContent = result.error || 'Upload failed.'; }
-            } catch (error) { status.className = 'status-msg error'; status.textContent = 'Network error.'; }
-            btn.disabled = false; btn.textContent = 'Upload Track';
-            setTimeout(function() { progress.style.display = 'none'; bar.style.width = '0%'; }, 3000);
+
+                // Upload to server complete, now server is processing → Cloudinary
+                xhr.upload.addEventListener('load', function() {
+                    progressFill.style.width = '75%';
+                    btn.textContent = 'Processing...';
+                });
+
+                xhr.addEventListener('load', function() {
+                    try {
+                        var result = JSON.parse(xhr.responseText);
+                        if (xhr.status >= 200 && xhr.status < 300 && result.success) {
+                            progressFill.style.width = '100%';
+                            statusEl.className = 'status-msg success';
+                            statusEl.textContent = 'Uploaded successfully!';
+                            form.reset();
+                        } else {
+                            statusEl.className = 'status-msg error';
+                            statusEl.textContent = result.error || 'Upload failed.';
+                        }
+                    } catch (e) {
+                        statusEl.className = 'status-msg error';
+                        statusEl.textContent = 'Upload failed — unexpected response.';
+                    }
+                    btn.disabled = false; btn.textContent = originalText;
+                    setTimeout(function() { progressBar.style.display = 'none'; progressFill.style.width = '0%'; }, 4000);
+                    resolve();
+                });
+
+                xhr.addEventListener('error', function() {
+                    statusEl.className = 'status-msg error';
+                    statusEl.textContent = 'Network error — check your connection and try again.';
+                    btn.disabled = false; btn.textContent = originalText;
+                    progressBar.style.display = 'none';
+                    resolve();
+                });
+
+                xhr.addEventListener('timeout', function() {
+                    statusEl.className = 'status-msg error';
+                    statusEl.textContent = 'Upload timed out — try a smaller file or check your connection.';
+                    btn.disabled = false; btn.textContent = originalText;
+                    progressBar.style.display = 'none';
+                    resolve();
+                });
+
+                xhr.open('POST', url);
+                xhr.timeout = 600000; // 10 min timeout
+                xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
+                xhr.send(formData);
+            });
+        }
+
+        // Upload music
+        document.getElementById('musicForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            uploadWithProgress(
+                API + '/api/upload/music',
+                new FormData(e.target),
+                document.getElementById('musicProgress'),
+                document.getElementById('musicBar'),
+                document.getElementById('musicStatus'),
+                document.getElementById('musicSubmitBtn'),
+                'Upload Track',
+                e.target
+            );
         });
 
         // Upload video
-        document.getElementById('videoForm').addEventListener('submit', async function(e) {
+        document.getElementById('videoForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            var formData = new FormData(e.target);
-            var btn = document.getElementById('videoSubmitBtn');
-            var progress = document.getElementById('videoProgress');
-            var bar = document.getElementById('videoBar');
-            var status = document.getElementById('videoStatus');
-            btn.disabled = true; btn.textContent = 'Uploading...';
-            progress.style.display = 'block'; bar.style.width = '30%'; status.style.display = 'none';
-            try {
-                var response = await fetch(API + '/api/upload/video', {
-                    method: 'POST', headers: { 'Authorization': 'Bearer ' + authToken }, body: formData
-                });
-                var result = await response.json();
-                if (response.ok && result.success) {
-                    bar.style.width = '100%'; status.className = 'status-msg success';
-                    status.textContent = 'Video uploaded successfully!'; e.target.reset();
-                } else { status.className = 'status-msg error'; status.textContent = result.error || 'Upload failed.'; }
-            } catch (error) { status.className = 'status-msg error'; status.textContent = 'Network error.'; }
-            btn.disabled = false; btn.textContent = 'Upload Video';
-            setTimeout(function() { progress.style.display = 'none'; bar.style.width = '0%'; }, 3000);
+            uploadWithProgress(
+                API + '/api/upload/video',
+                new FormData(e.target),
+                document.getElementById('videoProgress'),
+                document.getElementById('videoBar'),
+                document.getElementById('videoStatus'),
+                document.getElementById('videoSubmitBtn'),
+                'Upload Video',
+                e.target
+            );
         });
 
         // Listener Key
