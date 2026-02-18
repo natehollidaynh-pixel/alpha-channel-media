@@ -4,26 +4,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Player - Alpha Channel Media</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg: #f5f5f5; --surface: rgba(255,255,255,0.6); --surface-solid: #ffffff;
-            --green: #006e45; --green-glow: rgba(0,110,69,0.25); --red: #a12020; --red-glow: rgba(161,32,32,0.2);
+            --bg: #f0ede8;
+            --bg-glossy: linear-gradient(135deg, #f5f2ed 0%, #faf8f5 20%, #f0ede8 40%, #fdf5f5 60%, #f0f7f3 80%, #f5f2ed 100%);
+            --surface: rgba(255,255,255,0.55);
+            --surface-solid: #ffffff;
+            --green: #006e45; --green-glow: rgba(0,110,69,0.25); --red: #b82e2e; --red-glow: rgba(184,46,46,0.2);
             --text: #111111; --text-secondary: #555555; --border: rgba(0,0,0,0.08);
-            --panel-glow: 0 0 30px rgba(0,110,69,0.12), 0 0 60px rgba(161,32,32,0.08);
+            --panel-glow: 0 0 30px rgba(0,110,69,0.12), 0 0 60px rgba(184,46,46,0.08);
             --panel-border: rgba(0,0,0,0.06); --input-bg: rgba(255,255,255,0.7);
             --track-hover: rgba(0,110,69,0.06);
+            --shimmer-color: rgba(0,110,69,0.15);
+            /* Adaptive colors (updated by JS) */
+            --art-primary: 0,110,69;
+            --art-secondary: 184,46,46;
         }
         [data-theme="dark"] {
-            --bg: #0e0e0e; --surface: rgba(30,30,30,0.7); --surface-solid: #1a1a1a;
+            --bg: #0a0a0a;
+            --bg-glossy: linear-gradient(135deg, #0e0e0e 0%, #121210 20%, #0e100e 40%, #140e0e 60%, #0e1210 80%, #0e0e0e 100%);
+            --surface: rgba(25,25,25,0.7);
+            --surface-solid: #141414;
             --green: #00c97a; --green-glow: rgba(0,201,122,0.2); --red: #e04545; --red-glow: rgba(224,69,69,0.15);
             --text: #eaeaea; --text-secondary: #999999; --border: rgba(255,255,255,0.08);
             --panel-glow: 0 0 40px rgba(0,201,122,0.1), 0 0 80px rgba(224,69,69,0.06);
             --panel-border: rgba(255,255,255,0.06); --input-bg: rgba(40,40,40,0.7);
             --track-hover: rgba(0,201,122,0.06);
+            --shimmer-color: rgba(0,201,122,0.2);
         }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-glossy);
+            background-attachment: fixed;
+            color: var(--text);
+            min-height: 100vh;
+            padding: 0;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Glossy orbs */
+        body::before, body::after {
+            content: ''; position: fixed; border-radius: 50%;
+            filter: blur(80px); opacity: 0.4; pointer-events: none; z-index: 0;
+        }
+        body::before {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(0,150,80,0.2), transparent 70%);
+            top: -100px; right: -100px;
+        }
+        body::after {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(200,40,40,0.15), transparent 70%);
+            bottom: -50px; left: -50px;
+        }
+
+        /* Adaptive color overlay — driven by artwork */
+        .adaptive-bg {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            transition: opacity 1.5s ease;
+            opacity: 0;
+        }
+        .adaptive-bg.active { opacity: 1; }
+
+        /* Shimmer text */
+        .shimmer-text {
+            background: linear-gradient(120deg, var(--text) 0%, var(--text) 40%, var(--shimmer-color) 50%, var(--text) 60%, var(--text) 100%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmerSlide 3s ease-in-out infinite;
+        }
+        @keyframes shimmerSlide {
+            0% { background-position: 200% center; }
+            100% { background-position: -200% center; }
+        }
+
         .back-arrow {
             position: fixed; top: 20px; left: 20px; width: 40px; height: 40px; border-radius: 50%;
             background: var(--surface); border: 1px solid var(--border); cursor: pointer;
@@ -47,6 +106,7 @@
         /* Gate */
         .gate-container {
             display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;
+            position: relative; z-index: 1;
         }
         .gate-box {
             max-width: 440px; width: 100%; background: var(--surface); backdrop-filter: blur(25px);
@@ -70,15 +130,17 @@
         .gate-btn:hover { opacity: 0.85; }
 
         /* Main player layout */
-        .player-app { display: none; min-height: 100vh; padding-bottom: 160px; }
+        .player-app { display: none; min-height: 100vh; padding-bottom: 160px; position: relative; z-index: 1; }
         .player-app.active { display: block; }
 
         /* Header bar */
         .player-header {
-            position: sticky; top: 0; z-index: 100; background: var(--surface-solid);
-            backdrop-filter: blur(25px); border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(var(--art-primary), 0.05);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border-bottom: 1px solid var(--border);
             padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
-            max-width: 100%;
+            transition: background 1s ease;
         }
         .player-header-left { display: flex; align-items: center; gap: 12px; margin-left: 40px; }
         .player-header-left h1 { font-size: 1.2rem; font-weight: 700; color: var(--text); }
@@ -86,36 +148,48 @@
         .player-header-right a { color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.9rem; }
         .player-header-right a:hover { color: var(--green); }
 
-        /* Track list */
-        .track-list-container { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
-        .track-list-header {
-            display: flex; align-items: flex-end; gap: 28px; margin-bottom: 32px;
-            padding: 0 0 24px; border-bottom: 1px solid var(--border);
+        /* Hero artwork section — large, immersive */
+        .hero-section {
+            position: relative;
+            padding: 48px 20px 36px;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
         }
-        .tlh-art {
-            width: 180px; height: 180px; border-radius: 16px; background: linear-gradient(135deg, var(--green-glow), var(--red-glow));
-            display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        .hero-inner {
+            max-width: 900px; width: 100%;
+            display: flex; align-items: flex-end; gap: 36px;
         }
-        .tlh-art img { width: 100%; height: 100%; object-fit: cover; }
-        .tlh-art svg { width: 64px; height: 64px; fill: var(--text-secondary); opacity: 0.3; }
-        .tlh-info { flex: 1; }
-        .tlh-type { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-secondary); margin-bottom: 8px; }
-        .tlh-title { font-size: 2rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-        .tlh-artist { font-size: 1rem; color: var(--green); font-weight: 500; margin-bottom: 12px; }
-        .tlh-meta { font-size: 0.85rem; color: var(--text-secondary); }
+        .hero-art {
+            width: 320px; height: 320px; border-radius: 20px;
+            background: linear-gradient(135deg, var(--green-glow), var(--red-glow));
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; flex-shrink: 0;
+            box-shadow: 0 16px 60px rgba(0,0,0,0.25);
+            transition: box-shadow 1s ease;
+        }
+        .hero-art img { width: 100%; height: 100%; object-fit: cover; }
+        .hero-art svg { width: 80px; height: 80px; fill: var(--text-secondary); opacity: 0.3; }
+        .hero-info { flex: 1; padding-bottom: 8px; }
+        .hero-type { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-secondary); margin-bottom: 8px; }
+        .hero-title { font-family: 'Playfair Display', serif; font-size: 2.4rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+        .hero-artist { font-size: 1rem; color: var(--green); font-weight: 500; margin-bottom: 12px; }
+        .hero-meta { font-size: 0.85rem; color: var(--text-secondary); }
         .play-all-btn {
-            display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px;
+            display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px;
             background: var(--green); color: white; border: none; border-radius: 24px;
-            font-weight: 600; font-size: 0.95rem; cursor: pointer; margin-top: 16px; transition: all 0.2s;
+            font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 20px; transition: all 0.2s;
         }
         .play-all-btn:hover { opacity: 0.85; transform: scale(1.02); }
-        .play-all-btn svg { width: 18px; height: 18px; fill: white; }
+        .play-all-btn svg { width: 20px; height: 20px; fill: white; }
         .change-key-link {
             display: inline-block; margin-top: 8px; color: var(--text-secondary);
             text-decoration: none; font-size: 0.85rem;
         }
         .change-key-link:hover { color: var(--green); }
+
+        /* Track list */
+        .track-list-container { max-width: 900px; margin: 0 auto; padding: 0 20px 24px; }
 
         /* Track rows */
         .track-table { width: 100%; }
@@ -131,7 +205,7 @@
             align-items: center; transition: background 0.15s;
         }
         .track-row:hover { background: var(--track-hover); }
-        .track-row.active { background: var(--green-glow); }
+        .track-row.active { background: rgba(var(--art-primary), 0.12); }
         .track-row .tr-num { text-align: center; font-size: 0.9rem; color: var(--text-secondary); font-weight: 500; }
         .track-row.active .tr-num { color: var(--green); }
         .track-row .tr-art {
@@ -216,9 +290,9 @@
         @media (max-width: 768px) {
             .player-header-left { margin-left: 48px; }
             .player-header-right { margin-right: 48px; }
-            .track-list-header { flex-direction: column; align-items: center; text-align: center; gap: 20px; }
-            .tlh-art { width: 200px; height: 200px; }
-            .tlh-title { font-size: 1.5rem; }
+            .hero-inner { flex-direction: column; align-items: center; text-align: center; gap: 24px; }
+            .hero-art { width: 280px; height: 280px; }
+            .hero-title { font-size: 1.8rem; }
             .track-table-header { display: none; }
             .track-row { grid-template-columns: 40px 48px 1fr; }
             .track-row .tr-duration { display: none; }
@@ -231,8 +305,9 @@
         @media (max-width: 480px) {
             .player-header-left h1 { font-size: 1rem; }
             .player-header-right { display: none; }
-            .tlh-art { width: 160px; height: 160px; border-radius: 12px; }
-            .tlh-title { font-size: 1.3rem; }
+            .hero-section { padding: 32px 16px 24px; }
+            .hero-art { width: 240px; height: 240px; border-radius: 16px; }
+            .hero-title { font-size: 1.5rem; }
             .track-row { padding: 8px; gap: 10px; grid-template-columns: 32px 44px 1fr; }
             .track-row .tr-art { width: 44px; height: 44px; }
             .track-row .tr-info h4 { font-size: 0.9rem; }
@@ -243,6 +318,9 @@
     </style>
 </head>
 <body>
+    <!-- Adaptive color background overlay -->
+    <div class="adaptive-bg" id="adaptiveBg"></div>
+
     <a href="welcome.html" class="back-arrow" aria-label="Back">
         <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
     </a>
@@ -257,7 +335,7 @@
             <div class="gate-icon">
                 <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
             </div>
-            <h2>Enter Listener Key</h2>
+            <h2 class="shimmer-text">Enter Listener Key</h2>
             <p>Enter a creator's 4-digit key to listen to their music.</p>
             <form id="accessForm">
                 <input type="text" id="listenerKeyInput" class="gate-input" placeholder="0000" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
@@ -271,7 +349,7 @@
     <div class="player-app" id="playerApp">
         <div class="player-header">
             <div class="player-header-left">
-                <h1 id="headerTitle">Alpha Channel Media</h1>
+                <h1 id="headerTitle" class="shimmer-text">Alpha Channel Media</h1>
             </div>
             <div class="player-header-right">
                 <a href="videos.html">Videos</a>
@@ -279,16 +357,17 @@
             </div>
         </div>
 
-        <div class="track-list-container">
-            <div class="track-list-header">
-                <div class="tlh-art" id="tlhArt">
+        <!-- Hero: large artwork + info -->
+        <div class="hero-section">
+            <div class="hero-inner">
+                <div class="hero-art" id="heroArt">
                     <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                 </div>
-                <div class="tlh-info">
-                    <div class="tlh-type">Playlist</div>
-                    <div class="tlh-title" id="libraryTitle">Music Library</div>
-                    <div class="tlh-artist" id="libraryArtist"></div>
-                    <div class="tlh-meta" id="libraryMeta"></div>
+                <div class="hero-info">
+                    <div class="hero-type">Playlist</div>
+                    <div class="hero-title shimmer-text" id="libraryTitle">Music Library</div>
+                    <div class="hero-artist" id="libraryArtist"></div>
+                    <div class="hero-meta" id="libraryMeta"></div>
                     <button class="play-all-btn" onclick="playAll()">
                         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         Play All
@@ -297,7 +376,9 @@
                     <a href="#" onclick="clearListenerKey(); return false;" class="change-key-link">Change key</a>
                 </div>
             </div>
+        </div>
 
+        <div class="track-list-container">
             <div class="track-table">
                 <div class="track-table-header">
                     <span>#</span>
@@ -370,6 +451,104 @@
         var repeatOn = false;
         var currentCreatorId = null;
 
+        // ===== ADAPTIVE COLOR EXTRACTION =====
+        function extractColors(imgUrl) {
+            if (!imgUrl) return;
+            var img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = function() {
+                var canvas = document.createElement('canvas');
+                var ctx = canvas.getContext('2d');
+                var size = 50;
+                canvas.width = size; canvas.height = size;
+                ctx.drawImage(img, 0, 0, size, size);
+                var data = ctx.getImageData(0, 0, size, size).data;
+
+                // Sample colors from different quadrants
+                var colors = { tl: [0,0,0], tr: [0,0,0], bl: [0,0,0], br: [0,0,0], center: [0,0,0] };
+                var half = Math.floor(size / 2);
+                var counts = { tl: 0, tr: 0, bl: 0, br: 0, center: 0 };
+
+                for (var y = 0; y < size; y++) {
+                    for (var x = 0; x < size; x++) {
+                        var idx = (y * size + x) * 4;
+                        var r = data[idx], g = data[idx+1], b = data[idx+2];
+                        // Skip very dark or very light pixels
+                        var brightness = (r + g + b) / 3;
+                        if (brightness < 20 || brightness > 240) continue;
+
+                        var region;
+                        if (x < half && y < half) region = 'tl';
+                        else if (x >= half && y < half) region = 'tr';
+                        else if (x < half && y >= half) region = 'bl';
+                        else region = 'br';
+
+                        // Also sample center
+                        if (x > size*0.25 && x < size*0.75 && y > size*0.25 && y < size*0.75) {
+                            colors.center[0] += r; colors.center[1] += g; colors.center[2] += b;
+                            counts.center++;
+                        }
+
+                        colors[region][0] += r; colors[region][1] += g; colors[region][2] += b;
+                        counts[region]++;
+                    }
+                }
+
+                // Average each region
+                var avgColors = {};
+                for (var key in colors) {
+                    if (counts[key] > 0) {
+                        avgColors[key] = [
+                            Math.round(colors[key][0] / counts[key]),
+                            Math.round(colors[key][1] / counts[key]),
+                            Math.round(colors[key][2] / counts[key])
+                        ];
+                    } else {
+                        avgColors[key] = [80, 80, 80];
+                    }
+                }
+
+                // Pick two most vibrant/different colors
+                var primary = avgColors.center;
+                var secondary = avgColors.tl;
+
+                // Find the most different color from primary
+                var maxDist = 0;
+                for (var k in avgColors) {
+                    if (k === 'center') continue;
+                    var d = Math.abs(avgColors[k][0] - primary[0]) +
+                            Math.abs(avgColors[k][1] - primary[1]) +
+                            Math.abs(avgColors[k][2] - primary[2]);
+                    if (d > maxDist) { maxDist = d; secondary = avgColors[k]; }
+                }
+
+                applyAdaptiveColors(primary, secondary);
+            };
+            img.src = imgUrl;
+        }
+
+        function applyAdaptiveColors(primary, secondary) {
+            var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            var bgEl = document.getElementById('adaptiveBg');
+
+            // Set CSS variable for track highlighting
+            document.documentElement.style.setProperty('--art-primary', primary.join(','));
+            document.documentElement.style.setProperty('--art-secondary', secondary.join(','));
+
+            // Build gradient overlay
+            var pAlpha = isDark ? 0.25 : 0.12;
+            var sAlpha = isDark ? 0.18 : 0.08;
+            bgEl.style.background =
+                'radial-gradient(ellipse at top left, rgba(' + primary.join(',') + ',' + pAlpha + ') 0%, transparent 60%), ' +
+                'radial-gradient(ellipse at bottom right, rgba(' + secondary.join(',') + ',' + sAlpha + ') 0%, transparent 60%), ' +
+                'radial-gradient(ellipse at center, rgba(' + primary.join(',') + ',' + (pAlpha * 0.4) + ') 0%, transparent 50%)';
+            bgEl.classList.add('active');
+
+            // Tint the hero art shadow
+            var heroArt = document.getElementById('heroArt');
+            heroArt.style.boxShadow = '0 16px 60px rgba(' + primary.join(',') + ',0.35), 0 8px 30px rgba(' + secondary.join(',') + ',0.2)';
+        }
+
         // Check stored key
         var storedKey = localStorage.getItem('listenerKey');
         if (storedKey) validateAndLoad(storedKey);
@@ -415,6 +594,7 @@
             document.getElementById('tracksList').innerHTML = '';
             document.getElementById('listenerKeyInput').value = '';
             document.getElementById('accessError').style.display = 'none';
+            document.getElementById('adaptiveBg').classList.remove('active');
             tracks = []; currentIndex = -1;
         }
 
@@ -426,9 +606,10 @@
                 tracks = data.tracks || [];
                 document.getElementById('libraryMeta').textContent = tracks.length + ' track' + (tracks.length !== 1 ? 's' : '');
 
-                // Set header art to first track's artwork if available
+                // Set hero art to first track's artwork if available
                 if (tracks.length > 0 && tracks[0].artwork_url) {
-                    document.getElementById('tlhArt').innerHTML = '<img src="' + tracks[0].artwork_url + '">';
+                    document.getElementById('heroArt').innerHTML = '<img src="' + tracks[0].artwork_url + '">';
+                    extractColors(tracks[0].artwork_url);
                 }
 
                 renderTracks();
@@ -472,6 +653,9 @@
             document.getElementById('npbArtist').textContent = track.artist;
             if (track.artwork_url) {
                 document.getElementById('npbArt').innerHTML = '<img src="' + track.artwork_url + '">';
+                // Update hero art and extract colors for this track
+                document.getElementById('heroArt').innerHTML = '<img src="' + track.artwork_url + '">';
+                extractColors(track.artwork_url);
             } else {
                 document.getElementById('npbArt').innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
             }
@@ -572,6 +756,10 @@
             var html = document.documentElement;
             var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next); localStorage.setItem('theme', next);
+            // Re-apply adaptive colors if a track is playing
+            if (currentIndex >= 0 && tracks[currentIndex] && tracks[currentIndex].artwork_url) {
+                extractColors(tracks[currentIndex].artwork_url);
+            }
         }
         (function() {
             var saved = localStorage.getItem('theme');

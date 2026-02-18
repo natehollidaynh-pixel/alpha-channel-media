@@ -11,38 +11,47 @@
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg: #f5f5f5;
-            --surface: rgba(255, 255, 255, 0.6);
+            --bg: #f0ede8;
+            --bg-glossy: linear-gradient(135deg, #f5f2ed 0%, #faf8f5 20%, #f0ede8 40%, #fdf5f5 60%, #f0f7f3 80%, #f5f2ed 100%);
+            --surface: rgba(255, 255, 255, 0.55);
             --surface-solid: #ffffff;
             --green: #006e45;
+            --green-light: #00a86b;
             --green-glow: rgba(0, 110, 69, 0.25);
-            --red: #a12020;
-            --red-glow: rgba(161, 32, 32, 0.2);
+            --red: #b82e2e;
+            --red-light: #d44040;
+            --red-glow: rgba(184, 46, 46, 0.2);
             --text: #111111;
             --text-secondary: #555555;
             --border: rgba(0, 0, 0, 0.08);
-            --panel-glow: 0 0 30px rgba(0, 110, 69, 0.12), 0 0 60px rgba(161, 32, 32, 0.08);
+            --panel-glow: 0 0 30px rgba(0, 110, 69, 0.12), 0 0 60px rgba(184, 46, 46, 0.08);
             --panel-border: rgba(0, 0, 0, 0.06);
+            --shimmer-color: rgba(0, 110, 69, 0.15);
         }
 
         [data-theme="dark"] {
-            --bg: #0e0e0e;
-            --surface: rgba(30, 30, 30, 0.7);
-            --surface-solid: #1a1a1a;
+            --bg: #0a0a0a;
+            --bg-glossy: linear-gradient(135deg, #0e0e0e 0%, #121210 20%, #0e100e 40%, #140e0e 60%, #0e1210 80%, #0e0e0e 100%);
+            --surface: rgba(25, 25, 25, 0.7);
+            --surface-solid: #141414;
             --green: #00c97a;
+            --green-light: #00e88e;
             --green-glow: rgba(0, 201, 122, 0.2);
             --red: #e04545;
+            --red-light: #ff5c5c;
             --red-glow: rgba(224, 69, 69, 0.15);
             --text: #eaeaea;
             --text-secondary: #999999;
             --border: rgba(255, 255, 255, 0.08);
             --panel-glow: 0 0 40px rgba(0, 201, 122, 0.1), 0 0 80px rgba(224, 69, 69, 0.06);
             --panel-border: rgba(255, 255, 255, 0.06);
+            --shimmer-color: rgba(0, 201, 122, 0.2);
         }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--bg);
+            background: var(--bg-glossy);
+            background-attachment: fixed;
             color: var(--text);
             min-height: 100vh;
             display: flex;
@@ -51,6 +60,27 @@
             position: relative;
             overflow-x: hidden;
             padding: 40px 20px 80px;
+        }
+
+        /* Glossy overlay orbs */
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::before {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(0, 150, 80, 0.2), transparent 70%);
+            top: -100px; right: -100px;
+        }
+        body::after {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(200, 40, 40, 0.15), transparent 70%);
+            bottom: -50px; left: -50px;
         }
 
         .glass-container {
@@ -81,6 +111,28 @@
             opacity: 0.7;
         }
         .logo-icon svg { width: 100%; height: 100%; }
+
+        /* Shimmer text effect */
+        .shimmer-text {
+            background: linear-gradient(
+                120deg,
+                var(--text) 0%,
+                var(--text) 40%,
+                var(--shimmer-color) 50%,
+                var(--text) 60%,
+                var(--text) 100%
+            );
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmerSlide 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmerSlide {
+            0% { background-position: 200% center; }
+            100% { background-position: -200% center; }
+        }
 
         .title {
             font-family: 'Playfair Display', serif;
@@ -116,27 +168,43 @@
         .choice-btn {
             position: relative;
             padding: 44px 24px;
-            background: var(--surface);
             backdrop-filter: blur(10px);
-            border: 1px solid var(--panel-border);
             border-radius: 20px;
             cursor: pointer;
             text-decoration: none;
-            color: var(--text);
+            color: white;
             transition: all 0.3s ease;
+            overflow: hidden;
         }
 
-        .choice-btn:hover {
-            transform: translateY(-6px);
-            box-shadow: var(--panel-glow);
-            border-color: var(--green);
+        /* Creator button - red tones */
+        .choice-btn.creator-btn {
+            background: linear-gradient(135deg, #b82e2e, #d44040, #c13535);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(184, 46, 46, 0.3);
         }
+        .choice-btn.creator-btn:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 48px rgba(184, 46, 46, 0.4);
+        }
+        .choice-btn.creator-btn .choice-icon svg { fill: white; opacity: 0.8; }
+
+        /* Listener button - green tones */
+        .choice-btn.listener-btn {
+            background: linear-gradient(135deg, #006e45, #00a86b, #008555);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 110, 69, 0.3);
+        }
+        .choice-btn.listener-btn:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 48px rgba(0, 110, 69, 0.4);
+        }
+        .choice-btn.listener-btn .choice-icon svg { fill: white; opacity: 0.8; }
 
         .choice-icon {
             width: 48px;
             height: 48px;
             margin: 0 auto 16px;
-            opacity: 0.6;
             display: block;
         }
         .choice-icon svg { width: 100%; height: 100%; }
@@ -144,13 +212,13 @@
         .choice-title {
             font-size: 1.3rem;
             font-weight: 600;
-            color: var(--text);
+            color: white;
             margin-bottom: 8px;
         }
 
         .choice-desc {
             font-size: 0.9rem;
-            color: var(--text-secondary);
+            color: rgba(255, 255, 255, 0.8);
             font-weight: 400;
         }
 
@@ -225,16 +293,130 @@
         .bottom-nav a:hover { color: var(--green); }
         .bottom-nav a svg { width: 22px; height: 22px; fill: currentColor; }
 
+        /* ===== WELCOME TOUR POPUP ===== */
+        .tour-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 5000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+            animation: tourFadeIn 0.4s ease-out;
+        }
+        @keyframes tourFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .tour-overlay.hiding {
+            animation: tourFadeOut 0.3s ease-in forwards;
+        }
+        @keyframes tourFadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .tour-card {
+            background: var(--surface-solid);
+            border-radius: 28px;
+            max-width: 520px;
+            width: 100%;
+            padding: 48px 40px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            animation: tourSlideUp 0.5s ease-out;
+        }
+        @keyframes tourSlideUp {
+            from { opacity: 0; transform: translateY(40px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .tour-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--red), var(--green));
+        }
+        .tour-dots {
+            display: flex; justify-content: center; gap: 8px; margin-bottom: 28px;
+        }
+        .tour-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--border); transition: all 0.3s;
+        }
+        .tour-dot.active {
+            width: 24px; border-radius: 4px;
+            background: linear-gradient(90deg, var(--red), var(--green));
+        }
+        .tour-emoji {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .tour-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+        .tour-body {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 32px;
+        }
+        .tour-body strong { color: var(--text); }
+        .tour-actions {
+            display: flex; gap: 12px; justify-content: center;
+        }
+        .tour-btn {
+            padding: 14px 32px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: 'Inter', sans-serif;
+        }
+        .tour-btn-primary {
+            background: linear-gradient(135deg, var(--green), var(--green-light));
+            color: white;
+            box-shadow: 0 4px 16px var(--green-glow);
+        }
+        .tour-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--green-glow); }
+        .tour-btn-secondary {
+            background: var(--surface);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .tour-btn-secondary:hover { color: var(--text); border-color: var(--text-secondary); }
+        .tour-skip {
+            display: block; margin-top: 16px;
+            color: var(--text-secondary); font-size: 0.8rem;
+            cursor: pointer; text-decoration: none; background: none; border: none;
+            font-family: 'Inter', sans-serif;
+        }
+        .tour-skip:hover { color: var(--text); }
+
         @media (max-width: 768px) {
             .glass-container { padding: 40px 30px; }
             .title { font-size: 2.2rem; }
             .subtitle { font-size: 1rem; }
             .choice-buttons { grid-template-columns: 1fr; gap: 16px; }
             .choice-btn { padding: 36px 20px; }
+            .tour-card { padding: 36px 28px; }
+            .tour-title { font-size: 1.5rem; }
         }
         @media (max-width: 480px) {
             .glass-container { padding: 32px 24px; border-radius: 20px; }
             .title { font-size: 1.8rem; }
+            .tour-card { padding: 32px 20px; border-radius: 20px; }
+            .tour-title { font-size: 1.3rem; }
+            .tour-actions { flex-direction: column; }
+            .tour-btn { width: 100%; }
         }
     </style>
 </head>
@@ -244,27 +426,35 @@
         <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
 
+    <!-- WELCOME TOUR POPUP -->
+    <div class="tour-overlay" id="tourOverlay" style="display:none;">
+        <div class="tour-card">
+            <div class="tour-dots" id="tourDots"></div>
+            <div id="tourContent"></div>
+        </div>
+    </div>
+
     <div class="glass-container">
         <div class="logo-icon">
             <svg viewBox="0 0 24 24" fill="var(--text)" opacity="0.7"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
         </div>
-        <h1 class="title">Alpha Channel Media</h1>
+        <h1 class="title shimmer-text">Alpha Channel Media</h1>
         <p class="subtitle">Your platform for discovering and sharing incredible music from independent artists</p>
 
-        <p class="question">Are you a Creator or a Listener?</p>
+        <p class="question shimmer-text">Are you a Creator or a Listener?</p>
 
         <div class="choice-buttons">
-            <a href="creator-signup.html" class="choice-btn">
+            <a href="creator-signup.html" class="choice-btn creator-btn">
                 <div class="choice-icon">
-                    <svg viewBox="0 0 24 24" fill="var(--text)" opacity="0.6"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
                 </div>
                 <div class="choice-title">I'm a Creator</div>
                 <div class="choice-desc">Upload and share your music</div>
             </a>
 
-            <a href="listener-signup.html" class="choice-btn">
+            <a href="listener-signup.html" class="choice-btn listener-btn">
                 <div class="choice-icon">
-                    <svg viewBox="0 0 24 24" fill="var(--text)" opacity="0.6"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/></svg>
                 </div>
                 <div class="choice-title">I'm a Listener</div>
                 <div class="choice-desc">Discover amazing music</div>
@@ -288,15 +478,101 @@
     </nav>
 
     <script>
+        // ===== TOUR GUIDE =====
+        var tourSteps = [
+            {
+                emoji: '\uD83C\uDFB5',
+                title: 'Welcome to Alpha Channel Media!',
+                body: "We're glad to have you here. This is your home for discovering and sharing <strong>incredible music</strong> from independent artists. Let us show you around!"
+            },
+            {
+                emoji: '\uD83C\uDFA4',
+                title: 'For Creators',
+                body: 'Are you an artist? <strong>Apply to become a Creator</strong> and get your own dashboard to upload music, manage tracks, and share your art with listeners around the world.'
+            },
+            {
+                emoji: '\uD83C\uDFA7',
+                title: 'For Listeners',
+                body: "Love discovering new music? <strong>Sign up as a Listener</strong> and use a creator's 4-digit Listener Key to unlock their full music library with our built-in player."
+            },
+            {
+                emoji: '\uD83D\uDD12',
+                title: 'Your Privacy Matters',
+                body: 'We take your privacy seriously. <strong>No password data is collected or stored in plain text.</strong> All credentials are securely hashed. We never share your personal information with third parties.'
+            }
+        ];
+        var tourIndex = 0;
+
+        function renderTourStep() {
+            var step = tourSteps[tourIndex];
+            var dotsHtml = '';
+            for (var i = 0; i < tourSteps.length; i++) {
+                dotsHtml += '<div class="tour-dot' + (i === tourIndex ? ' active' : '') + '"></div>';
+            }
+            document.getElementById('tourDots').innerHTML = dotsHtml;
+
+            var isLast = tourIndex === tourSteps.length - 1;
+            var isFirst = tourIndex === 0;
+
+            var html = '<span class="tour-emoji">' + step.emoji + '</span>' +
+                '<h2 class="tour-title">' + step.title + '</h2>' +
+                '<p class="tour-body">' + step.body + '</p>' +
+                '<div class="tour-actions">';
+
+            if (!isFirst) {
+                html += '<button class="tour-btn tour-btn-secondary" onclick="prevTourStep()">Back</button>';
+            }
+
+            if (isLast) {
+                html += '<button class="tour-btn tour-btn-primary" onclick="closeTour()">Get Started</button>';
+            } else {
+                html += '<button class="tour-btn tour-btn-primary" onclick="nextTourStep()">Next</button>';
+            }
+
+            html += '</div>';
+            if (!isLast) {
+                html += '<button class="tour-skip" onclick="closeTour()">Skip tour</button>';
+            }
+
+            document.getElementById('tourContent').innerHTML = html;
+        }
+
+        function nextTourStep() {
+            if (tourIndex < tourSteps.length - 1) { tourIndex++; renderTourStep(); }
+        }
+
+        function prevTourStep() {
+            if (tourIndex > 0) { tourIndex--; renderTourStep(); }
+        }
+
+        function closeTour() {
+            var overlay = document.getElementById('tourOverlay');
+            overlay.classList.add('hiding');
+            setTimeout(function() {
+                overlay.style.display = 'none';
+                overlay.classList.remove('hiding');
+            }, 300);
+            localStorage.setItem('acm_tour_seen', '1');
+        }
+
+        // Show tour on first visit only
+        (function() {
+            if (!localStorage.getItem('acm_tour_seen')) {
+                document.getElementById('tourOverlay').style.display = 'flex';
+                renderTourStep();
+            }
+        })();
+
+        // ===== THEME =====
         function toggleTheme() {
-            const html = document.documentElement;
-            const current = html.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
+            var html = document.documentElement;
+            var current = html.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
             localStorage.setItem('theme', next);
         }
         (function() {
-            const saved = localStorage.getItem('theme');
+            var saved = localStorage.getItem('theme');
             if (saved) document.documentElement.setAttribute('data-theme', saved);
             else if (window.matchMedia('(prefers-color-scheme: dark)').matches)
                 document.documentElement.setAttribute('data-theme', 'dark');

@@ -8,20 +8,47 @@
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg: #f5f5f5; --surface: rgba(255,255,255,0.6); --surface-solid: #ffffff;
-            --green: #006e45; --green-glow: rgba(0,110,69,0.25); --red: #a12020; --red-glow: rgba(161,32,32,0.2);
+            --bg: #f0ede8;
+            --bg-glossy: linear-gradient(135deg, #f5f2ed 0%, #faf8f5 20%, #f0ede8 40%, #fdf5f5 60%, #f0f7f3 80%, #f5f2ed 100%);
+            --surface: rgba(255,255,255,0.55); --surface-solid: #ffffff;
+            --green: #006e45; --green-glow: rgba(0,110,69,0.25); --red: #b82e2e; --red-glow: rgba(184,46,46,0.2);
             --text: #111111; --text-secondary: #555555; --border: rgba(0,0,0,0.08);
-            --panel-glow: 0 0 30px rgba(0,110,69,0.12), 0 0 60px rgba(161,32,32,0.08);
+            --panel-glow: 0 0 30px rgba(0,110,69,0.12), 0 0 60px rgba(184,46,46,0.08);
             --panel-border: rgba(0,0,0,0.06); --input-bg: rgba(255,255,255,0.7);
+            --shimmer-color: rgba(0,110,69,0.15);
         }
         [data-theme="dark"] {
-            --bg: #0e0e0e; --surface: rgba(30,30,30,0.7); --surface-solid: #1a1a1a;
+            --bg: #0a0a0a;
+            --bg-glossy: linear-gradient(135deg, #0e0e0e 0%, #121210 20%, #0e100e 40%, #140e0e 60%, #0e1210 80%, #0e0e0e 100%);
+            --surface: rgba(25,25,25,0.7); --surface-solid: #141414;
             --green: #00c97a; --green-glow: rgba(0,201,122,0.2); --red: #e04545; --red-glow: rgba(224,69,69,0.15);
             --text: #eaeaea; --text-secondary: #999999; --border: rgba(255,255,255,0.08);
             --panel-glow: 0 0 40px rgba(0,201,122,0.1), 0 0 80px rgba(224,69,69,0.06);
             --panel-border: rgba(255,255,255,0.06); --input-bg: rgba(40,40,40,0.7);
+            --shimmer-color: rgba(0,201,122,0.2);
         }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px 20px 100px; }
+        .shimmer-text {
+            background: linear-gradient(120deg, var(--text) 0%, var(--text) 40%, var(--shimmer-color) 50%, var(--text) 60%, var(--text) 100%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmerSlide 3s ease-in-out infinite;
+        }
+        @keyframes shimmerSlide {
+            0% { background-position: 200% center; }
+            100% { background-position: -200% center; }
+        }
+        body {
+            font-family: 'Inter', sans-serif; background: var(--bg-glossy); background-attachment: fixed;
+            color: var(--text); min-height: 100vh; padding: 20px 20px 100px;
+            position: relative; overflow-x: hidden;
+        }
+        body::before, body::after {
+            content: ''; position: fixed; border-radius: 50%;
+            filter: blur(80px); opacity: 0.4; pointer-events: none; z-index: 0;
+        }
+        body::before { width: 500px; height: 500px; background: radial-gradient(circle, rgba(0,150,80,0.2), transparent 70%); top: -100px; right: -100px; }
+        body::after { width: 400px; height: 400px; background: radial-gradient(circle, rgba(200,40,40,0.15), transparent 70%); bottom: -50px; left: -50px; }
         .back-arrow {
             position: fixed; top: 20px; left: 20px; width: 40px; height: 40px; border-radius: 50%;
             background: var(--surface); border: 1px solid var(--border); cursor: pointer;
