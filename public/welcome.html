@@ -33,7 +33,7 @@
             justify-content: center;
             position: relative;
             overflow-x: hidden;
-            padding: 40px 20px;
+            padding: 40px 20px 100px;
         }
         
         body::before {
@@ -254,6 +254,37 @@
             .choice-btn { padding: 36px 20px; }
             .logo { font-size: 3.5rem; }
         }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            z-index: 1000;
+        }
+        .bottom-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-gray);
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 6px 12px;
+            -webkit-tap-highlight-color: transparent;
+            gap: 4px;
+        }
+        .bottom-nav a.active { color: var(--green-bull); }
+        .bottom-nav a span.nav-icon { font-size: 1.4rem; }
     </style>
 </head>
 <body>
@@ -284,5 +315,11 @@
     </div>
     
     <a href="master-admin.html" class="master-link">👑 Master</a>
+    <nav class="bottom-nav">
+        <a href="welcome.html" class="active"><span class="nav-icon">🏠</span>Home</a>
+        <a href="login.html"><span class="nav-icon">🔑</span>Login</a>
+        <a href="creator-signup.html"><span class="nav-icon">🎤</span>Creator</a>
+        <a href="listener-signup.html"><span class="nav-icon">🎧</span>Listener</a>
+    </nav>
 </body>
 </html>

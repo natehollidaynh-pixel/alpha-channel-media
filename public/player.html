@@ -157,6 +157,7 @@
             }
             .artwork { width: 60px; height: 60px; }
             .player { padding: 12px 16px; }
+            .header nav { display: none; }
         }
         @media (max-width: 480px) {
             .header { border-radius: 16px; }
@@ -165,6 +166,37 @@
             .play-btn { padding: 10px 16px; font-size: 0.9rem; }
             .gate-input { font-size: 1.3rem; letter-spacing: 4px; }
         }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            z-index: 1000;
+        }
+        .bottom-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-gray);
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 6px 12px;
+            -webkit-tap-highlight-color: transparent;
+            gap: 4px;
+        }
+        .bottom-nav a.active { color: var(--green-bull); }
+        .bottom-nav a span.nav-icon { font-size: 1.4rem; }
     </style>
 </head>
 <body>
@@ -284,5 +316,11 @@
             nowPlaying.textContent = `Now Playing: ${title} - ${artist}`;
         }
     </script>
+    <nav class="bottom-nav">
+        <a href="admin.html"><span class="nav-icon">🎛️</span>Dashboard</a>
+        <a href="player.html" class="active"><span class="nav-icon">🎵</span>Music</a>
+        <a href="videos.html"><span class="nav-icon">🎬</span>Videos</a>
+        <a href="welcome.html"><span class="nav-icon">🚪</span>Logout</a>
+    </nav>
 </body>
 </html>

@@ -21,6 +21,7 @@
             background: var(--pearl-white);
             min-height: 100vh;
             padding: 20px;
+            padding-bottom: 100px;
             position: relative;
         }
         body::before {
@@ -62,6 +63,7 @@
             cursor: pointer;
             font-weight: 500;
             font-size: 0.95rem;
+            -webkit-tap-highlight-color: transparent;
         }
         .tab.active {
             background: var(--green-bull);
@@ -77,35 +79,36 @@
         .upload-section.active { display: block; }
         .form-group { margin-bottom: 20px; }
         label { display: block; font-weight: 500; margin-bottom: 8px; }
-        input, textarea {
+        input, textarea, select {
             width: 100%;
             padding: 12px;
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.7);
-            font-size: 1rem;
+            font-size: 16px; /* Prevents iOS zoom */
+            font-family: 'Inter', sans-serif;
         }
         input:focus, textarea:focus {
             outline: none;
             border-color: var(--green-bull);
         }
-        textarea { min-height: 100px; }
-        .file-input {
-            padding: 20px;
-            border: 2px dashed rgba(0, 0, 0, 0.2);
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-        }
+        textarea { min-height: 100px; resize: vertical; }
         .submit-btn {
-            padding: 14px 32px;
+            width: 100%;
+            padding: 16px 32px;
             background: var(--green-bull);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             font-weight: 600;
             cursor: pointer;
             font-size: 1rem;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         .progress {
             width: 100%;
@@ -121,6 +124,23 @@
             background: var(--green-bull);
             width: 0%;
             transition: width 0.3s;
+        }
+        .status-msg {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            font-weight: 500;
+        }
+        .status-msg.success {
+            display: block;
+            background: rgba(0, 168, 107, 0.1);
+            color: var(--green-bull);
+        }
+        .status-msg.error {
+            display: block;
+            background: rgba(211, 47, 47, 0.1);
+            color: var(--red-bear);
         }
         .key-input-row {
             display: flex;
@@ -138,6 +158,7 @@
             font-weight: 500;
             white-space: nowrap;
             font-size: 0.95rem;
+            -webkit-tap-highlight-color: transparent;
         }
         .key-display {
             padding: 14px;
@@ -149,16 +170,47 @@
             text-align: center;
         }
 
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            z-index: 1000;
+        }
+        .bottom-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-gray);
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 6px 12px;
+            -webkit-tap-highlight-color: transparent;
+            gap: 4px;
+        }
+        .bottom-nav a.active { color: var(--green-bull); }
+        .bottom-nav a span.nav-icon { font-size: 1.4rem; }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
-            body { padding: 12px; }
+            body { padding: 12px; padding-bottom: 100px; }
             .header {
                 flex-direction: column;
                 gap: 16px;
                 text-align: center;
                 padding: 16px;
             }
-            nav a { margin-left: 0; margin: 0 12px; }
+            .header nav { display: none; }
             .tabs {
                 flex-wrap: wrap;
                 gap: 8px;
@@ -171,7 +223,6 @@
                 text-align: center;
             }
             .upload-section { padding: 24px 20px; }
-            .file-input { padding: 16px; }
         }
         @media (max-width: 480px) {
             .header { border-radius: 16px; }
@@ -184,7 +235,7 @@
                 padding: 20px 16px;
                 border-radius: 16px;
             }
-            .submit-btn { padding: 12px 24px; font-size: 0.95rem; }
+            .submit-btn { padding: 14px 24px; }
             .key-input-row { flex-direction: column; }
             .random-btn { width: 100%; text-align: center; }
         }
@@ -201,9 +252,9 @@
     </div>
     <div class="container">
         <div class="tabs">
-            <button class="tab active" onclick="showTab('music')">Upload Music</button>
-            <button class="tab" onclick="showTab('video')">Upload Video</button>
-            <button class="tab" onclick="showTab('listenerKey')">Listener Key</button>
+            <button class="tab active" onclick="showTab('music', this)">Upload Music</button>
+            <button class="tab" onclick="showTab('video', this)">Upload Video</button>
+            <button class="tab" onclick="showTab('listenerKey', this)">Listener Key</button>
         </div>
 
         <div class="upload-section active" id="musicSection">
@@ -222,17 +273,18 @@
                     <input type="file" accept="audio/*" name="audio" required>
                 </div>
                 <div class="form-group">
-                    <label>Artwork</label>
+                    <label>Artwork (optional)</label>
                     <input type="file" accept="image/*" name="artwork">
                 </div>
                 <div class="form-group">
-                    <label>Lyrics</label>
+                    <label>Lyrics (optional)</label>
                     <textarea name="lyrics"></textarea>
                 </div>
-                <button type="submit" class="submit-btn">Upload Track</button>
+                <button type="submit" class="submit-btn" id="musicSubmitBtn">Upload Track</button>
                 <div class="progress" id="musicProgress">
                     <div class="progress-bar" id="musicBar"></div>
                 </div>
+                <div class="status-msg" id="musicStatus"></div>
             </form>
         </div>
 
@@ -248,17 +300,18 @@
                     <input type="file" accept="video/*" name="video" required>
                 </div>
                 <div class="form-group">
-                    <label>Thumbnail</label>
+                    <label>Thumbnail (optional)</label>
                     <input type="file" accept="image/*" name="thumbnail">
                 </div>
                 <div class="form-group">
-                    <label>Description</label>
+                    <label>Description (optional)</label>
                     <textarea name="description"></textarea>
                 </div>
-                <button type="submit" class="submit-btn">Upload Video</button>
+                <button type="submit" class="submit-btn" id="videoSubmitBtn">Upload Video</button>
                 <div class="progress" id="videoProgress">
                     <div class="progress-bar" id="videoBar"></div>
                 </div>
+                <div class="status-msg" id="videoStatus"></div>
             </form>
         </div>
 
@@ -283,78 +336,137 @@
                 </div>
                 <button type="submit" class="submit-btn">Save Listener Key</button>
             </form>
-            <div id="keyMessage" style="margin-top: 16px; display: none; padding: 12px; border-radius: 8px;"></div>
+            <div class="status-msg" id="keyMessage"></div>
         </div>
     </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+        <a href="admin.html" class="active">
+            <span class="nav-icon">🎛️</span>
+            Dashboard
+        </a>
+        <a href="player.html">
+            <span class="nav-icon">🎵</span>
+            Music
+        </a>
+        <a href="videos.html">
+            <span class="nav-icon">🎬</span>
+            Videos
+        </a>
+        <a href="welcome.html">
+            <span class="nav-icon">🚪</span>
+            Logout
+        </a>
+    </nav>
+
     <script>
         const API = window.location.origin;
-        function showTab(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.upload-section').forEach(s => s.classList.remove('active'));
-            event.target.classList.add('active');
+
+        // Fixed showTab - passes button element explicitly (no implicit event)
+        function showTab(tab, btn) {
+            document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.upload-section').forEach(function(s) { s.classList.remove('active'); });
+            btn.classList.add('active');
             document.getElementById(tab + 'Section').classList.add('active');
         }
 
-        document.getElementById('musicForm').addEventListener('submit', async (e) => {
+        // Music upload with proper error handling
+        document.getElementById('musicForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const formData = new FormData(e.target);
-            const progress = document.getElementById('musicProgress');
-            const bar = document.getElementById('musicBar');
+            var formData = new FormData(e.target);
+            var btn = document.getElementById('musicSubmitBtn');
+            var progress = document.getElementById('musicProgress');
+            var bar = document.getElementById('musicBar');
+            var status = document.getElementById('musicStatus');
+
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
             progress.style.display = 'block';
+            bar.style.width = '30%';
+            status.style.display = 'none';
 
             try {
-                const response = await fetch(`${API}/api/upload/music`, {
+                var response = await fetch(API + '/api/upload/music', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('authToken') },
                     body: formData
                 });
-                if (response.ok) {
+                var result = await response.json();
+
+                if (response.ok && result.success) {
                     bar.style.width = '100%';
-                    alert('Track uploaded successfully!');
+                    status.className = 'status-msg success';
+                    status.textContent = 'Track uploaded successfully!';
                     e.target.reset();
-                    setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 2000);
+                } else {
+                    status.className = 'status-msg error';
+                    status.textContent = result.error || 'Upload failed. Please try again.';
                 }
             } catch (error) {
-                alert('Upload failed');
+                status.className = 'status-msg error';
+                status.textContent = 'Network error. Check your connection and try again.';
             }
+
+            btn.disabled = false;
+            btn.textContent = 'Upload Track';
+            setTimeout(function() { progress.style.display = 'none'; bar.style.width = '0%'; }, 3000);
         });
 
-        document.getElementById('videoForm').addEventListener('submit', async (e) => {
+        // Video upload with proper error handling
+        document.getElementById('videoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const formData = new FormData(e.target);
-            const progress = document.getElementById('videoProgress');
-            const bar = document.getElementById('videoBar');
+            var formData = new FormData(e.target);
+            var btn = document.getElementById('videoSubmitBtn');
+            var progress = document.getElementById('videoProgress');
+            var bar = document.getElementById('videoBar');
+            var status = document.getElementById('videoStatus');
+
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
             progress.style.display = 'block';
+            bar.style.width = '30%';
+            status.style.display = 'none';
 
             try {
-                const response = await fetch(`${API}/api/upload/video`, {
+                var response = await fetch(API + '/api/upload/video', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('authToken') },
                     body: formData
                 });
-                if (response.ok) {
+                var result = await response.json();
+
+                if (response.ok && result.success) {
                     bar.style.width = '100%';
-                    alert('Video uploaded successfully!');
+                    status.className = 'status-msg success';
+                    status.textContent = 'Video uploaded successfully!';
                     e.target.reset();
-                    setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 2000);
+                } else {
+                    status.className = 'status-msg error';
+                    status.textContent = result.error || 'Upload failed. Please try again.';
                 }
             } catch (error) {
-                alert('Upload failed');
+                status.className = 'status-msg error';
+                status.textContent = 'Network error. Check your connection and try again.';
             }
+
+            btn.disabled = false;
+            btn.textContent = 'Upload Video';
+            setTimeout(function() { progress.style.display = 'none'; bar.style.width = '0%'; }, 3000);
         });
 
         // Listener Key Management
         function generateRandomKey() {
-            const key = Math.floor(1000 + Math.random() * 9000).toString();
+            var key = Math.floor(1000 + Math.random() * 9000).toString();
             document.getElementById('listenerKeyInput').value = key;
         }
 
         async function loadListenerKey() {
             try {
-                const response = await fetch(`${API}/api/creators/listener-key`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                var response = await fetch(API + '/api/creators/listener-key', {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('authToken') }
                 });
-                const data = await response.json();
+                var data = await response.json();
                 document.getElementById('currentKey').textContent = data.listener_key || 'Not set yet';
             } catch (err) {
                 document.getElementById('currentKey').textContent = 'Not set yet';
@@ -362,49 +474,41 @@
         }
         loadListenerKey();
 
-        document.getElementById('listenerKeyForm').addEventListener('submit', async (e) => {
+        document.getElementById('listenerKeyForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const formData = new FormData(e.target);
-            const listenerKey = formData.get('listenerKey');
-            const msg = document.getElementById('keyMessage');
+            var formData = new FormData(e.target);
+            var listenerKey = formData.get('listenerKey');
+            var msg = document.getElementById('keyMessage');
 
             if (!/^\d{4}$/.test(listenerKey)) {
+                msg.className = 'status-msg error';
                 msg.textContent = 'Listener key must be exactly 4 digits';
-                msg.style.color = 'var(--red-bear)';
-                msg.style.background = 'rgba(211, 47, 47, 0.1)';
-                msg.style.display = 'block';
                 return;
             }
 
             try {
-                const response = await fetch(`${API}/api/creators/listener-key`, {
+                var response = await fetch(API + '/api/creators/listener-key', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken')
                     },
                     body: JSON.stringify({ listener_key: listenerKey })
                 });
-                const result = await response.json();
+                var result = await response.json();
 
                 if (response.ok) {
                     document.getElementById('currentKey').textContent = listenerKey;
+                    msg.className = 'status-msg success';
                     msg.textContent = 'Listener key saved successfully!';
-                    msg.style.color = 'var(--green-bull)';
-                    msg.style.background = 'rgba(0, 168, 107, 0.1)';
-                    msg.style.display = 'block';
                     e.target.reset();
                 } else {
+                    msg.className = 'status-msg error';
                     msg.textContent = result.error || 'Failed to save listener key';
-                    msg.style.color = 'var(--red-bear)';
-                    msg.style.background = 'rgba(211, 47, 47, 0.1)';
-                    msg.style.display = 'block';
                 }
             } catch (err) {
+                msg.className = 'status-msg error';
                 msg.textContent = 'Error saving listener key';
-                msg.style.color = 'var(--red-bear)';
-                msg.style.background = 'rgba(211, 47, 47, 0.1)';
-                msg.style.display = 'block';
             }
         });
     </script>
