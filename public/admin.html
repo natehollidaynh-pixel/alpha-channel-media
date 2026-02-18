@@ -566,7 +566,111 @@
             });
         }
 
-        // Upload music: browser → Cloudinary directly, then save URL to server
+        // Compress audio to MP3 in the browser using Web Audio API + lamejs
+        function compressToMp3(file, btn, bar) {
+            return new Promise(function(resolve, reject) {
+                // If already MP3 or small enough (<15MB), skip compression
+                var ext = file.name.split('.').pop().toLowerCase();
+                if (ext === 'mp3' || file.size < 15 * 1024 * 1024) {
+                    resolve(file);
+                    return;
+                }
+
+                btn.textContent = 'Compressing audio...';
+                bar.style.width = '5%';
+
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    audioCtx.decodeAudioData(e.target.result, function(buffer) {
+                        btn.textContent = 'Encoding MP3...';
+                        bar.style.width = '10%';
+
+                        // Import lamejs dynamically
+                        var script = document.createElement('script');
+                        script.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+                        script.onload = function() {
+                            try {
+                                var channels = buffer.numberOfChannels;
+                                var sampleRate = buffer.sampleRate;
+                                var mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 320); // 320kbps
+                                var mp3Data = [];
+
+                                // Get PCM data
+                                var left = buffer.getChannelData(0);
+                                var right = channels > 1 ? buffer.getChannelData(1) : left;
+
+                                var sampleBlockSize = 1152;
+                                var totalSamples = left.length;
+                                var processedSamples = 0;
+
+                                // Convert float32 to int16
+                                function floatTo16Bit(arr) {
+                                    var buf = new Int16Array(arr.length);
+                                    for (var i = 0; i < arr.length; i++) {
+                                        var s = Math.max(-1, Math.min(1, arr[i]));
+                                        buf[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                                    }
+                                    return buf;
+                                }
+
+                                // Process in chunks to keep UI responsive
+                                function processChunk() {
+                                    var end = Math.min(processedSamples + sampleBlockSize * 50, totalSamples);
+                                    while (processedSamples < end) {
+                                        var sliceEnd = Math.min(processedSamples + sampleBlockSize, totalSamples);
+                                        var leftChunk = floatTo16Bit(left.slice(processedSamples, sliceEnd));
+                                        var rightChunk = channels > 1 ? floatTo16Bit(right.slice(processedSamples, sliceEnd)) : leftChunk;
+                                        var mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+                                        if (mp3buf.length > 0) mp3Data.push(mp3buf);
+                                        processedSamples = sliceEnd;
+                                    }
+
+                                    var pct = Math.round((processedSamples / totalSamples) * 30) + 10;
+                                    bar.style.width = pct + '%';
+                                    btn.textContent = 'Encoding MP3... ' + Math.round((processedSamples / totalSamples) * 100) + '%';
+
+                                    if (processedSamples < totalSamples) {
+                                        setTimeout(processChunk, 0);
+                                    } else {
+                                        // Flush remaining
+                                        var flush = mp3encoder.flush();
+                                        if (flush.length > 0) mp3Data.push(flush);
+
+                                        var blob = new Blob(mp3Data, { type: 'audio/mp3' });
+                                        var mp3File = new File([blob], file.name.replace(/\.[^.]+$/, '.mp3'), { type: 'audio/mp3' });
+
+                                        var origMB = (file.size / (1024 * 1024)).toFixed(1);
+                                        var newMB = (mp3File.size / (1024 * 1024)).toFixed(1);
+                                        console.log('Compressed: ' + origMB + 'MB ' + ext.toUpperCase() + ' → ' + newMB + 'MB MP3');
+
+                                        audioCtx.close();
+                                        resolve(mp3File);
+                                    }
+                                }
+                                processChunk();
+                            } catch (err) {
+                                audioCtx.close();
+                                reject(new Error('MP3 encoding failed: ' + err.message));
+                            }
+                        };
+                        script.onerror = function() {
+                            audioCtx.close();
+                            // If lamejs fails to load, upload original file
+                            console.warn('Could not load MP3 encoder, uploading original file');
+                            resolve(file);
+                        };
+                        document.head.appendChild(script);
+                    }, function(err) {
+                        reject(new Error('Could not decode audio file'));
+                    });
+                };
+                reader.onerror = function() { reject(new Error('Could not read file')); };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Upload music: compress → Cloudinary directly → save URL to server
         document.getElementById('musicForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             var form = e.target;
@@ -579,24 +683,29 @@
             var artworkInput = form.querySelector('input[name="artwork"]');
             if (!audioInput.files[0]) { alert('Please select an audio file'); return; }
 
-            btn.disabled = true; btn.textContent = 'Uploading...';
+            btn.disabled = true; btn.textContent = 'Preparing...';
             progress.style.display = 'block'; bar.style.width = '0%';
             status.style.display = 'none'; status.className = 'status-msg';
 
             try {
-                // Upload audio directly to Cloudinary
-                var audioUrl = await uploadToCloudinary(audioInput.files[0], 'alpha-channel/audio', 'video', bar, btn);
+                // Step 1: Compress large audio files to MP3 in the browser
+                var audioFile = await compressToMp3(audioInput.files[0], btn, bar);
 
-                // Upload artwork if provided
+                // Step 2: Upload compressed audio directly to Cloudinary
+                btn.textContent = 'Uploading...';
+                bar.style.width = '40%';
+                var audioUrl = await uploadToCloudinary(audioFile, 'alpha-channel/audio', 'video', bar, btn);
+
+                // Step 3: Upload artwork if provided
                 var artworkUrl = null;
                 if (artworkInput.files[0]) {
                     btn.textContent = 'Uploading artwork...';
                     artworkUrl = await uploadToCloudinary(artworkInput.files[0], 'alpha-channel/artwork', 'image', bar, btn);
                 }
 
-                // Save to database via server
+                // Step 4: Save to database via server
                 btn.textContent = 'Saving...'; bar.style.width = '95%';
-                var ext = audioInput.files[0].name.split('.').pop().toLowerCase();
+                var finalExt = audioFile.name.split('.').pop().toLowerCase();
                 var response = await fetch(API + '/api/upload/music', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
@@ -606,8 +715,8 @@
                         lyrics: form.querySelector('textarea[name="lyrics"]').value || null,
                         audio_url: audioUrl,
                         artwork_url: artworkUrl,
-                        file_size: audioInput.files[0].size,
-                        format: ext
+                        file_size: audioFile.size,
+                        format: finalExt
                     })
                 });
                 var result = await response.json();
