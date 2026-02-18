@@ -35,10 +35,48 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Test database connection
+// Test database connection and run auto-migration
 pool.query('SELECT NOW()')
-  .then(() => console.log('Database connected successfully'))
-  .catch(err => console.error('Database connection error:', err.message));
+  .then(() => {
+    console.log('Database connected successfully');
+    // Auto-create WebAuthn + access tables if they don't exist
+    return pool.query(`
+      CREATE TABLE IF NOT EXISTS webauthn_credentials (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        listener_id UUID NOT NULL REFERENCES listeners(id) ON DELETE CASCADE,
+        credential_id TEXT NOT NULL UNIQUE,
+        public_key TEXT NOT NULL,
+        counter BIGINT NOT NULL DEFAULT 0,
+        device_type VARCHAR(50),
+        backed_up BOOLEAN DEFAULT false,
+        transports TEXT[],
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS listener_creator_access (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        listener_id UUID NOT NULL REFERENCES listeners(id) ON DELETE CASCADE,
+        creator_id UUID NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
+        granted_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(listener_id, creator_id)
+      );
+      CREATE TABLE IF NOT EXISTS webauthn_challenges (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        listener_id UUID REFERENCES listeners(id) ON DELETE CASCADE,
+        challenge TEXT NOT NULL,
+        type VARCHAR(20) NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+  })
+  .then(() => console.log('WebAuthn tables ready'))
+  .catch(err => console.error('Database setup error:', err.message));
+
+// Clean up expired WebAuthn challenges every 10 minutes
+setInterval(() => {
+  pool.query('DELETE FROM webauthn_challenges WHERE expires_at < NOW()')
+    .catch(err => console.error('Challenge cleanup error:', err.message));
+}, 10 * 60 * 1000);
 
 // Make db available to routes
 app.locals.db = pool;
@@ -49,6 +87,7 @@ app.use('/api/applications', require('./routes/applications'));
 app.use('/api/listeners', require('./routes/listeners'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/content', require('./routes/content'));
+app.use('/api/webauthn', require('./routes/webauthn'));
 
 // Aliases to match frontend expectations
 app.use('/api/creators', require('./routes/auth'));
@@ -101,7 +140,7 @@ app.get('/api/videos', async (req, res) => {
   }
 });
 
-// Validate listener key
+// Validate listener key (and persist access if listener is authenticated)
 app.post('/api/listener-key/validate', async (req, res) => {
   try {
     const { listener_key } = req.body;
@@ -115,7 +154,27 @@ app.post('/api/listener-key/validate', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Invalid listener key' });
     }
-    res.json({ success: true, creator: result.rows[0] });
+
+    const creator = result.rows[0];
+    let accessSaved = false;
+
+    // If listener is authenticated, persist the creator access
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.type === 'listener') {
+          await pool.query(
+            'INSERT INTO listener_creator_access (listener_id, creator_id) VALUES ($1, $2) ON CONFLICT (listener_id, creator_id) DO NOTHING',
+            [decoded.id, creator.id]
+          );
+          accessSaved = true;
+        }
+      } catch (e) { /* token invalid, skip saving */ }
+    }
+
+    res.json({ success: true, creator, access_saved: accessSaved });
   } catch (err) {
     console.error('Listener key validation error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -295,6 +354,50 @@ app.delete('/api/creators/videos/:videoId', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Delete video error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get listener's unlocked creators (requires listener JWT)
+app.get('/api/listeners/my-creators', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'listener') return res.status(403).json({ error: 'Not a listener' });
+
+    const result = await pool.query(
+      `SELECT c.id, c.username, c.artist_name, c.first_name, c.last_name
+       FROM listener_creator_access lca
+       JOIN creators c ON c.id = lca.creator_id
+       WHERE lca.listener_id = $1
+       ORDER BY lca.granted_at DESC`,
+      [decoded.id]
+    );
+    res.json({ creators: result.rows });
+  } catch (err) {
+    console.error('My creators error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Check if listener has WebAuthn credentials registered
+app.get('/api/listeners/has-passkey', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'listener') return res.status(403).json({ error: 'Not a listener' });
+
+    const result = await pool.query(
+      'SELECT COUNT(*) as count FROM webauthn_credentials WHERE listener_id = $1',
+      [decoded.id]
+    );
+    res.json({ hasPasskey: parseInt(result.rows[0].count) > 0 });
+  } catch (err) {
+    console.error('Has passkey check error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

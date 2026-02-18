@@ -77,9 +77,45 @@ CREATE TABLE IF NOT EXISTS videos (
     uploaded_at TIMESTAMP DEFAULT NOW()
 );
 
+-- WebAuthn credentials (passkeys for biometric login)
+CREATE TABLE IF NOT EXISTS webauthn_credentials (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    listener_id UUID NOT NULL REFERENCES listeners(id) ON DELETE CASCADE,
+    credential_id TEXT NOT NULL UNIQUE,
+    public_key TEXT NOT NULL,
+    counter BIGINT NOT NULL DEFAULT 0,
+    device_type VARCHAR(50),
+    backed_up BOOLEAN DEFAULT false,
+    transports TEXT[],
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Persistent listener-creator access (replaces localStorage-only approach)
+CREATE TABLE IF NOT EXISTS listener_creator_access (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    listener_id UUID NOT NULL REFERENCES listeners(id) ON DELETE CASCADE,
+    creator_id UUID NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
+    granted_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(listener_id, creator_id)
+);
+
+-- Temporary WebAuthn challenges (auto-cleaned every 10 minutes)
+CREATE TABLE IF NOT EXISTS webauthn_challenges (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    listener_id UUID REFERENCES listeners(id) ON DELETE CASCADE,
+    challenge TEXT NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_songs_creator_id ON songs(creator_id);
 CREATE INDEX IF NOT EXISTS idx_videos_creator_id ON videos(creator_id);
 CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
 CREATE INDEX IF NOT EXISTS idx_songs_uploaded_at ON songs(uploaded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_videos_uploaded_at ON videos(uploaded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_listener ON webauthn_credentials(listener_id);
+CREATE INDEX IF NOT EXISTS idx_listener_creator_access_listener ON listener_creator_access(listener_id);
+CREATE INDEX IF NOT EXISTS idx_listener_creator_access_creator ON listener_creator_access(creator_id);
+CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_expires ON webauthn_challenges(expires_at);

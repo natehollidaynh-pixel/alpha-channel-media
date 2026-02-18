@@ -111,6 +111,27 @@
         }
         body::before { width: 500px; height: 500px; background: radial-gradient(circle, rgba(0,150,80,0.2), transparent 70%); top: -100px; right: -100px; }
         body::after { width: 400px; height: 400px; background: radial-gradient(circle, rgba(200,40,40,0.15), transparent 70%); bottom: -50px; left: -50px; }
+        /* Biometric Login Button */
+        .biometric-section { margin-bottom: 28px; text-align: center; }
+        .biometric-btn {
+            width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 1.05rem;
+            font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: linear-gradient(135deg, var(--green), #00a86b); color: white;
+        }
+        .biometric-btn:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 4px 20px var(--green-glow); }
+        .biometric-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .biometric-btn svg { width: 24px; height: 24px; fill: white; }
+        .biometric-divider {
+            display: flex; align-items: center; gap: 16px; margin-top: 20px;
+            color: var(--text-secondary); font-size: 0.85rem;
+        }
+        .biometric-divider::before, .biometric-divider::after {
+            content: ''; flex: 1; height: 1px; background: var(--border);
+        }
+        .biometric-error { color: var(--red); font-size: 0.85rem; margin-top: 10px; display: none; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
         @media (max-width: 768px) { .container { padding: 40px 30px; } h1 { font-size: 1.8rem; } }
         @media (max-width: 480px) { .container { padding: 30px 20px; border-radius: 20px; } h1 { font-size: 1.5rem; } }
     </style>
@@ -125,6 +146,16 @@
     </button>
     <div class="container">
         <h1 class="shimmer-text">Sign In</h1>
+        <!-- Biometric Login (hidden if not supported) -->
+        <div class="biometric-section" id="biometricSection" style="display:none;">
+            <button class="biometric-btn" id="biometricBtn" onclick="loginWithBiometric()">
+                <svg viewBox="0 0 24 24"><path d="M17.81 4.47c-.08 0-.16-.02-.23-.06C15.66 3.42 14 3 12.01 3c-1.98 0-3.86.47-5.57 1.41-.07.04-.15.06-.23.06-.13 0-.26-.05-.36-.15-.14-.14-.17-.34-.09-.51.09-.18.26-.28.46-.28.04 0 .08.01.12.02C8.25 2.56 10.08 2 12.01 2c1.92 0 3.6.5 5.66 1.55.04.02.08.04.12.04.2 0 .37.1.46.28.08.17.05.37-.09.51-.1.1-.23.09-.35.09zM3.5 9.72c-.1 0-.2-.03-.29-.09-.15-.11-.22-.28-.18-.46.63-3.32 3.06-5.88 6.37-6.72.08-.02.16-.03.24-.03.22 0 .41.13.49.34.08.21.02.44-.15.57-.08.06-.18.09-.27.09-.04 0-.08-.01-.12-.02-2.93.74-5.06 3-5.62 5.94-.06.29-.29.38-.47.38zm17 0c-.18 0-.41-.09-.47-.38-.56-2.94-2.69-5.2-5.62-5.94-.04-.01-.08-.02-.12-.02-.1 0-.19-.03-.27-.09-.17-.13-.23-.36-.15-.57.08-.21.27-.34.49-.34.08 0 .16.01.24.03 3.31.84 5.74 3.4 6.37 6.72.04.18-.03.35-.18.46-.09.06-.19.13-.29.13zM12 20.99c-4.89 0-8.87-3.98-8.87-8.87 0-4.89 3.98-8.87 8.87-8.87s8.87 3.98 8.87 8.87c0 4.89-3.98 8.87-8.87 8.87zm0-16.24c-4.06 0-7.37 3.31-7.37 7.37s3.31 7.37 7.37 7.37 7.37-3.31 7.37-7.37-3.31-7.37-7.37-7.37zm0 12.25c-2.69 0-4.88-2.19-4.88-4.88 0-2.69 2.19-4.88 4.88-4.88s4.88 2.19 4.88 4.88c0 2.69-2.19 4.88-4.88 4.88zm0-8.26c-1.86 0-3.38 1.52-3.38 3.38s1.52 3.38 3.38 3.38 3.38-1.52 3.38-3.38-1.52-3.38-3.38-3.38z"/></svg>
+                Sign in with Biometrics
+            </button>
+            <div class="biometric-error" id="biometricError"></div>
+            <div class="biometric-divider">or sign in with username</div>
+        </div>
+
         <div class="error" id="errorMsg"></div>
         <form id="loginForm">
             <div class="form-group">
@@ -140,8 +171,76 @@
         </form>
         <div class="back-link"><a href="welcome.html">Back to home</a></div>
     </div>
+    <!-- SimpleWebAuthn Browser -->
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+
     <script>
         const API = window.location.origin;
+
+        // Show biometric button if device supports WebAuthn
+        (function checkBiometricSupport() {
+            if (window.PublicKeyCredential && typeof SimpleWebAuthnBrowser !== 'undefined') {
+                document.getElementById('biometricSection').style.display = 'block';
+            }
+        })();
+
+        // Biometric login handler
+        async function loginWithBiometric() {
+            const btn = document.getElementById('biometricBtn');
+            const errEl = document.getElementById('biometricError');
+            btn.disabled = true;
+            errEl.style.display = 'none';
+            btn.innerHTML = '<svg viewBox="0 0 24 24" style="animation: spin 1s linear infinite; width:24px; height:24px; fill:white;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Authenticating...';
+
+            try {
+                // Step 1: Get authentication options
+                const optionsResp = await fetch(`${API}/api/webauthn/authenticate/options`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                if (!optionsResp.ok) throw new Error('Failed to get auth options');
+                const options = await optionsResp.json();
+
+                // Step 2: Start browser WebAuthn ceremony (fingerprint/Face ID)
+                const credential = await SimpleWebAuthnBrowser.startAuthentication(options);
+
+                // Step 3: Verify with server
+                const verifyResp = await fetch(`${API}/api/webauthn/authenticate/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(credential)
+                });
+                const result = await verifyResp.json();
+                if (!verifyResp.ok || !result.success) throw new Error(result.error || 'Authentication failed');
+
+                // Success — store JWT and creator data
+                localStorage.setItem('authToken', result.token);
+                if (result.user) {
+                    localStorage.setItem('listenerUsername', result.user.username);
+                }
+                if (result.creators && result.creators.length > 0) {
+                    localStorage.setItem('unlockedCreators', JSON.stringify(result.creators));
+                    // Auto-set first creator as current
+                    const first = result.creators[0];
+                    localStorage.setItem('currentCreatorId', first.id);
+                    localStorage.setItem('currentCreatorName', first.artist_name || first.username);
+                }
+
+                window.location.href = 'player.html';
+            } catch (err) {
+                console.error('Biometric login error:', err);
+                if (err.name === 'NotAllowedError') {
+                    errEl.textContent = 'Biometric login was cancelled.';
+                } else {
+                    errEl.textContent = 'Biometric login failed. Try signing in with your username below.';
+                }
+                errEl.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:24px; height:24px; fill:white;"><path d="M17.81 4.47c-.08 0-.16-.02-.23-.06C15.66 3.42 14 3 12.01 3c-1.98 0-3.86.47-5.57 1.41-.07.04-.15.06-.23.06-.13 0-.26-.05-.36-.15-.14-.14-.17-.34-.09-.51.09-.18.26-.28.46-.28.04 0 .08.01.12.02C8.25 2.56 10.08 2 12.01 2c1.92 0 3.6.5 5.66 1.55.04.02.08.04.12.04.2 0 .37.1.46.28.08.17.05.37-.09.51-.1.1-.23.09-.35.09z"/></svg> Sign in with Biometrics';
+            }
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -171,6 +270,23 @@
                 if (response.ok) {
                     const result = await response.json();
                     if (result.token) localStorage.setItem('authToken', result.token);
+                    // Fetch unlocked creators after successful listener login
+                    if (result.token) {
+                        try {
+                            const creatorsResp = await fetch(`${API}/api/listeners/my-creators`, {
+                                headers: { 'Authorization': `Bearer ${result.token}` }
+                            });
+                            if (creatorsResp.ok) {
+                                const creatorsData = await creatorsResp.json();
+                                if (creatorsData.creators && creatorsData.creators.length > 0) {
+                                    localStorage.setItem('unlockedCreators', JSON.stringify(creatorsData.creators));
+                                    const first = creatorsData.creators[0];
+                                    localStorage.setItem('currentCreatorId', first.id);
+                                    localStorage.setItem('currentCreatorName', first.artist_name || first.username);
+                                }
+                            }
+                        } catch (e) {}
+                    }
                     window.location.href = 'player.html';
                     return;
                 }

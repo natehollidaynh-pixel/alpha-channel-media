@@ -299,6 +299,68 @@
         }
         .npb-vol-icon { width: 18px; height: 18px; fill: var(--text-secondary); cursor: pointer; }
 
+        /* Creator Selector Overlay */
+        .creator-selector-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000;
+            display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .creator-selector-overlay.active { display: flex; }
+        .creator-selector-box {
+            background: var(--surface-solid); border-radius: 24px; padding: 40px 32px;
+            max-width: 480px; width: 100%; max-height: 80vh; overflow-y: auto;
+            box-shadow: var(--panel-glow);
+        }
+        .cs-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; color: var(--text); text-align: center; }
+        .cs-desc { color: var(--text-secondary); margin-bottom: 24px; font-size: 0.9rem; text-align: center; }
+        .cs-list { display: flex; flex-direction: column; gap: 10px; }
+        .cs-card {
+            display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+            border-radius: 14px; border: 1px solid var(--border); cursor: pointer;
+            background: var(--input-bg); transition: all 0.2s;
+        }
+        .cs-card:hover { border-color: var(--green); background: var(--track-hover); transform: translateY(-1px); }
+        .cs-card-icon {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--green-glow), var(--red-glow));
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .cs-card-icon svg { width: 22px; height: 22px; fill: var(--green); }
+        .cs-card-info h4 { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+        .cs-card-info p { font-size: 0.8rem; color: var(--text-secondary); }
+        .cs-add-card {
+            display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+            border-radius: 14px; border: 1px dashed var(--border); cursor: pointer;
+            background: transparent; transition: all 0.2s;
+        }
+        .cs-add-card:hover { border-color: var(--green); background: var(--track-hover); }
+        .cs-add-icon {
+            width: 44px; height: 44px; border-radius: 50%;
+            border: 2px dashed var(--border); display: flex; align-items: center;
+            justify-content: center; flex-shrink: 0;
+        }
+        .cs-add-icon svg { width: 22px; height: 22px; fill: var(--text-secondary); }
+        .cs-add-card span { color: var(--text-secondary); font-weight: 500; font-size: 0.95rem; }
+
+        /* Add Creator sub-view inside selector */
+        .cs-add-form { display: none; margin-top: 20px; }
+        .cs-add-form.active { display: block; }
+        .cs-add-input {
+            width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px;
+            font-size: 1.4rem; text-align: center; letter-spacing: 6px; font-family: monospace;
+            background: var(--input-bg); color: var(--text); margin-bottom: 12px;
+        }
+        .cs-add-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+        .cs-add-btn {
+            width: 100%; padding: 14px; background: var(--green); color: white; border: none;
+            border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: opacity 0.2s;
+        }
+        .cs-add-btn:hover { opacity: 0.85; }
+        .cs-add-error { color: var(--red); font-size: 0.85rem; margin-top: 8px; display: none; text-align: center; }
+        .cs-close {
+            display: block; margin-top: 16px; text-align: center; color: var(--text-secondary);
+            text-decoration: none; font-size: 0.9rem; cursor: pointer;
+        }
+
         /* Empty state */
         .empty-tracks { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .empty-tracks svg { width: 64px; height: 64px; fill: var(--text-secondary); opacity: 0.2; margin-bottom: 16px; }
@@ -362,6 +424,21 @@
         </div>
     </div>
 
+    <!-- CREATOR SELECTOR OVERLAY -->
+    <div class="creator-selector-overlay" id="creatorSelector">
+        <div class="creator-selector-box">
+            <div class="cs-title">Your Creators</div>
+            <div class="cs-desc">Choose a creator to listen to their music</div>
+            <div class="cs-list" id="creatorList"></div>
+            <div class="cs-add-form" id="csAddForm">
+                <input type="text" class="cs-add-input" id="csAddKeyInput" placeholder="0000" inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
+                <button class="cs-add-btn" onclick="addCreatorByKey()">Unlock Creator</button>
+                <div class="cs-add-error" id="csAddError"></div>
+            </div>
+            <a class="cs-close" id="csCloseBtn" onclick="closeCreatorSelector()">Cancel</a>
+        </div>
+    </div>
+
     <!-- PLAYER APP -->
     <div class="player-app" id="playerApp">
         <div class="player-header">
@@ -370,7 +447,7 @@
             </div>
             <div class="player-header-right">
                 <a href="videos.html">Videos</a>
-                <a href="#" onclick="clearListenerKey(); return false;">Change Key</a>
+                <a href="#" onclick="showCreatorSelector(); return false;" id="switchCreatorLink">Switch Creator</a>
             </div>
         </div>
 
@@ -390,7 +467,7 @@
                         Play All
                     </button>
                     <br>
-                    <a href="#" onclick="clearListenerKey(); return false;" class="change-key-link">Change key</a>
+                    <a href="#" onclick="showCreatorSelector(); return false;" class="change-key-link">Switch Creator</a>
                 </div>
             </div>
         </div>
@@ -470,6 +547,7 @@
         var shuffleOn = false;
         var repeatOn = false;
         var currentCreatorId = null;
+        var unlockedCreators = []; // server-side persistent list
 
         // ===== ADAPTIVE COLOR EXTRACTION =====
         function extractColors(imgUrl) {
@@ -569,10 +647,158 @@
             heroArt.style.boxShadow = '0 16px 60px rgba(' + primary.join(',') + ',0.35), 0 8px 30px rgba(' + secondary.join(',') + ',0.2)';
         }
 
-        // Check stored key
-        var storedKey = localStorage.getItem('listenerKey');
-        if (storedKey) validateAndLoad(storedKey);
+        // ===== INITIALIZATION — check for server-side access first =====
+        (async function initAccess() {
+            var token = localStorage.getItem('authToken');
 
+            // Try server-side: fetch unlocked creators if we have a JWT
+            if (token) {
+                try {
+                    var resp = await fetch(API + '/api/listeners/my-creators', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    if (resp.ok) {
+                        var data = await resp.json();
+                        if (data.creators && data.creators.length > 0) {
+                            unlockedCreators = data.creators;
+                            localStorage.setItem('unlockedCreators', JSON.stringify(unlockedCreators));
+
+                            if (unlockedCreators.length === 1) {
+                                // Single creator — auto-load
+                                selectCreator(unlockedCreators[0]);
+                                return;
+                            } else {
+                                // Multiple creators — check if we have a current selection
+                                var savedId = localStorage.getItem('currentCreatorId');
+                                var found = savedId && unlockedCreators.find(function(c) { return c.id === savedId; });
+                                if (found) {
+                                    selectCreator(found);
+                                    return;
+                                }
+                                // No saved selection — show selector
+                                showCreatorSelector();
+                                return;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log('Server access check failed, falling back to localStorage');
+                }
+            }
+
+            // Fallback: check localStorage (backwards compatible)
+            var storedCreators = localStorage.getItem('unlockedCreators');
+            if (storedCreators) {
+                try {
+                    unlockedCreators = JSON.parse(storedCreators);
+                    if (unlockedCreators.length > 0) {
+                        var savedId = localStorage.getItem('currentCreatorId');
+                        var found = savedId && unlockedCreators.find(function(c) { return c.id === savedId; });
+                        if (found) { selectCreator(found); return; }
+                        if (unlockedCreators.length === 1) { selectCreator(unlockedCreators[0]); return; }
+                        showCreatorSelector();
+                        return;
+                    }
+                } catch (e) {}
+            }
+
+            // Final fallback: check old listenerKey localStorage
+            var storedKey = localStorage.getItem('listenerKey');
+            if (storedKey) { validateAndLoad(storedKey); return; }
+
+            // No access at all — show gate
+            document.getElementById('accessGate').style.display = 'flex';
+        })();
+
+        function selectCreator(creator) {
+            currentCreatorId = creator.id;
+            localStorage.setItem('currentCreatorId', creator.id);
+            localStorage.setItem('currentCreatorName', creator.artist_name || creator.username);
+            document.getElementById('accessGate').style.display = 'none';
+            document.getElementById('creatorSelector').classList.remove('active');
+            document.getElementById('playerApp').classList.add('active');
+            var name = creator.artist_name || creator.first_name || creator.username;
+            document.getElementById('headerTitle').textContent = name;
+            document.getElementById('libraryTitle').textContent = name + "'s Music";
+            document.getElementById('libraryArtist').textContent = name;
+            loadTracks(currentCreatorId);
+        }
+
+        // ===== CREATOR SELECTOR =====
+        function showCreatorSelector() {
+            var list = document.getElementById('creatorList');
+            list.innerHTML = '';
+            document.getElementById('csAddForm').classList.remove('active');
+            document.getElementById('csAddError').style.display = 'none';
+
+            unlockedCreators.forEach(function(c) {
+                var card = document.createElement('div');
+                card.className = 'cs-card';
+                card.onclick = function() { selectCreator(c); };
+                var initial = (c.artist_name || c.username || '?').charAt(0).toUpperCase();
+                card.innerHTML = '<div class="cs-card-icon"><svg viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--green)">' + escapeHtml(initial) + '</text></svg></div>' +
+                    '<div class="cs-card-info"><h4>' + escapeHtml(c.artist_name || c.username) + '</h4><p>' + escapeHtml((c.first_name || '') + ' ' + (c.last_name || '')).trim() + '</p></div>';
+                list.appendChild(card);
+            });
+
+            // Add "Add Another Creator" card
+            var addCard = document.createElement('div');
+            addCard.className = 'cs-add-card';
+            addCard.onclick = function() {
+                document.getElementById('csAddForm').classList.add('active');
+                document.getElementById('csAddKeyInput').focus();
+            };
+            addCard.innerHTML = '<div class="cs-add-icon"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div><span>Add Another Creator</span>';
+            list.appendChild(addCard);
+
+            // Show/hide close button based on whether player is already active
+            document.getElementById('csCloseBtn').style.display = document.getElementById('playerApp').classList.contains('active') ? 'block' : 'none';
+            document.getElementById('creatorSelector').classList.add('active');
+        }
+
+        function closeCreatorSelector() {
+            document.getElementById('creatorSelector').classList.remove('active');
+        }
+
+        async function addCreatorByKey() {
+            var key = document.getElementById('csAddKeyInput').value.trim();
+            var errEl = document.getElementById('csAddError');
+            errEl.style.display = 'none';
+            if (!/^\d{4}$/.test(key)) {
+                errEl.textContent = 'Enter a valid 4-digit key.';
+                errEl.style.display = 'block';
+                return;
+            }
+            try {
+                var token = localStorage.getItem('authToken');
+                var headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                var response = await fetch(API + '/api/listener-key/validate', {
+                    method: 'POST', headers: headers,
+                    body: JSON.stringify({ listener_key: key })
+                });
+                var data = await response.json();
+                if (response.ok && data.success) {
+                    localStorage.setItem('listenerKey', key);
+                    var creator = data.creator;
+                    // Add to local list if not already there
+                    if (!unlockedCreators.find(function(c) { return c.id === creator.id; })) {
+                        unlockedCreators.push(creator);
+                        localStorage.setItem('unlockedCreators', JSON.stringify(unlockedCreators));
+                    }
+                    selectCreator(creator);
+                } else {
+                    errEl.textContent = 'Invalid listener key. Please try again.';
+                    errEl.style.display = 'block';
+                }
+            } catch (err) {
+                errEl.textContent = 'Error validating key.';
+                errEl.style.display = 'block';
+            }
+        }
+
+        // Gate form (fallback for non-authenticated users)
         document.getElementById('accessForm').addEventListener('submit', function(e) {
             e.preventDefault();
             validateAndLoad(document.getElementById('listenerKeyInput').value.trim());
@@ -580,14 +806,25 @@
 
         async function validateAndLoad(key) {
             try {
+                var token = localStorage.getItem('authToken');
+                var headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
                 var response = await fetch(API + '/api/listener-key/validate', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: headers,
                     body: JSON.stringify({ listener_key: key })
                 });
                 var data = await response.json();
                 if (response.ok && data.success) {
                     currentCreatorId = data.creator.id;
                     localStorage.setItem('listenerKey', key);
+                    localStorage.setItem('currentCreatorId', data.creator.id);
+                    localStorage.setItem('currentCreatorName', data.creator.artist_name || data.creator.username);
+                    // Add to unlocked creators if not there
+                    if (!unlockedCreators.find(function(c) { return c.id === data.creator.id; })) {
+                        unlockedCreators.push(data.creator);
+                        localStorage.setItem('unlockedCreators', JSON.stringify(unlockedCreators));
+                    }
                     document.getElementById('accessGate').style.display = 'none';
                     document.getElementById('playerApp').classList.add('active');
                     var name = data.creator.artist_name || data.creator.first_name;
@@ -606,7 +843,10 @@
         }
 
         function clearListenerKey() {
-            localStorage.removeItem('listenerKey'); currentCreatorId = null;
+            localStorage.removeItem('listenerKey');
+            localStorage.removeItem('currentCreatorId');
+            localStorage.removeItem('currentCreatorName');
+            currentCreatorId = null;
             audio.pause(); audio.src = '';
             document.getElementById('nowPlayingBar').classList.remove('active');
             document.getElementById('playerApp').classList.remove('active');
