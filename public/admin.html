@@ -410,7 +410,11 @@
 
     <script>
         var API = window.location.origin;
-        var authToken = localStorage.getItem('authToken');
+        // Auth token helper — checks both localStorage and sessionStorage
+        function getAuthToken() {
+            return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        }
+        var authToken = getAuthToken();
         var creatorProfile = null;
         var myTracks = [];
         var myVideos = [];
@@ -580,12 +584,18 @@
                         } else {
                             try {
                                 var err = JSON.parse(xhr.responseText);
-                                reject(new Error(err.error && err.error.message ? err.error.message : 'Upload failed'));
-                            } catch(e) { reject(new Error('Upload failed')); }
+                                var msg = err.error && err.error.message ? err.error.message : 'Upload failed (status ' + xhr.status + ')';
+                                // Cloudinary file size limit hit
+                                if (msg.toLowerCase().includes('too large') || msg.toLowerCase().includes('file size') || xhr.status === 413) {
+                                    msg = 'File is too large. Try a smaller file (under 10MB for audio, under 100MB for video on paid plans).';
+                                }
+                                reject(new Error(msg));
+                            } catch(e) { reject(new Error('Upload failed with status ' + xhr.status + '. Response: ' + xhr.responseText.substring(0, 200))); }
                         }
                     });
-                    xhr.addEventListener('error', function() { reject(new Error('Network error during upload')); });
-                    xhr.addEventListener('timeout', function() { reject(new Error('Upload timed out')); });
+                    xhr.addEventListener('error', function() { reject(new Error('Network error during upload. Check your internet connection and try again.')); });
+                    xhr.addEventListener('abort', function() { reject(new Error('Upload was cancelled.')); });
+                    xhr.addEventListener('timeout', function() { reject(new Error('Upload timed out after 10 minutes. Try a smaller file or check your connection.')); });
                     xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + sig.cloud_name + '/' + resourceType + '/upload');
                     xhr.timeout = 600000;
                     xhr.send(formData);
@@ -596,9 +606,20 @@
         // Compress audio to MP3 in the browser using Web Audio API + lamejs
         function compressToMp3(file, btn, bar) {
             return new Promise(function(resolve, reject) {
-                // If already MP3 or small enough (<15MB), skip compression
+                // If already MP3 and small enough, skip compression
+                // If non-MP3 and small enough (<10MB), skip compression
                 var ext = file.name.split('.').pop().toLowerCase();
-                if (ext === 'mp3' || file.size < 15 * 1024 * 1024) {
+                if (ext === 'mp3' && file.size < 10 * 1024 * 1024) {
+                    resolve(file);
+                    return;
+                }
+                if (ext === 'mp3' && file.size >= 10 * 1024 * 1024) {
+                    // Large MP3 — can't re-compress easily, upload as-is and hope Cloudinary accepts it
+                    // (Cloudinary free tier may reject >10MB; paid plans allow up to 100MB)
+                    resolve(file);
+                    return;
+                }
+                if (file.size < 10 * 1024 * 1024) {
                     resolve(file);
                     return;
                 }
@@ -710,6 +731,14 @@
             var artworkInput = form.querySelector('input[name="artwork"]');
             if (!audioInput.files[0]) { alert('Please select an audio file'); return; }
 
+            // Check auth token before starting
+            if (!getAuthToken()) {
+                alert('You are not logged in. Please log in again.');
+                window.location.href = 'login.html';
+                return;
+            }
+            authToken = getAuthToken();
+
             btn.disabled = true; btn.textContent = 'Preparing...';
             progress.style.display = 'block'; bar.style.width = '0%';
             status.style.display = 'none'; status.className = 'status-msg';
@@ -774,6 +803,14 @@
             var videoInput = form.querySelector('input[name="video"]');
             var thumbInput = form.querySelector('input[name="thumbnail"]');
             if (!videoInput.files[0]) { alert('Please select a video file'); return; }
+
+            // Check auth token before starting
+            if (!getAuthToken()) {
+                alert('You are not logged in. Please log in again.');
+                window.location.href = 'login.html';
+                return;
+            }
+            authToken = getAuthToken();
 
             btn.disabled = true; btn.textContent = 'Uploading...';
             progress.style.display = 'block'; bar.style.width = '0%';
