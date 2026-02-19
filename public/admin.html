@@ -804,22 +804,34 @@
             status.style.display = 'none'; status.className = 'status-msg';
 
             try {
+                var origFile = audioInput.files[0];
+                console.log('[MusicUpload] Starting — file:', origFile.name, 'size:', (origFile.size / 1024 / 1024).toFixed(2) + 'MB', 'type:', origFile.type);
+
                 // Step 1: Compress large audio files to MP3 in the browser
+                console.log('[MusicUpload] Step 1: Compressing...');
                 var audioFile = await compressToMp3(audioInput.files[0], btn, bar);
+                console.log('[MusicUpload] Step 1 done — file:', audioFile.name, 'size:', (audioFile.size / 1024 / 1024).toFixed(2) + 'MB');
 
                 // Step 2: Upload compressed audio directly to Cloudinary
+                console.log('[MusicUpload] Step 2: Uploading to Cloudinary...');
                 btn.textContent = 'Uploading...';
                 bar.style.width = '40%';
                 var audioUrl = await uploadToCloudinary(audioFile, 'alpha-channel/audio', 'video', bar, btn);
+                console.log('[MusicUpload] Step 2 done — audioUrl:', audioUrl);
 
                 // Step 3: Upload artwork if provided
                 var artworkUrl = null;
                 if (artworkInput.files[0]) {
+                    console.log('[MusicUpload] Step 3: Uploading artwork...');
                     btn.textContent = 'Uploading artwork...';
                     artworkUrl = await uploadToCloudinary(artworkInput.files[0], 'alpha-channel/artwork', 'image', bar, btn);
+                    console.log('[MusicUpload] Step 3 done — artworkUrl:', artworkUrl);
+                } else {
+                    console.log('[MusicUpload] Step 3: No artwork, skipping');
                 }
 
                 // Step 4: Save to database via server
+                console.log('[MusicUpload] Step 4: Saving to database...');
                 btn.textContent = 'Saving...'; bar.style.width = '95%';
                 var finalExt = audioFile.name.split('.').pop().toLowerCase();
                 var response = await fetch(API + '/api/upload/music', {
@@ -835,17 +847,22 @@
                         format: finalExt
                     })
                 });
+                console.log('[MusicUpload] Step 4 fetch done — status:', response.status);
                 var result = await response.json();
+                console.log('[MusicUpload] Step 4 result:', JSON.stringify(result));
                 if (response.ok && result.success) {
                     bar.style.width = '100%'; status.className = 'status-msg success';
-                    status.textContent = 'Track uploaded successfully!'; form.reset();
+                    status.textContent = 'Track uploaded successfully!'; status.style.display = 'block'; form.reset();
+                    console.log('[MusicUpload] SUCCESS!');
                 } else {
                     status.className = 'status-msg error';
-                    status.textContent = result.error || 'Failed to save track.';
+                    status.textContent = result.error || 'Failed to save track.'; status.style.display = 'block';
+                    console.error('[MusicUpload] Server error:', result.error);
                 }
             } catch (err) {
+                console.error('[MusicUpload] CAUGHT ERROR:', err.message, err.stack);
                 status.className = 'status-msg error';
-                status.textContent = 'Upload error: ' + err.message;
+                status.textContent = 'Upload error: ' + err.message; status.style.display = 'block';
             }
             btn.disabled = false; btn.textContent = 'Upload Track';
             setTimeout(function() { progress.style.display = 'none'; bar.style.width = '0%'; }, 4000);
@@ -902,14 +919,14 @@
                 var result = await response.json();
                 if (response.ok && result.success) {
                     bar.style.width = '100%'; status.className = 'status-msg success';
-                    status.textContent = 'Video uploaded successfully!'; form.reset();
+                    status.textContent = 'Video uploaded successfully!'; status.style.display = 'block'; form.reset();
                 } else {
                     status.className = 'status-msg error';
-                    status.textContent = result.error || 'Failed to save video.';
+                    status.textContent = result.error || 'Failed to save video.'; status.style.display = 'block';
                 }
             } catch (err) {
                 status.className = 'status-msg error';
-                status.textContent = 'Upload error: ' + err.message;
+                status.textContent = 'Upload error: ' + err.message; status.style.display = 'block';
             }
             btn.disabled = false; btn.textContent = 'Upload Video';
             setTimeout(function() { progress.style.display = 'none'; bar.style.width = '0%'; }, 4000);
