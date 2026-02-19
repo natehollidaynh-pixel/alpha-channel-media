@@ -567,8 +567,15 @@
         // Upload file directly to Cloudinary from the browser
         function uploadToCloudinary(file, folder, resourceType, progressFill, btn) {
             return new Promise(async function(resolve, reject) {
+                var settled = false;
+                function safeResolve(val) { if (!settled) { settled = true; resolve(val); } }
+                function safeReject(err) { if (!settled) { settled = true; reject(err); } }
+
                 try {
+                    console.log('[Upload] Getting signature for folder:', folder, 'resourceType:', resourceType);
                     var sig = await getUploadSignature(folder);
+                    console.log('[Upload] Signature received, cloud:', sig.cloud_name);
+
                     var formData = new FormData();
                     formData.append('file', file);
                     formData.append('api_key', sig.api_key);
@@ -577,6 +584,9 @@
                     formData.append('folder', sig.folder);
 
                     var xhr = new XMLHttpRequest();
+                    var uploadFinished = false;
+                    var processingTimer = null;
+
                     xhr.upload.addEventListener('progress', function(e) {
                         if (e.lengthComputable) {
                             var pct = Math.round((e.loaded / e.total) * 90);
@@ -584,10 +594,34 @@
                             btn.textContent = 'Uploading... ' + pct + '%';
                         }
                     });
+                    // When all bytes are sent, start a 5-minute processing timeout
+                    xhr.upload.addEventListener('load', function() {
+                        uploadFinished = true;
+                        btn.textContent = 'Processing on server...';
+                        console.log('[Upload] All bytes sent to Cloudinary, waiting for processing response...');
+                        processingTimer = setTimeout(function() {
+                            console.error('[Upload] Cloudinary processing timed out after 5 minutes');
+                            xhr.abort();
+                            safeReject(new Error('Cloudinary took too long to process the file (5 min). Try a smaller file.'));
+                        }, 300000);
+                    });
                     xhr.addEventListener('load', function() {
+                        if (processingTimer) clearTimeout(processingTimer);
+                        console.log('[Upload] Cloudinary responded — status:', xhr.status, 'body preview:', xhr.responseText.substring(0, 300));
                         if (xhr.status >= 200 && xhr.status < 300) {
-                            var result = JSON.parse(xhr.responseText);
-                            resolve(result.secure_url);
+                            try {
+                                var result = JSON.parse(xhr.responseText);
+                                if (!result.secure_url) {
+                                    console.error('[Upload] Cloudinary response missing secure_url:', xhr.responseText.substring(0, 500));
+                                    safeReject(new Error('Cloudinary did not return a file URL. Response: ' + xhr.responseText.substring(0, 200)));
+                                    return;
+                                }
+                                console.log('[Upload] Success! URL:', result.secure_url);
+                                safeResolve(result.secure_url);
+                            } catch(e) {
+                                console.error('[Upload] Failed to parse Cloudinary success response:', e.message);
+                                safeReject(new Error('Failed to parse Cloudinary response: ' + e.message + '. Raw: ' + xhr.responseText.substring(0, 200)));
+                            }
                         } else {
                             try {
                                 var err = JSON.parse(xhr.responseText);
@@ -596,17 +630,36 @@
                                 if (msg.toLowerCase().includes('too large') || msg.toLowerCase().includes('file size') || xhr.status === 413) {
                                     msg = 'File is too large. Try a smaller file (under 10MB for audio, under 100MB for video on paid plans).';
                                 }
-                                reject(new Error(msg));
-                            } catch(e) { reject(new Error('Upload failed with status ' + xhr.status + '. Response: ' + xhr.responseText.substring(0, 200))); }
+                                console.error('[Upload] Cloudinary error:', msg);
+                                safeReject(new Error(msg));
+                            } catch(e) {
+                                console.error('[Upload] Unparseable error response:', xhr.responseText.substring(0, 300));
+                                safeReject(new Error('Upload failed with status ' + xhr.status + '. Response: ' + xhr.responseText.substring(0, 200)));
+                            }
                         }
                     });
-                    xhr.addEventListener('error', function() { reject(new Error('Network error during upload. Check your internet connection and try again.')); });
-                    xhr.addEventListener('abort', function() { reject(new Error('Upload was cancelled.')); });
-                    xhr.addEventListener('timeout', function() { reject(new Error('Upload timed out after 10 minutes. Try a smaller file or check your connection.')); });
+                    xhr.addEventListener('error', function() {
+                        if (processingTimer) clearTimeout(processingTimer);
+                        console.error('[Upload] XHR network error');
+                        safeReject(new Error('Network error during upload. Check your internet connection and try again.'));
+                    });
+                    xhr.addEventListener('abort', function() {
+                        if (processingTimer) clearTimeout(processingTimer);
+                        console.warn('[Upload] XHR aborted');
+                        safeReject(new Error('Upload was cancelled.'));
+                    });
+                    xhr.addEventListener('timeout', function() {
+                        if (processingTimer) clearTimeout(processingTimer);
+                        console.error('[Upload] XHR timed out');
+                        safeReject(new Error('Upload timed out after 10 minutes. Try a smaller file or check your connection.'));
+                    });
                     xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + sig.cloud_name + '/' + resourceType + '/upload');
                     xhr.timeout = 600000;
                     xhr.send(formData);
-                } catch (err) { reject(err); }
+                } catch (err) {
+                    console.error('[Upload] Setup error:', err);
+                    safeReject(err);
+                }
             });
         }
 
