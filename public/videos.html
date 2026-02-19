@@ -233,7 +233,7 @@
 
         // Auth token helper — checks both localStorage and sessionStorage
         function getAuthToken() {
-            return getAuthToken() || sessionStorage.getItem('authToken');
+            return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
         }
         function logout() {
             localStorage.removeItem('authToken');
