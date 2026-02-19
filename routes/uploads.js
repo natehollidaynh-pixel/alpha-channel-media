@@ -24,21 +24,18 @@ function getCreatorId(req) {
   } catch (e) { return null; }
 }
 
+// Simple test to verify this route file is loaded and up to date
+router.get('/ping', (req, res) => {
+  res.json({ ok: true, version: '2026-02-19-v2', timestamp: new Date().toISOString() });
+});
+
 // Check Cloudinary account usage (diagnostic endpoint)
 router.get('/cloudinary-usage', async (req, res) => {
   try {
     const creatorId = getCreatorId(req);
     if (!creatorId) return res.status(401).json({ error: 'Not authenticated' });
     const usage = await cloudinary.api.usage();
-    res.json({
-      plan: usage.plan,
-      credits: { used: usage.credits?.used_percent || 'N/A', limit: usage.credits?.limit || 'N/A' },
-      storage: { used_bytes: usage.storage?.used_bytes, limit_bytes: usage.storage?.limit_bytes, used_percent: usage.storage?.used_percent },
-      bandwidth: { used_bytes: usage.bandwidth?.used_bytes, limit_bytes: usage.bandwidth?.limit_bytes, used_percent: usage.bandwidth?.used_percent },
-      requests: usage.requests,
-      resources: usage.resources,
-      transformations: { used: usage.transformations?.used, limit: usage.transformations?.limit, used_percent: usage.transformations?.used_percent }
-    });
+    res.json(usage);
   } catch (err) {
     console.error('Cloudinary usage error:', err);
     res.status(500).json({ error: err.message });

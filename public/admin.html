@@ -572,9 +572,14 @@
                 function safeReject(err) { if (!settled) { settled = true; reject(err); } }
 
                 try {
-                    console.log('[Upload] Getting signature for folder:', folder, 'resourceType:', resourceType);
+                    var fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    console.log('[Upload] File details — name:', file.name, 'size:', fileSizeMB + 'MB', 'type:', file.type, 'resourceType:', resourceType);
+                    console.log('[Upload] Getting signature for folder:', folder);
                     var sig = await getUploadSignature(folder);
                     console.log('[Upload] Signature received, cloud:', sig.cloud_name);
+
+                    var uploadUrl = 'https://api.cloudinary.com/v1_1/' + sig.cloud_name + '/' + resourceType + '/upload';
+                    console.log('[Upload] Upload URL:', uploadUrl);
 
                     var formData = new FormData();
                     formData.append('file', file);
@@ -626,11 +631,11 @@
                             try {
                                 var err = JSON.parse(xhr.responseText);
                                 var msg = err.error && err.error.message ? err.error.message : 'Upload failed (status ' + xhr.status + ')';
-                                // Append helpful context for size errors, but keep Cloudinary's original message
-                                if (msg.toLowerCase().includes('too large') || msg.toLowerCase().includes('file size') || xhr.status === 413) {
-                                    msg = 'Cloudinary rejected the file: ' + msg + ' (Free tier limit: 100MB for audio/video)';
-                                }
-                                console.error('[Upload] Cloudinary error:', msg);
+                                console.error('[Upload] Cloudinary error (status ' + xhr.status + '):', msg);
+                                console.error('[Upload] Full error response:', xhr.responseText.substring(0, 500));
+                                console.error('[Upload] File was:', file.name, fileSizeMB + 'MB', 'type:', file.type, 'resource_type:', resourceType);
+                                // Show Cloudinary's exact error with helpful context
+                                msg = 'Cloudinary error: ' + msg + ' (file: ' + fileSizeMB + 'MB ' + (file.type || 'unknown type') + ', uploaded as ' + resourceType + ')';
                                 safeReject(new Error(msg));
                             } catch(e) {
                                 console.error('[Upload] Unparseable error response:', xhr.responseText.substring(0, 300));
@@ -653,7 +658,7 @@
                         console.error('[Upload] XHR timed out');
                         safeReject(new Error('Upload timed out after 10 minutes. Try a smaller file or check your connection.'));
                     });
-                    xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + sig.cloud_name + '/' + resourceType + '/upload');
+                    xhr.open('POST', uploadUrl);
                     xhr.timeout = 600000;
                     xhr.send(formData);
                 } catch (err) {
@@ -777,8 +782,8 @@
                                     var flush = mp3encoder.flush();
                                     if (flush.length > 0) mp3Data.push(flush);
 
-                                    var blob = new Blob(mp3Data, { type: 'audio/mp3' });
-                                    var mp3File = new File([blob], file.name.replace(/\.[^.]+$/, '.mp3'), { type: 'audio/mp3' });
+                                    var blob = new Blob(mp3Data, { type: 'audio/mpeg' });
+                                    var mp3File = new File([blob], file.name.replace(/\.[^.]+$/, '.mp3'), { type: 'audio/mpeg' });
 
                                     var origMB = (file.size / (1024 * 1024)).toFixed(1);
                                     var newMB = (mp3File.size / (1024 * 1024)).toFixed(1);
@@ -846,7 +851,7 @@
                 // Step 1: Compress large audio files to MP3 in the browser
                 console.log('[MusicUpload] Step 1: Compressing...');
                 var audioFile = await compressToMp3(audioInput.files[0], btn, bar);
-                console.log('[MusicUpload] Step 1 done — file:', audioFile.name, 'size:', (audioFile.size / 1024 / 1024).toFixed(2) + 'MB');
+                console.log('[MusicUpload] Step 1 done — file:', audioFile.name, 'size:', (audioFile.size / 1024 / 1024).toFixed(2) + 'MB', 'type:', audioFile.type, 'same as original?', audioFile === origFile);
 
                 // Validate file size for Cloudinary (100MB limit for audio/video on free tier)
                 if (audioFile.size > 100 * 1024 * 1024) {
