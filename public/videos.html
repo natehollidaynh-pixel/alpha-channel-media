@@ -195,7 +195,7 @@
     </button>
     <div class="header">
         <div class="logo">Videos</div>
-        <nav><a href="player.html">Music</a><a href="welcome.html">Logout</a></nav>
+        <nav><a href="player.html">Music</a><a href="email-settings.html">Settings</a><a href="#" onclick="logout(); return false;">Logout</a></nav>
     </div>
     <div class="container" id="accessGate" style="text-align:center; margin-top:60px; max-width:500px; margin-left:auto; margin-right:auto;">
         <h2 style="margin-bottom:16px; color:var(--text);">Enter Listener Key</h2>
@@ -230,12 +230,27 @@
 
     <script>
         var API = window.location.origin;
+
+        // Auth token helper — checks both localStorage and sessionStorage
+        function getAuthToken() {
+            return getAuthToken() || sessionStorage.getItem('authToken');
+        }
+        function logout() {
+            localStorage.removeItem('authToken');
+            sessionStorage.removeItem('authToken');
+            localStorage.removeItem('unlockedCreators');
+            localStorage.removeItem('currentCreatorId');
+            localStorage.removeItem('currentCreatorName');
+            localStorage.removeItem('listenerKey');
+            window.location.href = 'login.html';
+        }
+
         var currentCreatorId = null;
         var unlockedCreators = [];
 
         // ===== INITIALIZATION — check for server-side access first =====
         (async function initAccess() {
-            var token = localStorage.getItem('authToken');
+            var token = getAuthToken();
 
             if (token) {
                 try {
@@ -342,7 +357,7 @@
                 return;
             }
             try {
-                var token = localStorage.getItem('authToken');
+                var token = getAuthToken();
                 var headers = { 'Content-Type': 'application/json' };
                 if (token) headers['Authorization'] = 'Bearer ' + token;
 
@@ -376,7 +391,7 @@
 
         async function validateAndLoad(key) {
             try {
-                var token = localStorage.getItem('authToken');
+                var token = getAuthToken();
                 var headers = { 'Content-Type': 'application/json' };
                 if (token) headers['Authorization'] = 'Bearer ' + token;
 

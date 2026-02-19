@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Settings - Alpha Channel Media</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #f0ede8;
+            --bg-glossy: linear-gradient(135deg, #f5f2ed 0%, #faf8f5 20%, #f0ede8 40%, #fdf5f5 60%, #f0f7f3 80%, #f5f2ed 100%);
+            --surface: rgba(255,255,255,0.55); --surface-solid: #ffffff;
+            --green: #006e45; --green-glow: rgba(0,110,69,0.25); --red: #b82e2e; --red-glow: rgba(184,46,46,0.2);
+            --text: #111111; --text-secondary: #555555; --border: rgba(0,0,0,0.08);
+            --panel-glow: 0 0 30px rgba(0,110,69,0.12), 0 0 60px rgba(184,46,46,0.08);
+            --panel-border: rgba(0,0,0,0.06); --input-bg: rgba(255,255,255,0.7);
+            --shimmer-color: rgba(0,110,69,0.15);
+        }
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --bg-glossy: linear-gradient(135deg, #0e0e0e 0%, #121210 20%, #0e100e 40%, #140e0e 60%, #0e1210 80%, #0e0e0e 100%);
+            --surface: rgba(25,25,25,0.7); --surface-solid: #141414;
+            --green: #00c97a; --green-glow: rgba(0,201,122,0.2); --red: #e04545; --red-glow: rgba(224,69,69,0.15);
+            --text: #eaeaea; --text-secondary: #999999; --border: rgba(255,255,255,0.08);
+            --panel-glow: 0 0 40px rgba(0,201,122,0.1), 0 0 80px rgba(224,69,69,0.06);
+            --panel-border: rgba(255,255,255,0.06); --input-bg: rgba(40,40,40,0.7);
+            --shimmer-color: rgba(0,201,122,0.2);
+        }
+        .shimmer-text {
+            background: linear-gradient(120deg, var(--text) 0%, var(--text) 40%, var(--shimmer-color) 50%, var(--text) 60%, var(--text) 100%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmerSlide 3s ease-in-out infinite;
+        }
+        @keyframes shimmerSlide {
+            0% { background-position: 200% center; }
+            100% { background-position: -200% center; }
+        }
+        body {
+            font-family: 'Inter', sans-serif; background: var(--bg-glossy); background-attachment: fixed; color: var(--text);
+            position: relative; overflow-x: hidden;
+            min-height: 100vh; display: flex; align-items: flex-start; justify-content: center;
+            padding: 20px 20px 80px;
+        }
+        .back-arrow {
+            position: fixed; top: 20px; left: 20px; width: 40px; height: 40px;
+            border-radius: 50%; background: var(--surface); border: 1px solid var(--border);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 100; backdrop-filter: blur(10px); text-decoration: none; transition: all 0.3s;
+        }
+        .back-arrow:hover { box-shadow: var(--panel-glow); }
+        .back-arrow svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+        .theme-toggle {
+            position: fixed; top: 20px; right: 20px; width: 40px; height: 40px;
+            border-radius: 50%; background: var(--surface); border: 1px solid var(--border);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 100; backdrop-filter: blur(10px); transition: all 0.3s;
+        }
+        .theme-toggle:hover { box-shadow: var(--panel-glow); }
+        .theme-toggle svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+        .theme-toggle .icon-sun { display: none; }
+        [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+        [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+        .container {
+            position: relative; z-index: 1; max-width: 560px; width: 100%; margin-top: 60px;
+            background: var(--surface); backdrop-filter: blur(25px); border-radius: 24px;
+            border: 1px solid var(--panel-border); box-shadow: var(--panel-glow);
+            padding: 48px 40px; animation: fadeIn 0.6s ease-out;
+        }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+        .header { text-align: center; margin-bottom: 36px; }
+        .header-icon { width: 48px; height: 48px; margin: 0 auto 16px; }
+        .header-icon svg { width: 100%; height: 100%; fill: var(--green); opacity: 0.7; }
+        h1 { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .subtitle { color: var(--text-secondary); font-size: 0.95rem; }
+
+        /* Global toggle */
+        .global-toggle {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 20px; background: var(--input-bg); border-radius: 14px;
+            border: 1px solid var(--border); margin-bottom: 28px;
+        }
+        .global-toggle-info h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+        .global-toggle-info p { font-size: 0.85rem; color: var(--text-secondary); }
+
+        /* Toggle switch */
+        .toggle-switch {
+            position: relative; width: 50px; height: 28px; flex-shrink: 0;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute; cursor: pointer; inset: 0; background: var(--border);
+            border-radius: 28px; transition: 0.3s;
+        }
+        .toggle-slider::before {
+            content: ''; position: absolute; width: 22px; height: 22px; left: 3px; bottom: 3px;
+            background: white; border-radius: 50%; transition: 0.3s;
+        }
+        .toggle-switch input:checked + .toggle-slider { background: var(--green); }
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px); }
+
+        /* Creator subscriptions */
+        .section-title {
+            font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--text-secondary); margin-bottom: 14px;
+        }
+        .creator-sub {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; background: var(--input-bg); border-radius: 12px;
+            border: 1px solid var(--border); margin-bottom: 10px;
+        }
+        .creator-sub-info { display: flex; align-items: center; gap: 12px; }
+        .creator-sub-icon {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--green-glow), var(--red-glow));
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .creator-sub-icon svg { width: 20px; height: 20px; fill: var(--green); }
+        .creator-sub-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+        .creator-sub-detail { font-size: 0.8rem; color: var(--text-secondary); }
+
+        .no-subs {
+            text-align: center; padding: 24px; color: var(--text-secondary);
+            font-size: 0.9rem; background: var(--input-bg); border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .save-btn {
+            width: 100%; padding: 16px; background: var(--green); color: white; border: none;
+            border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer;
+            margin-top: 24px; transition: all 0.3s;
+        }
+        .save-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .status-msg {
+            text-align: center; margin-top: 12px; font-size: 0.9rem; display: none;
+        }
+        .status-msg.success { color: var(--green); display: block; }
+        .status-msg.error { color: var(--red); display: block; }
+
+        .login-prompt {
+            text-align: center; padding: 40px 20px;
+        }
+        .login-prompt p { color: var(--text-secondary); margin-bottom: 20px; }
+        .login-prompt a {
+            display: inline-block; padding: 14px 32px; background: var(--green); color: white;
+            text-decoration: none; border-radius: 12px; font-weight: 600;
+        }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-solid);
+            border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 48px;
+            padding: 10px 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); z-index: 1000;
+        }
+        .bottom-nav a {
+            display: flex; flex-direction: column; align-items: center; text-decoration: none;
+            color: var(--text-secondary); font-size: 0.7rem; font-weight: 500; padding: 4px 16px;
+            -webkit-tap-highlight-color: transparent; gap: 4px; transition: color 0.2s;
+        }
+        .bottom-nav a.active { color: var(--green); }
+        .bottom-nav a:hover { color: var(--green); }
+        .bottom-nav a svg { width: 22px; height: 22px; fill: currentColor; }
+        body::before, body::after {
+            content: ''; position: fixed; border-radius: 50%;
+            filter: blur(80px); opacity: 0.4; pointer-events: none; z-index: 0;
+        }
+        body::before { width: 500px; height: 500px; background: radial-gradient(circle, rgba(0,150,80,0.2), transparent 70%); top: -100px; right: -100px; }
+        body::after { width: 400px; height: 400px; background: radial-gradient(circle, rgba(200,40,40,0.15), transparent 70%); bottom: -50px; left: -50px; }
+
+        @media (max-width: 768px) {
+            .container { padding: 36px 28px; margin-top: 50px; } h1 { font-size: 1.6rem; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 28px 18px; border-radius: 20px; } h1 { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <a href="player.html" class="back-arrow" aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </a>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+
+    <div class="container">
+        <!-- Login prompt (shown when not authenticated) -->
+        <div class="login-prompt" id="loginPrompt" style="display:none;">
+            <div class="header">
+                <h1 class="shimmer-text">Email Settings</h1>
+            </div>
+            <p>You need to be logged in to manage your email preferences.</p>
+            <a href="login.html">Sign In</a>
+        </div>
+
+        <!-- Settings (shown when authenticated) -->
+        <div id="settingsContent" style="display:none;">
+            <div class="header">
+                <div class="header-icon">
+                    <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                </div>
+                <h1 class="shimmer-text">Email Settings</h1>
+                <p class="subtitle">Control when and how you receive notifications</p>
+            </div>
+
+            <!-- Global Toggle -->
+            <div class="global-toggle">
+                <div class="global-toggle-info">
+                    <h3>Email Notifications</h3>
+                    <p>Receive emails about new uploads</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="globalToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <!-- Per-creator subscriptions -->
+            <div class="section-title">Creator Subscriptions</div>
+            <div id="subscriptionsList"></div>
+
+            <button class="save-btn" id="saveBtn" onclick="savePreferences()">Save Preferences</button>
+            <div class="status-msg" id="statusMsg"></div>
+
+            <div style="text-align:center; margin-top:20px;">
+                <a href="#" onclick="logout(); return false;" style="color:var(--text-secondary); font-size:0.85rem; text-decoration:none;">Sign Out</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = window.location.origin;
+
+        function getAuthToken() {
+            return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            sessionStorage.removeItem('authToken');
+            localStorage.removeItem('unlockedCreators');
+            localStorage.removeItem('currentCreatorId');
+            localStorage.removeItem('currentCreatorName');
+            window.location.href = 'login.html';
+        }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        // Load preferences on page load
+        (async function init() {
+            const token = getAuthToken();
+            if (!token) {
+                document.getElementById('loginPrompt').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('settingsContent').style.display = 'block';
+
+            try {
+                const resp = await fetch(`${API}/api/listeners/email-preferences`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (resp.status === 401 || resp.status === 403) {
+                    document.getElementById('settingsContent').style.display = 'none';
+                    document.getElementById('loginPrompt').style.display = 'block';
+                    return;
+                }
+
+                if (!resp.ok) throw new Error('Failed to load preferences');
+
+                const data = await resp.json();
+
+                // Set global toggle
+                document.getElementById('globalToggle').checked = data.email_notifications !== false;
+
+                // Render creator subscriptions
+                const list = document.getElementById('subscriptionsList');
+                if (data.subscriptions.length === 0) {
+                    list.innerHTML = '<div class="no-subs">No creator subscriptions yet. Unlock a creator with their listener key to get started.</div>';
+                } else {
+                    list.innerHTML = '';
+                    data.subscriptions.forEach(function(sub) {
+                        const name = sub.artist_name || sub.username;
+                        const initial = name.charAt(0).toUpperCase();
+                        const div = document.createElement('div');
+                        div.className = 'creator-sub';
+                        div.innerHTML = `
+                            <div class="creator-sub-info">
+                                <div class="creator-sub-icon">
+                                    <svg viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--green)">${escapeHtml(initial)}</text></svg>
+                                </div>
+                                <div>
+                                    <div class="creator-sub-name">${escapeHtml(name)}</div>
+                                    <div class="creator-sub-detail">${escapeHtml((sub.first_name || '') + ' ' + (sub.last_name || '')).trim()}</div>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" data-creator-id="${sub.creator_id}" ${sub.email_on_upload ? 'checked' : ''}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        `;
+                        list.appendChild(div);
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to load preferences:', err);
+                document.getElementById('subscriptionsList').innerHTML = '<div class="no-subs">Failed to load preferences. Please try again.</div>';
+            }
+        })();
+
+        async function savePreferences() {
+            const token = getAuthToken();
+            if (!token) return;
+
+            const btn = document.getElementById('saveBtn');
+            const statusEl = document.getElementById('statusMsg');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            statusEl.className = 'status-msg';
+            statusEl.style.display = 'none';
+
+            const email_notifications = document.getElementById('globalToggle').checked;
+
+            // Collect per-creator toggles
+            const subscriptions = [];
+            document.querySelectorAll('[data-creator-id]').forEach(function(input) {
+                subscriptions.push({
+                    creator_id: input.getAttribute('data-creator-id'),
+                    email_on_upload: input.checked
+                });
+            });
+
+            try {
+                const resp = await fetch(`${API}/api/listeners/email-preferences`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ email_notifications, subscriptions })
+                });
+
+                if (!resp.ok) throw new Error('Failed to save');
+
+                statusEl.textContent = 'Preferences saved successfully!';
+                statusEl.className = 'status-msg success';
+            } catch (err) {
+                statusEl.textContent = 'Failed to save preferences. Please try again.';
+                statusEl.className = 'status-msg error';
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Save Preferences';
+
+            // Auto-hide success message after 3s
+            setTimeout(function() {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next); localStorage.setItem('theme', next);
+        }
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved) document.documentElement.setAttribute('data-theme', saved);
+            else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+        })();
+    </script>
+    <nav class="bottom-nav">
+        <a href="welcome.html"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+        <a href="player.html"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>Music</a>
+        <a href="master-admin.html"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>Admin</a>
+    </nav>
+</body>
+</html>

@@ -447,7 +447,9 @@
             </div>
             <div class="player-header-right">
                 <a href="videos.html">Videos</a>
+                <a href="email-settings.html">Settings</a>
                 <a href="#" onclick="showCreatorSelector(); return false;" id="switchCreatorLink">Switch Creator</a>
+                <a href="#" onclick="logout(); return false;">Logout</a>
             </div>
         </div>
 
@@ -540,6 +542,21 @@
 
     <script>
         var API = window.location.origin;
+
+        // Auth token helper — checks both localStorage and sessionStorage
+        function getAuthToken() {
+            return getAuthToken() || sessionStorage.getItem('authToken');
+        }
+        function logout() {
+            localStorage.removeItem('authToken');
+            sessionStorage.removeItem('authToken');
+            localStorage.removeItem('unlockedCreators');
+            localStorage.removeItem('currentCreatorId');
+            localStorage.removeItem('currentCreatorName');
+            localStorage.removeItem('listenerKey');
+            window.location.href = 'login.html';
+        }
+
         var audio = document.getElementById('audioPlayer');
         var tracks = [];
         var currentIndex = -1;
@@ -649,7 +666,7 @@
 
         // ===== INITIALIZATION — check for server-side access first =====
         (async function initAccess() {
-            var token = localStorage.getItem('authToken');
+            var token = getAuthToken();
 
             // Try server-side: fetch unlocked creators if we have a JWT
             if (token) {
@@ -770,7 +787,7 @@
                 return;
             }
             try {
-                var token = localStorage.getItem('authToken');
+                var token = getAuthToken();
                 var headers = { 'Content-Type': 'application/json' };
                 if (token) headers['Authorization'] = 'Bearer ' + token;
 
@@ -806,7 +823,7 @@
 
         async function validateAndLoad(key) {
             try {
-                var token = localStorage.getItem('authToken');
+                var token = getAuthToken();
                 var headers = { 'Content-Type': 'application/json' };
                 if (token) headers['Authorization'] = 'Bearer ' + token;
 

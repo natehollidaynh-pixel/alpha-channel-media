@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS listeners (
     password_hash VARCHAR(255),
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
+    email_notifications BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -77,20 +78,7 @@ CREATE TABLE IF NOT EXISTS videos (
     uploaded_at TIMESTAMP DEFAULT NOW()
 );
 
--- WebAuthn credentials (passkeys for biometric login)
-CREATE TABLE IF NOT EXISTS webauthn_credentials (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    listener_id UUID NOT NULL REFERENCES listeners(id) ON DELETE CASCADE,
-    credential_id TEXT NOT NULL UNIQUE,
-    public_key TEXT NOT NULL,
-    counter BIGINT NOT NULL DEFAULT 0,
-    device_type VARCHAR(50),
-    backed_up BOOLEAN DEFAULT false,
-    transports TEXT[],
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Persistent listener-creator access (replaces localStorage-only approach)
+-- Persistent listener-creator access
 CREATE TABLE IF NOT EXISTS listener_creator_access (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     listener_id UUID NOT NULL REFERENCES listeners(id) ON DELETE CASCADE,
@@ -99,14 +87,25 @@ CREATE TABLE IF NOT EXISTS listener_creator_access (
     UNIQUE(listener_id, creator_id)
 );
 
--- Temporary WebAuthn challenges (auto-cleaned every 10 minutes)
-CREATE TABLE IF NOT EXISTS webauthn_challenges (
+-- Listener-creator email subscriptions
+CREATE TABLE IF NOT EXISTS listener_creator_subscriptions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    listener_id UUID REFERENCES listeners(id) ON DELETE CASCADE,
-    challenge TEXT NOT NULL,
-    type VARCHAR(20) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    listener_id UUID NOT NULL REFERENCES listeners(id) ON DELETE CASCADE,
+    creator_id UUID NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
+    email_on_upload BOOLEAN DEFAULT true,
+    subscribed_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(listener_id, creator_id)
+);
+
+-- Email notification log
+CREATE TABLE IF NOT EXISTS email_notifications_log (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    listener_id UUID REFERENCES listeners(id) ON DELETE SET NULL,
+    creator_id UUID REFERENCES creators(id) ON DELETE SET NULL,
+    email_type VARCHAR(50) NOT NULL,
+    subject TEXT,
+    sent_at TIMESTAMP DEFAULT NOW(),
+    status VARCHAR(20) DEFAULT 'sent'
 );
 
 -- Indexes
@@ -115,7 +114,9 @@ CREATE INDEX IF NOT EXISTS idx_videos_creator_id ON videos(creator_id);
 CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
 CREATE INDEX IF NOT EXISTS idx_songs_uploaded_at ON songs(uploaded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_videos_uploaded_at ON videos(uploaded_at DESC);
-CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_listener ON webauthn_credentials(listener_id);
 CREATE INDEX IF NOT EXISTS idx_listener_creator_access_listener ON listener_creator_access(listener_id);
 CREATE INDEX IF NOT EXISTS idx_listener_creator_access_creator ON listener_creator_access(creator_id);
-CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_expires ON webauthn_challenges(expires_at);
+CREATE INDEX IF NOT EXISTS idx_listener_creator_subs_listener ON listener_creator_subscriptions(listener_id);
+CREATE INDEX IF NOT EXISTS idx_listener_creator_subs_creator ON listener_creator_subscriptions(creator_id);
+CREATE INDEX IF NOT EXISTS idx_email_log_listener ON email_notifications_log(listener_id);
+CREATE INDEX IF NOT EXISTS idx_email_log_sent_at ON email_notifications_log(sent_at DESC);

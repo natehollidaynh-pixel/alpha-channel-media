@@ -145,9 +145,120 @@ async function sendAdminListenerNotification(listener) {
   }
 }
 
+// Notify a listener that they unlocked a new creator
+async function sendCreatorUnlockedEmail(listener, creator) {
+  if (!resend) { console.log('Skipping email (no API key): creator unlocked'); return; }
+  const playerUrl = `${SITE_URL}/player.html`;
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: listener.email,
+      subject: `You unlocked ${creator.artist_name || creator.username} on Alpha Channel Media!`,
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+          <h1 style="color: #1a1a1a; margin-bottom: 16px;">New Creator Unlocked!</h1>
+          <p style="color: #666; margin-bottom: 24px;">Hey ${listener.first_name}! You now have access to <strong>${creator.artist_name || creator.username}</strong>'s music and videos.</p>
+
+          <div style="background: #f5f5f5; border-radius: 12px; padding: 24px; margin-bottom: 32px; text-align: center;">
+            <h2 style="color: #006e45; margin-bottom: 8px;">${creator.artist_name || creator.username}</h2>
+            <p style="color: #888;">You'll be notified when they upload new content.</p>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 32px;">
+            <a href="${playerUrl}" style="display: inline-block; padding: 14px 32px; background: #00a86b; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">LISTEN NOW</a>
+          </div>
+
+          <p style="color: #999; font-size: 0.8rem; text-align: center;">
+            You can manage your notification preferences in your <a href="${SITE_URL}/email-settings.html" style="color: #006e45;">email settings</a>.
+          </p>
+        </div>
+      `
+    });
+    console.log('Creator unlocked email sent to:', listener.email);
+  } catch (err) {
+    console.error('Failed to send creator unlocked email:', err);
+  }
+}
+
+// Notify a listener about a new song upload
+async function sendNewSongEmail(listener, creator, song) {
+  if (!resend) { console.log('Skipping email (no API key): new song'); return; }
+  const playerUrl = `${SITE_URL}/player.html`;
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: listener.email,
+      subject: `${creator.artist_name || creator.username} just dropped a new track!`,
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+          <h1 style="color: #1a1a1a; margin-bottom: 16px;">New Music Alert!</h1>
+          <p style="color: #666; margin-bottom: 24px;"><strong>${creator.artist_name || creator.username}</strong> just uploaded a new track.</p>
+
+          <div style="background: #f5f5f5; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+            <h2 style="color: #1a1a1a; margin-bottom: 4px;">${song.title}</h2>
+            <p style="color: #006e45; font-weight: 500;">${song.artist}</p>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 32px;">
+            <a href="${playerUrl}" style="display: inline-block; padding: 14px 32px; background: #00a86b; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">PLAY NOW</a>
+          </div>
+
+          <p style="color: #999; font-size: 0.8rem; text-align: center;">
+            Manage notifications in your <a href="${SITE_URL}/email-settings.html" style="color: #006e45;">email settings</a>.
+          </p>
+        </div>
+      `
+    });
+    console.log('New song email sent to:', listener.email);
+  } catch (err) {
+    console.error('Failed to send new song email:', err);
+  }
+}
+
+// Notify a listener about a new video upload
+async function sendNewVideoEmail(listener, creator, video) {
+  if (!resend) { console.log('Skipping email (no API key): new video'); return; }
+  const videosUrl = `${SITE_URL}/videos.html`;
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: listener.email,
+      subject: `${creator.artist_name || creator.username} just posted a new video!`,
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+          <h1 style="color: #1a1a1a; margin-bottom: 16px;">New Video Alert!</h1>
+          <p style="color: #666; margin-bottom: 24px;"><strong>${creator.artist_name || creator.username}</strong> just uploaded a new video.</p>
+
+          <div style="background: #f5f5f5; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+            <h2 style="color: #1a1a1a; margin-bottom: 4px;">${video.title}</h2>
+            <p style="color: #888;">${video.category || 'Video'}</p>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 32px;">
+            <a href="${videosUrl}" style="display: inline-block; padding: 14px 32px; background: #00a86b; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">WATCH NOW</a>
+          </div>
+
+          <p style="color: #999; font-size: 0.8rem; text-align: center;">
+            Manage notifications in your <a href="${SITE_URL}/email-settings.html" style="color: #006e45;">email settings</a>.
+          </p>
+        </div>
+      `
+    });
+    console.log('New video email sent to:', listener.email);
+  } catch (err) {
+    console.error('Failed to send new video email:', err);
+  }
+}
+
 module.exports = {
   sendCreatorApplicationEmail,
   sendCreatorWelcomeEmail,
   sendListenerConfirmationEmail,
-  sendAdminListenerNotification
+  sendAdminListenerNotification,
+  sendCreatorUnlockedEmail,
+  sendNewSongEmail,
+  sendNewVideoEmail
 };

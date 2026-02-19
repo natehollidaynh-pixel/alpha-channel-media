@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const cloudinary = require('cloudinary').v2;
 const router = express.Router();
+const { sendNewSongEmail, sendNewVideoEmail } = require('../emails/sender');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-me';
 
@@ -70,7 +71,15 @@ router.post('/music', express.json(), async (req, res) => {
       [creatorId, title, artist, lyrics || null, audio_url, artwork_url || null, file_size || 0, format || 'mp3']
     );
 
-    res.json({ success: true, song: result.rows[0] });
+    const song = result.rows[0];
+    res.json({ success: true, song });
+
+    // Background: notify subscribed listeners (non-blocking)
+    if (creatorId) {
+      notifySubscribers(db, creatorId, 'song', song).catch(err =>
+        console.error('Failed to notify subscribers about new song:', err)
+      );
+    }
   } catch (err) {
     console.error('Save music error:', err);
     res.status(500).json({ error: 'Failed to save track' });
@@ -95,11 +104,71 @@ router.post('/video', express.json(), async (req, res) => {
       [creatorId, title, description || null, category || null, video_url, thumbnail_url || null, file_size || 0, format || 'mp4']
     );
 
-    res.json({ success: true, video: result.rows[0] });
+    const video = result.rows[0];
+    res.json({ success: true, video });
+
+    // Background: notify subscribed listeners (non-blocking)
+    if (creatorId) {
+      notifySubscribers(db, creatorId, 'video', video).catch(err =>
+        console.error('Failed to notify subscribers about new video:', err)
+      );
+    }
   } catch (err) {
     console.error('Save video error:', err);
     res.status(500).json({ error: 'Failed to save video' });
   }
 });
+
+// Background: notify all subscribed listeners when a creator uploads content
+async function notifySubscribers(db, creatorId, contentType, content) {
+  try {
+    // Get creator info
+    const creatorResult = await db.query(
+      'SELECT id, username, artist_name, first_name, last_name FROM creators WHERE id = $1',
+      [creatorId]
+    );
+    if (creatorResult.rows.length === 0) return;
+    const creator = creatorResult.rows[0];
+
+    // Get subscribed listeners who have email_on_upload enabled AND global email_notifications enabled
+    const subsResult = await db.query(
+      `SELECT l.id, l.email, l.first_name, l.last_name
+       FROM listener_creator_subscriptions lcs
+       JOIN listeners l ON l.id = lcs.listener_id
+       WHERE lcs.creator_id = $1
+         AND lcs.email_on_upload = true
+         AND l.email_notifications = true`,
+      [creatorId]
+    );
+
+    console.log(`Notifying ${subsResult.rows.length} subscribers about new ${contentType} from ${creator.artist_name || creator.username}`);
+
+    for (const listener of subsResult.rows) {
+      try {
+        if (contentType === 'song') {
+          await sendNewSongEmail(listener, creator, content);
+        } else if (contentType === 'video') {
+          await sendNewVideoEmail(listener, creator, content);
+        }
+        // Log the notification
+        await db.query(
+          `INSERT INTO email_notifications_log (listener_id, creator_id, email_type, subject, status)
+           VALUES ($1, $2, $3, $4, 'sent')`,
+          [listener.id, creatorId, `new_${contentType}`, content.title]
+        );
+      } catch (emailErr) {
+        console.error(`Failed to email ${listener.email}:`, emailErr.message);
+        // Log failure
+        await db.query(
+          `INSERT INTO email_notifications_log (listener_id, creator_id, email_type, subject, status)
+           VALUES ($1, $2, $3, $4, 'failed')`,
+          [listener.id, creatorId, `new_${contentType}`, content.title]
+        ).catch(() => {});
+      }
+    }
+  } catch (err) {
+    console.error('Notify subscribers error:', err);
+  }
+}
 
 module.exports = router;
