@@ -90,7 +90,23 @@ pool.query('SELECT NOW()')
       DROP TABLE IF EXISTS webauthn_credentials CASCADE;
     `);
   })
-  .then(() => console.log('WebAuthn cleanup complete'))
+  .then(() => {
+    console.log('WebAuthn cleanup complete');
+    // Backfill: create email subscriptions for any listener_creator_access
+    // that doesn't already have a matching subscription
+    return pool.query(`
+      INSERT INTO listener_creator_subscriptions (listener_id, creator_id, email_on_upload)
+      SELECT lca.listener_id, lca.creator_id, true
+      FROM listener_creator_access lca
+      WHERE NOT EXISTS (
+          SELECT 1 FROM listener_creator_subscriptions lcs
+          WHERE lcs.listener_id = lca.listener_id
+            AND lcs.creator_id = lca.creator_id
+      )
+      ON CONFLICT (listener_id, creator_id) DO NOTHING
+    `);
+  })
+  .then(() => console.log('Email subscription backfill complete'))
   .catch(err => console.error('Database setup error:', err.message));
 
 // Make db available to routes
