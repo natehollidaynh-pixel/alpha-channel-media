@@ -24,6 +24,27 @@ function getCreatorId(req) {
   } catch (e) { return null; }
 }
 
+// Check Cloudinary account usage (diagnostic endpoint)
+router.get('/cloudinary-usage', async (req, res) => {
+  try {
+    const creatorId = getCreatorId(req);
+    if (!creatorId) return res.status(401).json({ error: 'Not authenticated' });
+    const usage = await cloudinary.api.usage();
+    res.json({
+      plan: usage.plan,
+      credits: { used: usage.credits?.used_percent || 'N/A', limit: usage.credits?.limit || 'N/A' },
+      storage: { used_bytes: usage.storage?.used_bytes, limit_bytes: usage.storage?.limit_bytes, used_percent: usage.storage?.used_percent },
+      bandwidth: { used_bytes: usage.bandwidth?.used_bytes, limit_bytes: usage.bandwidth?.limit_bytes, used_percent: usage.bandwidth?.used_percent },
+      requests: usage.requests,
+      resources: usage.resources,
+      transformations: { used: usage.transformations?.used, limit: usage.transformations?.limit, used_percent: usage.transformations?.used_percent }
+    });
+  } catch (err) {
+    console.error('Cloudinary usage error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Generate a Cloudinary signature for direct browser upload
 router.post('/sign', (req, res) => {
   try {

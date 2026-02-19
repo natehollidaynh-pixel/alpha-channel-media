@@ -626,9 +626,9 @@
                             try {
                                 var err = JSON.parse(xhr.responseText);
                                 var msg = err.error && err.error.message ? err.error.message : 'Upload failed (status ' + xhr.status + ')';
-                                // Cloudinary file size limit hit
+                                // Append helpful context for size errors, but keep Cloudinary's original message
                                 if (msg.toLowerCase().includes('too large') || msg.toLowerCase().includes('file size') || xhr.status === 413) {
-                                    msg = 'File is too large. Try a smaller file (under 10MB for audio, under 100MB for video on paid plans).';
+                                    msg = 'Cloudinary rejected the file: ' + msg + ' (Free tier limit: 100MB for audio/video)';
                                 }
                                 console.error('[Upload] Cloudinary error:', msg);
                                 safeReject(new Error(msg));
