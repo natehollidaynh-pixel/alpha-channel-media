@@ -553,7 +553,14 @@
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
                 body: JSON.stringify({ folder: folder })
             });
-            if (!response.ok) throw new Error('Failed to get upload signature');
+            if (!response.ok) {
+                var errData = {};
+                try { errData = await response.json(); } catch(e) {}
+                if (response.status === 401) {
+                    throw new Error('Not authenticated. Please log in again.');
+                }
+                throw new Error(errData.error || 'Failed to get upload signature (status ' + response.status + ')');
+            }
             return response.json();
         }
 

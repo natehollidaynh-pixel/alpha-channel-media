@@ -54,10 +54,11 @@ router.post('/sign', (req, res) => {
 });
 
 // Save music record (after browser uploads directly to Cloudinary)
-router.post('/music', express.json(), async (req, res) => {
+router.post('/music', async (req, res) => {
   try {
     const db = req.app.locals.db;
     const creatorId = getCreatorId(req);
+    if (!creatorId) return res.status(401).json({ error: 'Not authenticated' });
     const { title, artist, lyrics, audio_url, artwork_url, file_size, format } = req.body;
 
     if (!title || !artist || !audio_url) {
@@ -87,10 +88,11 @@ router.post('/music', express.json(), async (req, res) => {
 });
 
 // Save video record (after browser uploads directly to Cloudinary)
-router.post('/video', express.json(), async (req, res) => {
+router.post('/video', async (req, res) => {
   try {
     const db = req.app.locals.db;
     const creatorId = getCreatorId(req);
+    if (!creatorId) return res.status(401).json({ error: 'Not authenticated' });
     const { title, description, category, video_url, thumbnail_url, file_size, format } = req.body;
 
     if (!title || !video_url) {
