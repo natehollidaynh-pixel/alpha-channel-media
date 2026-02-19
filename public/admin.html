@@ -664,118 +664,154 @@
         }
 
         // Compress audio to MP3 in the browser using Web Audio API + lamejs
+        // Falls back to uploading original file if compression fails or times out
         function compressToMp3(file, btn, bar) {
-            return new Promise(function(resolve, reject) {
-                // If already MP3 and small enough, skip compression
-                // If non-MP3 and small enough (<10MB), skip compression
-                var ext = file.name.split('.').pop().toLowerCase();
-                if (ext === 'mp3' && file.size < 10 * 1024 * 1024) {
-                    resolve(file);
-                    return;
-                }
-                if (ext === 'mp3' && file.size >= 10 * 1024 * 1024) {
-                    // Large MP3 — can't re-compress easily, upload as-is and hope Cloudinary accepts it
-                    // (Cloudinary free tier may reject >10MB; paid plans allow up to 100MB)
-                    resolve(file);
-                    return;
-                }
-                if (file.size < 10 * 1024 * 1024) {
-                    resolve(file);
-                    return;
-                }
+            var ext = file.name.split('.').pop().toLowerCase();
+            var sizeMB = (file.size / (1024 * 1024)).toFixed(1);
 
-                btn.textContent = 'Compressing audio...';
-                bar.style.width = '5%';
+            // Skip compression for MP3 files or small files (<10MB)
+            if (ext === 'mp3' || file.size < 10 * 1024 * 1024) {
+                console.log('[Compress] Skipping — ' + ext.toUpperCase() + ' ' + sizeMB + 'MB (no compression needed)');
+                return Promise.resolve(file);
+            }
+
+            console.log('[Compress] Starting — ' + ext.toUpperCase() + ' ' + sizeMB + 'MB');
+
+            // Compression promise
+            var compressionPromise = new Promise(function(resolve, reject) {
+                btn.textContent = 'Reading audio file...';
+                bar.style.width = '2%';
 
                 var reader = new FileReader();
                 reader.onload = function(e) {
+                    console.log('[Compress] File read into memory (' + sizeMB + 'MB), decoding audio...');
+                    btn.textContent = 'Decoding audio...';
+                    bar.style.width = '5%';
+
                     var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                     audioCtx.decodeAudioData(e.target.result, function(buffer) {
-                        btn.textContent = 'Encoding MP3...';
+                        var duration = buffer.duration;
+                        console.log('[Compress] Decoded — ' + duration.toFixed(1) + 's, ' + buffer.numberOfChannels + 'ch, ' + buffer.sampleRate + 'Hz');
+                        btn.textContent = 'Loading MP3 encoder...';
                         bar.style.width = '10%';
 
-                        // Import lamejs dynamically
-                        var script = document.createElement('script');
-                        script.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
-                        script.onload = function() {
-                            try {
-                                var channels = buffer.numberOfChannels;
-                                var sampleRate = buffer.sampleRate;
-                                var mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 320); // 320kbps
-                                var mp3Data = [];
-
-                                // Get PCM data
-                                var left = buffer.getChannelData(0);
-                                var right = channels > 1 ? buffer.getChannelData(1) : left;
-
-                                var sampleBlockSize = 1152;
-                                var totalSamples = left.length;
-                                var processedSamples = 0;
-
-                                // Convert float32 to int16
-                                function floatTo16Bit(arr) {
-                                    var buf = new Int16Array(arr.length);
-                                    for (var i = 0; i < arr.length; i++) {
-                                        var s = Math.max(-1, Math.min(1, arr[i]));
-                                        buf[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-                                    }
-                                    return buf;
-                                }
-
-                                // Process in chunks to keep UI responsive
-                                function processChunk() {
-                                    var end = Math.min(processedSamples + sampleBlockSize * 50, totalSamples);
-                                    while (processedSamples < end) {
-                                        var sliceEnd = Math.min(processedSamples + sampleBlockSize, totalSamples);
-                                        var leftChunk = floatTo16Bit(left.slice(processedSamples, sliceEnd));
-                                        var rightChunk = channels > 1 ? floatTo16Bit(right.slice(processedSamples, sliceEnd)) : leftChunk;
-                                        var mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
-                                        if (mp3buf.length > 0) mp3Data.push(mp3buf);
-                                        processedSamples = sliceEnd;
-                                    }
-
-                                    var pct = Math.round((processedSamples / totalSamples) * 30) + 10;
-                                    bar.style.width = pct + '%';
-                                    btn.textContent = 'Encoding MP3... ' + Math.round((processedSamples / totalSamples) * 100) + '%';
-
-                                    if (processedSamples < totalSamples) {
-                                        setTimeout(processChunk, 0);
-                                    } else {
-                                        // Flush remaining
-                                        var flush = mp3encoder.flush();
-                                        if (flush.length > 0) mp3Data.push(flush);
-
-                                        var blob = new Blob(mp3Data, { type: 'audio/mp3' });
-                                        var mp3File = new File([blob], file.name.replace(/\.[^.]+$/, '.mp3'), { type: 'audio/mp3' });
-
-                                        var origMB = (file.size / (1024 * 1024)).toFixed(1);
-                                        var newMB = (mp3File.size / (1024 * 1024)).toFixed(1);
-                                        console.log('Compressed: ' + origMB + 'MB ' + ext.toUpperCase() + ' → ' + newMB + 'MB MP3');
-
-                                        audioCtx.close();
-                                        resolve(mp3File);
-                                    }
-                                }
-                                processChunk();
-                            } catch (err) {
+                        // Import lamejs dynamically (check if already loaded)
+                        if (typeof lamejs !== 'undefined') {
+                            doEncode(buffer, audioCtx, resolve, reject);
+                        } else {
+                            var script = document.createElement('script');
+                            script.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+                            script.onload = function() {
+                                console.log('[Compress] lamejs loaded');
+                                doEncode(buffer, audioCtx, resolve, reject);
+                            };
+                            script.onerror = function() {
                                 audioCtx.close();
-                                reject(new Error('MP3 encoding failed: ' + err.message));
-                            }
-                        };
-                        script.onerror = function() {
-                            audioCtx.close();
-                            // If lamejs fails to load, upload original file
-                            console.warn('Could not load MP3 encoder, uploading original file');
-                            resolve(file);
-                        };
-                        document.head.appendChild(script);
+                                console.warn('[Compress] Failed to load lamejs — uploading original file');
+                                resolve(file);
+                            };
+                            document.head.appendChild(script);
+                        }
                     }, function(err) {
-                        reject(new Error('Could not decode audio file'));
+                        console.warn('[Compress] decodeAudioData failed — uploading original file. Error:', err);
+                        resolve(file); // fallback: upload original
                     });
                 };
-                reader.onerror = function() { reject(new Error('Could not read file')); };
+                reader.onerror = function() {
+                    console.warn('[Compress] FileReader failed — uploading original file');
+                    resolve(file); // fallback: upload original
+                };
                 reader.readAsArrayBuffer(file);
+
+                function doEncode(buffer, audioCtx, resolve, reject) {
+                    try {
+                        var channels = buffer.numberOfChannels;
+                        var sampleRate = buffer.sampleRate;
+                        var mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 192); // 192kbps high quality
+                        var mp3Data = [];
+
+                        var left = buffer.getChannelData(0);
+                        var right = channels > 1 ? buffer.getChannelData(1) : left;
+
+                        var sampleBlockSize = 1152;
+                        var totalSamples = left.length;
+                        var processedSamples = 0;
+                        var lastLogPct = 0;
+
+                        function floatTo16Bit(arr) {
+                            var buf = new Int16Array(arr.length);
+                            for (var i = 0; i < arr.length; i++) {
+                                var s = Math.max(-1, Math.min(1, arr[i]));
+                                buf[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                            }
+                            return buf;
+                        }
+
+                        // Process in larger chunks for speed (200 blocks per iteration instead of 50)
+                        function processChunk() {
+                            try {
+                                var end = Math.min(processedSamples + sampleBlockSize * 200, totalSamples);
+                                while (processedSamples < end) {
+                                    var sliceEnd = Math.min(processedSamples + sampleBlockSize, totalSamples);
+                                    var leftChunk = floatTo16Bit(left.slice(processedSamples, sliceEnd));
+                                    var rightChunk = channels > 1 ? floatTo16Bit(right.slice(processedSamples, sliceEnd)) : leftChunk;
+                                    var mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+                                    if (mp3buf.length > 0) mp3Data.push(mp3buf);
+                                    processedSamples = sliceEnd;
+                                }
+
+                                var pctDone = Math.round((processedSamples / totalSamples) * 100);
+                                var barPct = Math.round((processedSamples / totalSamples) * 30) + 10;
+                                bar.style.width = barPct + '%';
+                                btn.textContent = 'Encoding MP3... ' + pctDone + '%';
+
+                                // Log every 25%
+                                if (pctDone >= lastLogPct + 25) {
+                                    lastLogPct = Math.floor(pctDone / 25) * 25;
+                                    console.log('[Compress] Encoding ' + pctDone + '% complete');
+                                }
+
+                                if (processedSamples < totalSamples) {
+                                    setTimeout(processChunk, 0);
+                                } else {
+                                    var flush = mp3encoder.flush();
+                                    if (flush.length > 0) mp3Data.push(flush);
+
+                                    var blob = new Blob(mp3Data, { type: 'audio/mp3' });
+                                    var mp3File = new File([blob], file.name.replace(/\.[^.]+$/, '.mp3'), { type: 'audio/mp3' });
+
+                                    var origMB = (file.size / (1024 * 1024)).toFixed(1);
+                                    var newMB = (mp3File.size / (1024 * 1024)).toFixed(1);
+                                    console.log('[Compress] Done! ' + origMB + 'MB ' + ext.toUpperCase() + ' → ' + newMB + 'MB MP3 (192kbps)');
+
+                                    audioCtx.close();
+                                    resolve(mp3File);
+                                }
+                            } catch (err) {
+                                audioCtx.close();
+                                console.warn('[Compress] Encoding error — uploading original file. Error:', err.message);
+                                resolve(file); // fallback: upload original
+                            }
+                        }
+                        processChunk();
+                    } catch (err) {
+                        audioCtx.close();
+                        console.warn('[Compress] Encoder init failed — uploading original file. Error:', err.message);
+                        resolve(file); // fallback: upload original
+                    }
+                }
             });
+
+            // 3-minute timeout — if compression is too slow, upload the original file
+            var timeoutPromise = new Promise(function(resolve) {
+                setTimeout(function() {
+                    console.warn('[Compress] Timed out after 3 minutes — uploading original file (' + sizeMB + 'MB)');
+                    btn.textContent = 'Compression slow, uploading original...';
+                    resolve(file);
+                }, 180000);
+            });
+
+            return Promise.race([compressionPromise, timeoutPromise]);
         }
 
         // Upload music: compress → Cloudinary directly → save URL to server
@@ -811,6 +847,11 @@
                 console.log('[MusicUpload] Step 1: Compressing...');
                 var audioFile = await compressToMp3(audioInput.files[0], btn, bar);
                 console.log('[MusicUpload] Step 1 done — file:', audioFile.name, 'size:', (audioFile.size / 1024 / 1024).toFixed(2) + 'MB');
+
+                // Validate file size for Cloudinary (100MB limit for audio/video on free tier)
+                if (audioFile.size > 100 * 1024 * 1024) {
+                    throw new Error('File is too large (' + (audioFile.size / 1024 / 1024).toFixed(1) + 'MB). Maximum upload size is 100MB.');
+                }
 
                 // Step 2: Upload compressed audio directly to Cloudinary
                 console.log('[MusicUpload] Step 2: Uploading to Cloudinary...');
@@ -894,6 +935,11 @@
             status.style.display = 'none'; status.className = 'status-msg';
 
             try {
+                // Validate file size for Cloudinary (100MB limit for video on free tier)
+                if (videoInput.files[0].size > 100 * 1024 * 1024) {
+                    throw new Error('Video is too large (' + (videoInput.files[0].size / 1024 / 1024).toFixed(1) + 'MB). Maximum upload size is 100MB.');
+                }
+
                 var videoUrl = await uploadToCloudinary(videoInput.files[0], 'alpha-channel/videos', 'video', bar, btn);
 
                 var thumbnailUrl = null;
