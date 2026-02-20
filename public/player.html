@@ -306,6 +306,14 @@
         .track-row.active .tr-info h4 { color: var(--green); }
         .track-row .tr-info p { font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .track-row .tr-duration { font-size: 0.85rem; color: var(--text-secondary); text-align: right; }
+        .track-row.now-playing .tr-num { position: relative; color: transparent; }
+        .track-row.now-playing .tr-num::after {
+            content: '\266A'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1rem; color: var(--green);
+            animation: nowPlayingPulse 2s ease-in-out infinite;
+        }
+        @keyframes nowPlayingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
         /* Now Playing Bar (fixed bottom) */
         .now-playing-bar {
@@ -1045,6 +1053,7 @@
         var shuffleOn = false;
         var repeatOn = false;
         var currentCreatorId = null;
+        var nowPlayingSong = null;
         var currentProfileCreatorId = null;
         var isSubscribedToProfile = false;
 
@@ -1209,10 +1218,21 @@
                 // Store tracks for playback
                 tracks = data.songs;
                 currentCreatorId = creatorId;
+
+                // Find the currently playing song in this catalog
+                if (nowPlayingSong) {
+                    var playingIdx = -1;
+                    for (var j = 0; j < tracks.length; j++) {
+                        if (tracks[j].id === nowPlayingSong.id) { playingIdx = j; break; }
+                    }
+                    if (playingIdx >= 0) currentIndex = playingIdx;
+                }
+
                 listEl.innerHTML = '';
                 tracks.forEach(function(track, i) {
                     var row = document.createElement('div');
-                    row.className = 'track-row' + (i === currentIndex ? ' active' : '');
+                    var isNowPlaying = nowPlayingSong && track.id === nowPlayingSong.id;
+                    row.className = 'track-row' + (isNowPlaying ? ' active now-playing' : '');
                     row.onclick = function() { playTrack(i); };
                     var artHtml = track.artwork_url
                         ? '<img src="' + track.artwork_url + '">'
@@ -1395,7 +1415,8 @@
             list.innerHTML = '';
             tracks.forEach(function(track, i) {
                 var row = document.createElement('div');
-                row.className = 'track-row' + (i === currentIndex ? ' active' : '');
+                var isNowPlaying = nowPlayingSong && track.id === nowPlayingSong.id;
+                row.className = 'track-row' + (isNowPlaying ? ' active now-playing' : '');
                 row.onclick = function() { playTrack(i); };
                 var artHtml = track.artwork_url
                     ? '<img src="' + track.artwork_url + '">'
@@ -1412,6 +1433,7 @@
             if (index < 0 || index >= tracks.length) return;
             currentIndex = index;
             var track = tracks[index];
+            nowPlayingSong = track;
             audio.src = track.audio_url;
             audio.play();
 
@@ -1431,6 +1453,7 @@
             // Highlight active row
             document.querySelectorAll('.track-row').forEach(function(r, i) {
                 r.classList.toggle('active', i === index);
+                r.classList.toggle('now-playing', i === index);
             });
 
             // Sync full-screen player if open
@@ -1639,8 +1662,8 @@
         }
 
         function syncFullScreenPlayer() {
-            if (currentIndex < 0) return;
-            var track = tracks[currentIndex];
+            if (!nowPlayingSong && currentIndex < 0) return;
+            var track = nowPlayingSong || tracks[currentIndex];
 
             // Art
             var fsArt = document.getElementById('fsArt');
