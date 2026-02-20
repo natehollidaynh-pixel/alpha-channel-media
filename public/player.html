@@ -91,17 +91,7 @@
         }
         .back-arrow:hover { box-shadow: var(--panel-glow); }
         .back-arrow svg { width: 20px; height: 20px; fill: var(--text-secondary); }
-        .theme-toggle {
-            position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 50%;
-            background: var(--surface); border: 1px solid var(--border); cursor: pointer;
-            display: flex; align-items: center; justify-content: center; z-index: 200;
-            backdrop-filter: blur(10px); transition: all 0.3s;
-        }
-        .theme-toggle:hover { box-shadow: var(--panel-glow); }
-        .theme-toggle svg { width: 20px; height: 20px; fill: var(--text-secondary); }
-        .theme-toggle .icon-sun { display: none; }
-        [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
-        [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+        .logout-link { color: var(--red) !important; }
 
         /* Browse / Discovery View */
         .browse-view {
@@ -234,7 +224,7 @@
         }
         .player-header-left { display: flex; align-items: center; gap: 12px; margin-left: 40px; }
         .player-header-left h1 { font-size: 1.2rem; font-weight: 700; color: var(--text); }
-        .player-header-right { display: flex; align-items: center; gap: 16px; margin-right: 40px; }
+        .player-header-right { display: flex; align-items: center; gap: 16px; }
         .player-header-right a { color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.9rem; }
         .player-header-right a:hover { color: var(--green); }
 
@@ -397,9 +387,9 @@
             .profile-header { flex-direction: column; text-align: center; gap: 16px; }
             .profile-photo { width: 100px; height: 100px; }
             .profile-info h2 { font-size: 1.5rem; }
-            .browse-header-right { display: none; }
+            .browse-header-right .nav-link { display: none; }
             .player-header-left { margin-left: 48px; }
-            .player-header-right { margin-right: 48px; }
+            .player-header-right .nav-link { display: none; }
             .hero-inner { flex-direction: column; align-items: center; text-align: center; gap: 24px; }
             .hero-art { width: 280px; height: 280px; }
             .hero-title { font-size: 1.8rem; }
@@ -416,7 +406,6 @@
         }
         @media (max-width: 480px) {
             .player-header-left h1 { font-size: 1rem; }
-            .player-header-right { display: none; }
             .hero-section { padding: 32px 16px 24px; }
             .hero-art { width: 240px; height: 240px; border-radius: 16px; }
             .hero-title { font-size: 1.5rem; }
@@ -563,11 +552,6 @@
     <!-- Adaptive color background overlay -->
     <div class="adaptive-bg" id="adaptiveBg"></div>
 
-    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-
     <!-- BROWSE VIEW (Top Creators + Search — default landing) -->
     <div class="browse-view" id="browseView">
         <div class="browse-header">
@@ -575,9 +559,9 @@
                 <h1 class="shimmer-text">Alpha Channel Media</h1>
             </div>
             <div class="browse-header-right">
-                <a href="videos.html">Videos</a>
-                <a href="email-settings.html">Settings</a>
-                <a href="#" onclick="logout(); return false;">Logout</a>
+                <a href="videos.html" class="nav-link">Videos</a>
+                <a href="email-settings.html" class="nav-link">Settings</a>
+                <a href="#" onclick="logout(); return false;" class="logout-link">Logout</a>
             </div>
         </div>
 
@@ -632,9 +616,9 @@
                 <h1 id="headerTitle" class="shimmer-text">Alpha Channel Media</h1>
             </div>
             <div class="player-header-right">
-                <a href="videos.html">Videos</a>
-                <a href="email-settings.html">Settings</a>
-                <a href="#" onclick="logout(); return false;">Logout</a>
+                <a href="videos.html" class="nav-link">Videos</a>
+                <a href="email-settings.html" class="nav-link">Settings</a>
+                <a href="#" onclick="logout(); return false;" class="logout-link">Logout</a>
             </div>
         </div>
 
@@ -1336,21 +1320,29 @@
             return div.innerHTML;
         }
 
-        // Theme
-        function toggleTheme() {
-            var html = document.documentElement;
-            var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', next); localStorage.setItem('theme', next);
-            // Re-apply adaptive colors if a track is playing
-            if (currentIndex >= 0 && tracks[currentIndex] && tracks[currentIndex].artwork_url) {
-                extractColors(tracks[currentIndex].artwork_url);
-            }
-        }
+        // Theme (managed via Settings page)
         (function() {
-            var saved = localStorage.getItem('theme');
-            if (saved) document.documentElement.setAttribute('data-theme', saved);
+            var old = localStorage.getItem('theme');
+            if (old && !localStorage.getItem('themePreference')) {
+                localStorage.setItem('themePreference', old);
+                localStorage.removeItem('theme');
+            }
+            var pref = localStorage.getItem('themePreference') || 'system';
+            if (pref === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            else if (pref === 'light') document.documentElement.setAttribute('data-theme', 'light');
             else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.setAttribute('data-theme', 'light');
         })();
+        // Listen for system theme changes when set to 'system'
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+                var pref = localStorage.getItem('themePreference') || 'system';
+                if (pref === 'system') {
+                    document.documentElement.setAttribute('data-theme',
+                        window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                }
+            });
+        }
         // ===== FULL-SCREEN PLAYER =====
         var fsPlayer = document.getElementById('fsPlayer');
         var fsOpen = false;
