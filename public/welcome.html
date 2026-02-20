@@ -62,6 +62,18 @@
             padding: 40px 20px 80px;
         }
 
+        /* Desktop side-by-side layout wrapper */
+        .welcome-layout {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 1100px;
+        }
+
         /* Glossy overlay orbs */
         body::before, body::after {
             content: '';
@@ -86,8 +98,9 @@
         .glass-container {
             position: relative;
             z-index: 1;
-            max-width: 700px;
-            width: 90%;
+            max-width: 540px;
+            width: 100%;
+            flex-shrink: 0;
             padding: 60px 50px;
             background: var(--surface);
             backdrop-filter: blur(25px) saturate(180%);
@@ -97,6 +110,29 @@
             box-shadow: var(--panel-glow);
             text-align: center;
             animation: fadeIn 0.6s ease-out;
+        }
+
+        /* Discover Creators panel (desktop: right side) */
+        #topCreatorsPreview {
+            flex: 1;
+            min-width: 0;
+            max-width: 460px;
+            background: var(--surface);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-radius: 24px;
+            border: 1px solid var(--panel-border);
+            box-shadow: var(--panel-glow);
+            padding: 40px 30px;
+            animation: fadeIn 0.6s ease-out 0.15s both;
+        }
+        #topCreatorsPreview h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text);
+            text-align: center;
+            margin-bottom: 20px;
         }
 
         @keyframes fadeIn {
@@ -436,10 +472,13 @@
 
         @media (max-width: 768px) {
             body {
-                flex-direction: column;
                 align-items: stretch;
                 justify-content: flex-start;
                 padding: 20px 0 80px;
+            }
+            .welcome-layout {
+                flex-direction: column;
+                gap: 0;
             }
             .glass-container {
                 order: 0;
@@ -453,8 +492,12 @@
             #topCreatorsPreview {
                 order: -1;
                 max-width: 100% !important;
-                margin: 0 !important;
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
                 padding: 20px 16px !important;
+                box-shadow: none;
+                border-bottom: none;
             }
             .title { font-size: 2.2rem; }
             .subtitle { font-size: 1rem; }
@@ -482,42 +525,44 @@
         </div>
     </div>
 
-    <div class="glass-container">
-        <div class="logo-icon">
-            <svg viewBox="0 0 24 24" fill="var(--text)" opacity="0.7"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+    <div class="welcome-layout">
+        <div class="glass-container">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24" fill="var(--text)" opacity="0.7"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            </div>
+            <h1 class="title shimmer-text">Alpha Channel Media</h1>
+            <p class="subtitle">Your platform for discovering and sharing incredible music from independent artists</p>
+
+            <p class="question shimmer-text">Are you a Creator or a Listener?</p>
+
+            <div class="choice-buttons">
+                <a href="creator-signup.html" class="choice-btn creator-btn">
+                    <div class="choice-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+                    </div>
+                    <div class="choice-title">I'm a Creator</div>
+                    <div class="choice-desc">Upload and share your music</div>
+                </a>
+
+                <a href="listener-signup.html" class="choice-btn listener-btn">
+                    <div class="choice-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/></svg>
+                    </div>
+                    <div class="choice-title">I'm a Listener</div>
+                    <div class="choice-desc">Discover amazing music</div>
+                </a>
+            </div>
+
+            <div class="login-link">
+                Already have an account? <a href="login.html">Sign in here</a>
+            </div>
         </div>
-        <h1 class="title shimmer-text">Alpha Channel Media</h1>
-        <p class="subtitle">Your platform for discovering and sharing incredible music from independent artists</p>
 
-        <p class="question shimmer-text">Are you a Creator or a Listener?</p>
-
-        <div class="choice-buttons">
-            <a href="creator-signup.html" class="choice-btn creator-btn">
-                <div class="choice-icon">
-                    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
-                </div>
-                <div class="choice-title">I'm a Creator</div>
-                <div class="choice-desc">Upload and share your music</div>
-            </a>
-
-            <a href="listener-signup.html" class="choice-btn listener-btn">
-                <div class="choice-icon">
-                    <svg viewBox="0 0 24 24"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/></svg>
-                </div>
-                <div class="choice-title">I'm a Listener</div>
-                <div class="choice-desc">Discover amazing music</div>
-            </a>
+        <!-- Top Creators Preview (desktop: right side, mobile: above) -->
+        <div id="topCreatorsPreview" style="display:none;">
+            <h2>Discover Creators</h2>
+            <div id="welcomeCreatorsGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;"></div>
         </div>
-
-        <div class="login-link">
-            Already have an account? <a href="login.html">Sign in here</a>
-        </div>
-    </div>
-
-    <!-- Top Creators Preview -->
-    <div id="topCreatorsPreview" style="max-width:600px;margin:0 auto 100px;padding:0 20px;display:none;">
-        <h2 style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--text);text-align:center;margin-bottom:16px;">Discover Creators</h2>
-        <div id="welcomeCreatorsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:12px;"></div>
     </div>
 
     <script>
