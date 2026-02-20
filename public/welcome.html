@@ -410,8 +410,75 @@
         }
         .tour-skip:hover { color: var(--text); }
 
+        /* Song preview strip (horizontal scroll) */
+        .creator-songs-strip {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            padding: 8px 0;
+            scrollbar-width: none;
+        }
+        .creator-songs-strip::-webkit-scrollbar { display: none; }
+        .creator-songs-strip .song-thumb {
+            flex: 0 0 70px;
+            scroll-snap-align: start;
+            text-align: center;
+        }
+        .creator-songs-strip .song-thumb img {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        .creator-songs-strip .song-thumb .song-title {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70px;
+        }
+        .creator-songs-strip .song-thumb .song-placeholder {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--green-glow), var(--red-glow));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .creator-songs-strip .song-thumb .song-placeholder svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--text-secondary);
+            opacity: 0.6;
+        }
+
         @media (max-width: 768px) {
-            .glass-container { padding: 40px 30px; }
+            body {
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: flex-start;
+                padding: 20px 0 80px;
+            }
+            .glass-container {
+                order: 0;
+                width: 100%;
+                max-width: 100%;
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+                padding: 32px 24px;
+            }
+            #topCreatorsPreview {
+                order: -1;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 20px 16px !important;
+            }
             .title { font-size: 2.2rem; }
             .subtitle { font-size: 1rem; }
             .choice-buttons { grid-template-columns: 1fr; gap: 16px; }
@@ -420,7 +487,7 @@
             .tour-title { font-size: 1.5rem; }
         }
         @media (max-width: 480px) {
-            .glass-container { padding: 32px 24px; border-radius: 20px; }
+            .glass-container { padding: 28px 20px; border-radius: 0; }
             .title { font-size: 1.8rem; }
             .tour-card { padding: 32px 20px; border-radius: 20px; }
             .tour-title { font-size: 1.3rem; }
@@ -482,24 +549,54 @@
     </div>
 
     <script>
-        // Load top creators preview (non-clickable teaser)
+        // Load top creators preview with song thumbnails
         (async function() {
             try {
                 var resp = await fetch(window.location.origin + '/api/creators-public/top?limit=6');
                 var data = await resp.json();
                 if (data.creators && data.creators.length > 0) {
                     var grid = document.getElementById('welcomeCreatorsGrid');
+                    var isMobile = window.innerWidth <= 768;
+
                     data.creators.forEach(function(c) {
                         var card = document.createElement('div');
                         card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 10px;text-align:center;backdrop-filter:blur(10px);';
+
                         var photoHtml = c.profile_photo
                             ? '<img src="' + c.profile_photo + '" style="width:100%;height:100%;object-fit:cover;">'
                             : '<span style="font-size:1.5rem;font-weight:700;color:var(--green);">' + ((c.artist_name || c.username || '?').charAt(0).toUpperCase()) + '</span>';
+
+                        // Build song strip HTML
+                        var songsHtml = '';
+                        if (c.top_songs && c.top_songs.length > 0) {
+                            songsHtml = '<div class="creator-songs-strip">';
+                            c.top_songs.forEach(function(song) {
+                                if (song.artwork_url) {
+                                    songsHtml += '<div class="song-thumb">' +
+                                        '<img src="' + song.artwork_url + '" alt="' + (song.title || '').replace(/"/g, '&quot;') + '">' +
+                                        '<div class="song-title">' + (song.title || 'Untitled') + '</div></div>';
+                                } else {
+                                    songsHtml += '<div class="song-thumb">' +
+                                        '<div class="song-placeholder"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>' +
+                                        '<div class="song-title">' + (song.title || 'Untitled') + '</div></div>';
+                                }
+                            });
+                            songsHtml += '</div>';
+                        }
+
                         card.innerHTML =
                             '<div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--green-glow),var(--red-glow));margin:0 auto 8px;display:flex;align-items:center;justify-content:center;overflow:hidden;">' + photoHtml + '</div>' +
-                            '<div style="font-size:0.8rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (c.artist_name || c.username) + '</div>';
+                            '<div style="font-size:0.8rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (c.artist_name || c.username) + '</div>' +
+                            songsHtml;
                         grid.appendChild(card);
                     });
+
+                    // On mobile: single-column grid
+                    if (isMobile) {
+                        grid.style.gridTemplateColumns = '1fr';
+                        grid.style.gap = '16px';
+                    }
+
                     document.getElementById('topCreatorsPreview').style.display = 'block';
                 }
             } catch (e) { console.log('Could not load creators preview'); }
