@@ -65,6 +65,42 @@
         .theme-option input { margin-right: 12px; width: 18px; height: 18px; accent-color: var(--green); cursor: pointer; }
         .theme-option-label { font-weight: 600; font-size: 0.95rem; color: var(--text); margin-bottom: 2px; }
         .theme-option-desc { font-size: 0.8rem; color: var(--text-secondary); }
+        /* Profile fields */
+        .profile-field {
+            margin-bottom: 16px;
+        }
+        .profile-field label {
+            display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+        }
+        .profile-field input {
+            width: 100%; padding: 12px 14px; background: var(--input-bg); border: 1px solid var(--border);
+            border-radius: 10px; font-size: 0.95rem; color: var(--text); font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s; outline: none;
+        }
+        .profile-field input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+        .profile-field input[readonly] { opacity: 0.6; cursor: not-allowed; }
+        .profile-field .field-hint { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+        .profile-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+        }
+        @media (max-width: 480px) { .profile-row { grid-template-columns: 1fr; } }
+        .profile-save-btn {
+            width: 100%; padding: 14px; background: var(--green); color: white; border: none;
+            border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            margin-top: 8px; transition: all 0.3s;
+        }
+        .profile-save-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .profile-save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .section-divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+        .pw-toggle-btn {
+            display: inline-block; padding: 10px 20px; background: transparent; border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;
+            cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif;
+        }
+        .pw-toggle-btn:hover { border-color: var(--green); color: var(--green); }
+        .pw-fields { display: none; margin-top: 16px; }
+        .pw-fields.visible { display: block; }
         .container {
             position: relative; z-index: 1; max-width: 560px; width: 100%; margin-top: 60px;
             background: var(--surface); backdrop-filter: blur(25px); border-radius: 24px;
@@ -200,8 +236,60 @@
                     <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
                 </div>
                 <h1 class="shimmer-text">Settings</h1>
-                <p class="subtitle">Appearance and notification preferences</p>
+                <p class="subtitle">Account, appearance, and notifications</p>
             </div>
+
+            <!-- Account Section -->
+            <div class="section-title">Account</div>
+            <div id="profileSection">
+                <div class="profile-field">
+                    <label>Username</label>
+                    <input type="text" id="profileUsername" readonly>
+                    <div class="field-hint">Username cannot be changed</div>
+                </div>
+                <div class="profile-row">
+                    <div class="profile-field">
+                        <label>First Name</label>
+                        <input type="text" id="profileFirstName">
+                    </div>
+                    <div class="profile-field">
+                        <label>Last Name</label>
+                        <input type="text" id="profileLastName">
+                    </div>
+                </div>
+                <div class="profile-field">
+                    <label>Email</label>
+                    <input type="email" id="profileEmail">
+                </div>
+                <div class="profile-field">
+                    <label>Member Since</label>
+                    <input type="text" id="profileJoined" readonly>
+                </div>
+                <button class="profile-save-btn" id="profileSaveBtn" onclick="saveProfile()">Save Profile</button>
+                <div class="status-msg" id="profileStatus"></div>
+
+                <div style="margin-top: 20px;">
+                    <button class="pw-toggle-btn" onclick="togglePasswordFields()">Change Password</button>
+                    <div class="pw-fields" id="pwFields">
+                        <div class="profile-field">
+                            <label>Current Password</label>
+                            <input type="password" id="currentPassword" placeholder="Enter current password">
+                        </div>
+                        <div class="profile-field">
+                            <label>New Password</label>
+                            <input type="password" id="newPassword" placeholder="Min 6 characters">
+                        </div>
+                        <div class="profile-field">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="confirmNewPassword" placeholder="Confirm new password">
+                        </div>
+                        <button class="profile-save-btn" id="pwSaveBtn" onclick="changePassword()" style="background: var(--red);">Update Password</button>
+                        <div class="status-msg" id="pwStatus"></div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="section-divider">
 
             <!-- Appearance Section -->
             <div class="section-title">Appearance</div>
@@ -279,7 +367,7 @@
             return div.innerHTML;
         }
 
-        // Load preferences on page load
+        // Load all settings on page load
         (async function init() {
             const token = getAuthToken();
             if (!token) {
@@ -289,6 +377,31 @@
 
             document.getElementById('settingsContent').style.display = 'block';
 
+            // Load profile data
+            try {
+                const profileResp = await fetch(`${API}/api/listeners/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (profileResp.ok) {
+                    const profileData = await profileResp.json();
+                    const l = profileData.listener;
+                    document.getElementById('profileUsername').value = l.username || '';
+                    document.getElementById('profileFirstName').value = l.first_name || '';
+                    document.getElementById('profileLastName').value = l.last_name || '';
+                    document.getElementById('profileEmail').value = l.email || '';
+                    if (l.created_at) {
+                        document.getElementById('profileJoined').value = new Date(l.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    }
+                } else if (profileResp.status === 401 || profileResp.status === 403) {
+                    document.getElementById('settingsContent').style.display = 'none';
+                    document.getElementById('loginPrompt').style.display = 'block';
+                    return;
+                }
+            } catch (err) {
+                console.error('Failed to load profile:', err);
+            }
+
+            // Load email preferences
             try {
                 const resp = await fetch(`${API}/api/listeners/email-preferences`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -310,7 +423,7 @@
                 // Render creator subscriptions
                 const list = document.getElementById('subscriptionsList');
                 if (data.subscriptions.length === 0) {
-                    list.innerHTML = '<div class="no-subs">No creator subscriptions yet. Unlock a creator with their listener key to get started.</div>';
+                    list.innerHTML = '<div class="no-subs">No creator subscriptions yet. Subscribe to creators to get started.</div>';
                 } else {
                     list.innerHTML = '';
                     data.subscriptions.forEach(function(sub) {
@@ -341,6 +454,111 @@
                 document.getElementById('subscriptionsList').innerHTML = '<div class="no-subs">Failed to load preferences. Please try again.</div>';
             }
         })();
+
+        // Save profile
+        async function saveProfile() {
+            const token = getAuthToken();
+            if (!token) return;
+
+            const btn = document.getElementById('profileSaveBtn');
+            const statusEl = document.getElementById('profileStatus');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            statusEl.className = 'status-msg';
+            statusEl.style.display = 'none';
+
+            try {
+                const resp = await fetch(`${API}/api/listeners/me`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        first_name: document.getElementById('profileFirstName').value.trim(),
+                        last_name: document.getElementById('profileLastName').value.trim(),
+                        email: document.getElementById('profileEmail').value.trim()
+                    })
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || 'Failed to save');
+
+                statusEl.textContent = 'Profile updated successfully!';
+                statusEl.className = 'status-msg success';
+            } catch (err) {
+                statusEl.textContent = err.message || 'Failed to save profile.';
+                statusEl.className = 'status-msg error';
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Save Profile';
+            setTimeout(function() { statusEl.style.display = 'none'; }, 3000);
+        }
+
+        // Toggle password fields
+        function togglePasswordFields() {
+            var fields = document.getElementById('pwFields');
+            fields.classList.toggle('visible');
+        }
+
+        // Change password
+        async function changePassword() {
+            const token = getAuthToken();
+            if (!token) return;
+
+            const btn = document.getElementById('pwSaveBtn');
+            const statusEl = document.getElementById('pwStatus');
+            const newPw = document.getElementById('newPassword').value;
+            const confirmPw = document.getElementById('confirmNewPassword').value;
+
+            if (newPw !== confirmPw) {
+                statusEl.textContent = 'New passwords do not match.';
+                statusEl.className = 'status-msg error';
+                return;
+            }
+
+            if (newPw.length < 6) {
+                statusEl.textContent = 'New password must be at least 6 characters.';
+                statusEl.className = 'status-msg error';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+            statusEl.className = 'status-msg';
+            statusEl.style.display = 'none';
+
+            try {
+                const resp = await fetch(`${API}/api/listeners/change-password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        current_password: document.getElementById('currentPassword').value,
+                        new_password: newPw
+                    })
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || 'Failed to change password');
+
+                statusEl.textContent = 'Password updated successfully!';
+                statusEl.className = 'status-msg success';
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+            } catch (err) {
+                statusEl.textContent = err.message || 'Failed to change password.';
+                statusEl.className = 'status-msg error';
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Update Password';
+            setTimeout(function() { statusEl.style.display = 'none'; }, 3000);
+        }
 
         async function savePreferences() {
             const token = getAuthToken();
