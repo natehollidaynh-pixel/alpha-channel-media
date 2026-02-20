@@ -94,12 +94,13 @@
         }
         .logo { font-size: 1.4rem; font-weight: 600; margin-left: 40px; }
         .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; }
-        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 40px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-bottom: 40px; }
         .stat-card {
             background: var(--surface); padding: 24px; border-radius: 16px; text-align: center;
             border: 1px solid var(--panel-border); box-shadow: var(--panel-glow);
         }
         .stat-number { font-size: 2.5rem; font-weight: 700; color: var(--green); }
+        .stat-number.red { color: var(--red); }
         .stat-label { color: var(--text-secondary); margin-top: 8px; }
         .section {
             background: var(--surface); padding: 32px; border-radius: 20px; margin-bottom: 24px;
@@ -110,6 +111,8 @@
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
         th { font-weight: 600; color: var(--text-secondary); }
         td { color: var(--text); }
+        tr[onclick] { cursor: pointer; transition: background 0.2s; }
+        tr[onclick]:hover { background: var(--green-glow); }
         .btn {
             padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;
             font-weight: 500; margin-right: 8px; font-size: 0.85rem; transition: opacity 0.2s;
@@ -118,7 +121,14 @@
         .btn-approve { background: var(--green); color: white; }
         .btn-deny { background: var(--red); color: white; }
         .btn-pin { background: #1565c0; color: white; }
+        .btn-delete { background: #333; color: white; }
         .hidden { display: none; }
+        .status-badge {
+            display: inline-block; padding: 3px 10px; border-radius: 10px;
+            font-size: 0.8rem; font-weight: 600; text-transform: capitalize;
+        }
+        .status-active { background: var(--green-glow); color: var(--green); }
+        .status-deactivated { background: var(--red-glow); color: var(--red); }
         .pin-modal {
             position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000;
             display: none; align-items: center; justify-content: center; padding: 20px;
@@ -141,6 +151,56 @@
             padding: 10px 20px; background: var(--red); color: white; border: none;
             border-radius: 8px; cursor: pointer; font-weight: 500;
         }
+        /* Detail modal */
+        .detail-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000;
+            display: none; align-items: flex-start; justify-content: center;
+            padding: 40px 20px; overflow-y: auto;
+        }
+        .detail-modal.active { display: flex; }
+        .detail-box {
+            background: var(--surface-solid); border-radius: 20px; max-width: 800px; width: 100%;
+            box-shadow: var(--panel-glow); position: relative; margin-bottom: 40px;
+        }
+        .detail-header {
+            padding: 24px 32px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .detail-header h2 { font-size: 1.3rem; color: var(--text); }
+        .detail-close {
+            width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
+            background: var(--surface); cursor: pointer; display: flex; align-items: center;
+            justify-content: center; font-size: 1.2rem; color: var(--text-secondary);
+        }
+        .detail-close:hover { background: var(--red-glow); color: var(--red); }
+        .detail-body { padding: 24px 32px; }
+        .detail-section { margin-bottom: 28px; }
+        .detail-section h3 {
+            font-size: 1rem; color: var(--text-secondary); margin-bottom: 12px;
+            padding-bottom: 8px; border-bottom: 2px solid var(--green);
+        }
+        .detail-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;
+        }
+        .detail-field { }
+        .detail-label { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 2px; }
+        .detail-value { font-size: 0.95rem; color: var(--text); font-weight: 500; }
+        .detail-actions {
+            display: flex; gap: 12px; flex-wrap: wrap; padding: 20px 32px;
+            border-top: 1px solid var(--border);
+        }
+        .content-list { display: flex; flex-direction: column; gap: 8px; }
+        .content-item {
+            display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+            background: var(--surface); border-radius: 10px; border: 1px solid var(--panel-border);
+        }
+        .content-item img {
+            width: 48px; height: 48px; border-radius: 8px; object-fit: cover; flex-shrink: 0;
+        }
+        .content-item-info { flex: 1; min-width: 0; }
+        .content-item-title { font-weight: 600; font-size: 0.9rem; color: var(--text); }
+        .content-item-meta { font-size: 0.8rem; color: var(--text-secondary); }
+        .empty-msg { color: var(--text-secondary); font-style: italic; font-size: 0.9rem; }
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-solid);
             border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 48px;
@@ -158,11 +218,12 @@
             body { padding: 12px; padding-bottom: 100px; }
             .header { flex-direction: column; gap: 12px; text-align: center; padding: 16px; }
             .logo { margin-left: 0; }
-            .stats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
             .stat-card { padding: 16px; } .stat-number { font-size: 2rem; }
             .section { padding: 20px 16px; border-radius: 16px; }
             th, td { padding: 10px 8px; font-size: 0.85rem; }
             .btn { padding: 6px 12px; font-size: 0.8rem; margin-right: 4px; margin-bottom: 4px; }
+            .detail-header, .detail-body, .detail-actions { padding-left: 20px; padding-right: 20px; }
+            .detail-modal { padding: 20px 12px; }
         }
         @media (max-width: 480px) {
             .stat-number { font-size: 1.6rem; } .stat-label { font-size: 0.8rem; }
@@ -200,104 +261,342 @@
         </div>
     </div>
 
+    <!-- Detail modal for viewing listener/creator profiles -->
+    <div class="detail-modal" id="detailModal">
+        <div class="detail-box">
+            <div class="detail-header">
+                <h2 id="detailTitle"></h2>
+                <button class="detail-close" onclick="closeDetail()">&times;</button>
+            </div>
+            <div class="detail-body" id="detailBody"></div>
+            <div class="detail-actions" id="detailActions"></div>
+        </div>
+    </div>
+
     <div class="hidden" id="dashboard">
         <div class="header">
             <div class="logo">Master Admin Dashboard</div>
             <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
         <div class="container">
-            <div class="stats">
-                <div class="stat-card"><div class="stat-number" id="totalCreators">0</div><div class="stat-label">Creators</div></div>
-                <div class="stat-card"><div class="stat-number" id="totalListeners">0</div><div class="stat-label">Listeners</div></div>
-                <div class="stat-card"><div class="stat-number" id="totalTracks">0</div><div class="stat-label">Tracks</div></div>
-                <div class="stat-card"><div class="stat-number" id="pendingApps">0</div><div class="stat-label">Pending</div></div>
-            </div>
+            <div class="stats" id="statsGrid"></div>
             <div class="section">
                 <h2>All Applications</h2>
                 <table><thead><tr><th>Name</th><th>Email</th><th>Artist Name</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody id="applicationsList"></tbody></table>
             </div>
             <div class="section">
                 <h2>All Creators</h2>
-                <table><thead><tr><th>Username</th><th>Email</th><th>Artist Name</th><th>Listener Key</th><th>PIN Status</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="creatorsList"></tbody></table>
+                <table><thead><tr><th>Artist Name</th><th>Email</th><th>Listener Key</th><th>Songs</th><th>Videos</th><th>Subscribers</th><th>Status</th><th>Joined</th></tr></thead><tbody id="creatorsList"></tbody></table>
             </div>
             <div class="section">
                 <h2>All Listeners</h2>
-                <table><thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Joined</th></tr></thead><tbody id="listenersList"></tbody></table>
+                <table><thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Creators</th><th>Status</th><th>Joined</th></tr></thead><tbody id="listenersList"></tbody></table>
             </div>
         </div>
     </div>
 
     <script>
         var API = window.location.origin;
+        var masterPassword = '';
 
+        // Login
         document.getElementById('masterLogin').addEventListener('submit', async function(e) {
             e.preventDefault();
-            var password = e.target.querySelector('input').value;
+            masterPassword = e.target.querySelector('input').value;
             try {
-                var response = await fetch(API + '/api/master/login', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: password })
+                var response = await fetch(API + '/api/admin/stats', {
+                    headers: { 'X-Master-Password': masterPassword }
                 });
                 if (response.ok) {
                     document.getElementById('loginModal').classList.add('hidden');
                     document.getElementById('dashboard').classList.remove('hidden');
                     loadDashboard();
-                } else { alert('Invalid password'); }
-            } catch (error) { alert('Login failed'); }
+                } else { alert('Invalid password'); masterPassword = ''; }
+            } catch (error) { alert('Login failed'); masterPassword = ''; }
         });
 
-        async function loadDashboard() {
-            try {
-                var statsRes = await fetch(API + '/api/applications/stats');
-                var stats = await statsRes.json();
-                document.getElementById('totalCreators').textContent = stats.creators;
-                document.getElementById('totalListeners').textContent = stats.listeners;
-                document.getElementById('totalTracks').textContent = stats.tracks;
-                document.getElementById('pendingApps').textContent = stats.pending;
-            } catch (e) { console.error('Stats error:', e); }
+        function adminHeaders() {
+            return { 'X-Master-Password': masterPassword, 'Content-Type': 'application/json' };
+        }
 
+        // Load full dashboard
+        async function loadDashboard() {
+            await Promise.all([loadStats(), loadApplications(), loadCreators(), loadListeners()]);
+        }
+
+        // Stats
+        async function loadStats() {
             try {
-                var appsResponse = await fetch(API + '/api/applications');
-                var apps = await appsResponse.json();
-                var appsList = document.getElementById('applicationsList');
-                appsList.innerHTML = '';
-                apps.applications.forEach(function(app) {
+                var res = await fetch(API + '/api/admin/stats', { headers: adminHeaders() });
+                var s = await res.json();
+                document.getElementById('statsGrid').innerHTML =
+                    '<div class="stat-card"><div class="stat-number">' + s.active_creators + '</div><div class="stat-label">Active Creators</div></div>' +
+                    '<div class="stat-card"><div class="stat-number">' + s.active_listeners + '</div><div class="stat-label">Active Listeners</div></div>' +
+                    '<div class="stat-card"><div class="stat-number">' + s.total_songs + '</div><div class="stat-label">Songs</div></div>' +
+                    '<div class="stat-card"><div class="stat-number">' + s.total_videos + '</div><div class="stat-label">Videos</div></div>' +
+                    '<div class="stat-card"><div class="stat-number">' + s.pending_applications + '</div><div class="stat-label">Pending Apps</div></div>' +
+                    '<div class="stat-card"><div class="stat-number red">' + (parseInt(s.deactivated_creators) + parseInt(s.deactivated_listeners)) + '</div><div class="stat-label">Deactivated</div></div>';
+            } catch (e) { console.error('Stats error:', e); }
+        }
+
+        // Applications
+        async function loadApplications() {
+            try {
+                var res = await fetch(API + '/api/applications');
+                var data = await res.json();
+                var tbody = document.getElementById('applicationsList');
+                tbody.innerHTML = '';
+                data.applications.forEach(function(app) {
                     var row = document.createElement('tr');
                     var statusColor = app.status === 'approved' ? 'var(--green)' : app.status === 'denied' ? 'var(--red)' : 'var(--text-secondary)';
                     var actions = app.status === 'pending'
-                        ? '<button class="btn btn-approve" onclick="approveApp(\'' + app.id + '\')">Approve</button><button class="btn btn-deny" onclick="denyApp(\'' + app.id + '\')">Deny</button>'
+                        ? '<button class="btn btn-approve" onclick="event.stopPropagation();approveApp(\'' + app.id + '\')">Approve</button><button class="btn btn-deny" onclick="event.stopPropagation();denyApp(\'' + app.id + '\')">Deny</button>'
                         : '<span style="font-size:0.85rem;color:var(--text-secondary);">' + (app.processed_at ? new Date(app.processed_at).toLocaleDateString() : '-') + '</span>';
                     row.innerHTML = '<td>' + app.first_name + ' ' + app.last_name + '</td><td>' + app.email + '</td><td>' + (app.artist_name || '-') + '</td><td><span style="color:' + statusColor + ';font-weight:500;text-transform:capitalize;">' + app.status + '</span></td><td>' + new Date(app.submitted_at).toLocaleDateString() + '</td><td>' + actions + '</td>';
-                    appsList.appendChild(row);
+                    tbody.appendChild(row);
                 });
             } catch (e) { console.error('Apps error:', e); }
+        }
 
+        // Creators list
+        async function loadCreators() {
             try {
-                var creatorsRes = await fetch(API + '/api/admin/creators');
-                var creatorsData = await creatorsRes.json();
-                var creatorsList = document.getElementById('creatorsList');
-                creatorsList.innerHTML = '';
-                creatorsData.creators.forEach(function(creator) {
+                var res = await fetch(API + '/api/admin/creators', { headers: adminHeaders() });
+                var data = await res.json();
+                var tbody = document.getElementById('creatorsList');
+                tbody.innerHTML = '';
+                data.creators.forEach(function(c) {
                     var row = document.createElement('tr');
-                    var pinStatus = creator.pin_set ? '<span style="color:var(--green);font-weight:500;">Active</span>' : '<span style="color:var(--red);font-weight:500;">No PIN</span>';
-                    row.innerHTML = '<td>' + creator.username + '</td><td>' + creator.email + '</td><td>' + (creator.artist_name || '-') + '</td><td style="font-family:monospace;letter-spacing:2px;">' + (creator.listener_key || '-') + '</td><td>' + pinStatus + '</td><td>' + new Date(creator.created_at).toLocaleDateString() + '</td><td><button class="btn btn-pin" onclick="generatePin(\'' + creator.id + '\', \'' + creator.username + '\')">Generate PIN</button></td>';
-                    creatorsList.appendChild(row);
+                    row.setAttribute('onclick', 'viewCreator("' + c.id + '")');
+                    var statusClass = c.status === 'deactivated' ? 'status-deactivated' : 'status-active';
+                    row.innerHTML =
+                        '<td><strong>' + (c.artist_name || c.username) + '</strong></td>' +
+                        '<td>' + c.email + '</td>' +
+                        '<td style="font-family:monospace;letter-spacing:2px;">' + (c.listener_key || '-') + '</td>' +
+                        '<td>' + c.total_songs + '</td>' +
+                        '<td>' + c.total_videos + '</td>' +
+                        '<td>' + c.total_subscribers + '</td>' +
+                        '<td><span class="status-badge ' + statusClass + '">' + c.status + '</span></td>' +
+                        '<td>' + new Date(c.created_at).toLocaleDateString() + '</td>';
+                    tbody.appendChild(row);
                 });
             } catch (e) { console.error('Creators error:', e); }
+        }
 
+        // Listeners list
+        async function loadListeners() {
             try {
-                var listenersRes = await fetch(API + '/api/admin/listeners');
-                var listenersData = await listenersRes.json();
-                var listenersList = document.getElementById('listenersList');
-                listenersList.innerHTML = '';
-                listenersData.listeners.forEach(function(listener) {
+                var res = await fetch(API + '/api/admin/listeners', { headers: adminHeaders() });
+                var data = await res.json();
+                var tbody = document.getElementById('listenersList');
+                tbody.innerHTML = '';
+                data.listeners.forEach(function(l) {
                     var row = document.createElement('tr');
-                    row.innerHTML = '<td>' + listener.first_name + ' ' + listener.last_name + '</td><td>' + listener.username + '</td><td>' + listener.email + '</td><td>' + new Date(listener.created_at).toLocaleDateString() + '</td>';
-                    listenersList.appendChild(row);
+                    row.setAttribute('onclick', 'viewListener("' + l.id + '")');
+                    var statusClass = l.status === 'deactivated' ? 'status-deactivated' : 'status-active';
+                    row.innerHTML =
+                        '<td>' + l.first_name + ' ' + l.last_name + '</td>' +
+                        '<td>' + l.username + '</td>' +
+                        '<td>' + l.email + '</td>' +
+                        '<td>' + l.creators_connected + '</td>' +
+                        '<td><span class="status-badge ' + statusClass + '">' + l.status + '</span></td>' +
+                        '<td>' + new Date(l.created_at).toLocaleDateString() + '</td>';
+                    tbody.appendChild(row);
                 });
             } catch (e) { console.error('Listeners error:', e); }
         }
 
+        // View listener detail
+        async function viewListener(id) {
+            try {
+                var res = await fetch(API + '/api/admin/listeners/' + id, { headers: adminHeaders() });
+                var data = await res.json();
+                var l = data.listener;
+                var statusClass = l.status === 'deactivated' ? 'status-deactivated' : 'status-active';
+
+                document.getElementById('detailTitle').textContent = l.first_name + ' ' + l.last_name + ' (Listener)';
+
+                var html = '<div class="detail-section"><h3>Account Information</h3><div class="detail-grid">' +
+                    field('Full Name', l.first_name + ' ' + l.last_name) +
+                    field('Username', l.username) +
+                    field('Email', l.email) +
+                    field('Status', '<span class="status-badge ' + statusClass + '">' + l.status + '</span>') +
+                    field('Email Notifications', l.email_notifications ? 'Enabled' : 'Disabled') +
+                    field('Joined', new Date(l.created_at).toLocaleDateString()) +
+                    '</div></div>';
+
+                html += '<div class="detail-section"><h3>Connected Creators (' + data.connected_creators.length + ')</h3>';
+                if (data.connected_creators.length > 0) {
+                    html += '<div class="content-list">';
+                    data.connected_creators.forEach(function(c) {
+                        html += '<div class="content-item"><div class="content-item-info">' +
+                            '<div class="content-item-title">' + (c.artist_name || c.username) + '</div>' +
+                            '<div class="content-item-meta">' + c.total_songs + ' songs, ' + c.total_videos + ' videos &middot; Connected ' + new Date(c.granted_at).toLocaleDateString() + '</div>' +
+                            '</div></div>';
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p class="empty-msg">No creators connected yet</p>';
+                }
+                html += '</div>';
+
+                document.getElementById('detailBody').innerHTML = html;
+
+                var actions = '';
+                if (l.status === 'deactivated') {
+                    actions += '<button class="btn btn-approve" onclick="reactivateListener(\'' + l.id + '\')">Reactivate</button>';
+                } else {
+                    actions += '<button class="btn btn-deny" onclick="deactivateListener(\'' + l.id + '\')">Deactivate</button>';
+                }
+                actions += '<button class="btn btn-delete" onclick="deleteListener(\'' + l.id + '\', \'' + l.first_name + ' ' + l.last_name + '\')">Delete Permanently</button>';
+                document.getElementById('detailActions').innerHTML = actions;
+
+                document.getElementById('detailModal').classList.add('active');
+            } catch (e) { console.error('View listener error:', e); alert('Failed to load listener details'); }
+        }
+
+        // View creator detail
+        async function viewCreator(id) {
+            try {
+                var res = await fetch(API + '/api/admin/creators/' + id, { headers: adminHeaders() });
+                var data = await res.json();
+                var c = data.creator;
+                var statusClass = c.status === 'deactivated' ? 'status-deactivated' : 'status-active';
+
+                document.getElementById('detailTitle').textContent = (c.artist_name || c.username) + ' (Creator)';
+
+                var html = '<div class="detail-section"><h3>Account Information</h3><div class="detail-grid">' +
+                    field('Full Name', c.first_name + ' ' + c.last_name) +
+                    field('Artist Name', c.artist_name || '-') +
+                    field('Username', c.username) +
+                    field('Email', c.email) +
+                    field('Listener Key', c.listener_key ? '<span style="font-family:monospace;letter-spacing:2px;">' + c.listener_key + '</span>' : 'Not set') +
+                    field('Status', '<span class="status-badge ' + statusClass + '">' + c.status + '</span>') +
+                    field('Joined', new Date(c.created_at).toLocaleDateString()) +
+                    '</div></div>';
+
+                // PIN section
+                html += '<div class="detail-section"><h3>Login PIN</h3>' +
+                    '<div style="display:flex;align-items:center;gap:12px;">' +
+                    '<span style="font-weight:500;">' + (c.pin_set ? '<span style="color:var(--green);">PIN is set</span>' : '<span style="color:var(--red);">No PIN</span>') + '</span>' +
+                    '<button class="btn btn-pin" onclick="event.stopPropagation();generatePin(\'' + c.id + '\', \'' + c.username + '\')">' + (c.pin_set ? 'Regenerate PIN' : 'Generate PIN') + '</button>' +
+                    '</div></div>';
+
+                // Bio
+                if (c.bio) {
+                    html += '<div class="detail-section"><h3>Bio</h3><p style="color:var(--text);line-height:1.5;">' + c.bio + '</p></div>';
+                }
+
+                // Songs
+                html += '<div class="detail-section"><h3>Uploaded Songs (' + data.songs.length + ')</h3>';
+                if (data.songs.length > 0) {
+                    html += '<div class="content-list">';
+                    data.songs.forEach(function(s) {
+                        var img = s.artwork_url ? '<img src="' + s.artwork_url + '" alt="">' : '';
+                        var sizeMB = s.file_size ? (s.file_size / 1024 / 1024).toFixed(1) + 'MB' : '';
+                        html += '<div class="content-item">' + img + '<div class="content-item-info">' +
+                            '<div class="content-item-title">' + s.title + '</div>' +
+                            '<div class="content-item-meta">' + s.artist + ' &middot; ' + (s.format || '') + ' ' + sizeMB + ' &middot; ' + new Date(s.uploaded_at).toLocaleDateString() + '</div>' +
+                            '</div></div>';
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p class="empty-msg">No songs uploaded yet</p>';
+                }
+                html += '</div>';
+
+                // Videos
+                html += '<div class="detail-section"><h3>Uploaded Videos (' + data.videos.length + ')</h3>';
+                if (data.videos.length > 0) {
+                    html += '<div class="content-list">';
+                    data.videos.forEach(function(v) {
+                        var img = v.thumbnail_url ? '<img src="' + v.thumbnail_url + '" alt="">' : '';
+                        var sizeMB = v.file_size ? (v.file_size / 1024 / 1024).toFixed(1) + 'MB' : '';
+                        html += '<div class="content-item">' + img + '<div class="content-item-info">' +
+                            '<div class="content-item-title">' + v.title + '</div>' +
+                            '<div class="content-item-meta">' + (v.format || '') + ' ' + sizeMB + ' &middot; ' + new Date(v.uploaded_at).toLocaleDateString() + '</div>' +
+                            '</div></div>';
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p class="empty-msg">No videos uploaded yet</p>';
+                }
+                html += '</div>';
+
+                // Subscribers
+                html += '<div class="detail-section"><h3>Subscribers (' + data.subscribers.length + ')</h3>';
+                if (data.subscribers.length > 0) {
+                    html += '<div class="content-list">';
+                    data.subscribers.forEach(function(sub) {
+                        html += '<div class="content-item"><div class="content-item-info">' +
+                            '<div class="content-item-title">' + sub.first_name + ' ' + sub.last_name + '</div>' +
+                            '<div class="content-item-meta">' + sub.email + ' &middot; Connected ' + new Date(sub.granted_at).toLocaleDateString() + '</div>' +
+                            '</div></div>';
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p class="empty-msg">No subscribers yet</p>';
+                }
+                html += '</div>';
+
+                document.getElementById('detailBody').innerHTML = html;
+
+                var actions = '';
+                if (c.status === 'deactivated') {
+                    actions += '<button class="btn btn-approve" onclick="reactivateCreator(\'' + c.id + '\')">Reactivate</button>';
+                } else {
+                    actions += '<button class="btn btn-deny" onclick="deactivateCreator(\'' + c.id + '\')">Deactivate</button>';
+                }
+                actions += '<button class="btn btn-delete" onclick="deleteCreator(\'' + c.id + '\', \'' + (c.artist_name || c.username) + '\')">Delete Permanently</button>';
+                document.getElementById('detailActions').innerHTML = actions;
+
+                document.getElementById('detailModal').classList.add('active');
+            } catch (e) { console.error('View creator error:', e); alert('Failed to load creator details'); }
+        }
+
+        function field(label, value) {
+            return '<div class="detail-field"><div class="detail-label">' + label + '</div><div class="detail-value">' + value + '</div></div>';
+        }
+
+        function closeDetail() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        // Listener actions
+        async function deactivateListener(id) {
+            if (!confirm('Deactivate this listener account?')) return;
+            await fetch(API + '/api/admin/listeners/' + id + '/deactivate', { method: 'POST', headers: adminHeaders() });
+            closeDetail(); loadDashboard();
+        }
+        async function reactivateListener(id) {
+            await fetch(API + '/api/admin/listeners/' + id + '/reactivate', { method: 'POST', headers: adminHeaders() });
+            closeDetail(); loadDashboard();
+        }
+        async function deleteListener(id, name) {
+            if (!confirm('PERMANENTLY delete listener "' + name + '"? This cannot be undone.')) return;
+            if (!confirm('Are you absolutely sure? All data for this listener will be lost.')) return;
+            await fetch(API + '/api/admin/listeners/' + id, { method: 'DELETE', headers: adminHeaders() });
+            closeDetail(); loadDashboard();
+        }
+
+        // Creator actions
+        async function deactivateCreator(id) {
+            if (!confirm('Deactivate this creator account?')) return;
+            await fetch(API + '/api/admin/creators/' + id + '/deactivate', { method: 'POST', headers: adminHeaders() });
+            closeDetail(); loadDashboard();
+        }
+        async function reactivateCreator(id) {
+            await fetch(API + '/api/admin/creators/' + id + '/reactivate', { method: 'POST', headers: adminHeaders() });
+            closeDetail(); loadDashboard();
+        }
+        async function deleteCreator(id, name) {
+            if (!confirm('PERMANENTLY delete creator "' + name + '"? This will also delete all their songs, videos, and subscriptions. This cannot be undone.')) return;
+            if (!confirm('Final warning — are you absolutely sure?')) return;
+            await fetch(API + '/api/admin/creators/' + id, { method: 'DELETE', headers: adminHeaders() });
+            closeDetail(); loadDashboard();
+        }
+
+        // Application actions
         async function approveApp(id) {
             await fetch(API + '/api/applications/approve/' + id, { method: 'POST' });
             loadDashboard();
@@ -306,6 +605,8 @@
             await fetch(API + '/api/applications/deny/' + id, { method: 'POST' });
             loadDashboard();
         }
+
+        // PIN generation (reuses existing endpoint)
         async function generatePin(creatorId, username) {
             if (!confirm('Generate a new PIN for "' + username + '"? This will replace any existing PIN.')) return;
             try {
@@ -320,8 +621,15 @@
             } catch (err) { alert('Error generating PIN'); }
         }
         function closePinModal() { document.getElementById('pinModal').classList.remove('active'); }
-        function logout() { location.reload(); }
 
+        function logout() { masterPassword = ''; location.reload(); }
+
+        // Close detail modal on backdrop click
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) closeDetail();
+        });
+
+        // Theme
         function toggleTheme() {
             var html = document.documentElement;
             var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';

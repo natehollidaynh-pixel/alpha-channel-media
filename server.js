@@ -106,7 +106,17 @@ pool.query('SELECT NOW()')
       ON CONFLICT (listener_id, creator_id) DO NOTHING
     `);
   })
-  .then(() => console.log('Email subscription backfill complete'))
+  .then(() => {
+    console.log('Email subscription backfill complete');
+    // Add status column to listeners for account management
+    return pool.query(`
+      DO $$ BEGIN
+        ALTER TABLE listeners ADD COLUMN status VARCHAR(20) DEFAULT 'active';
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$;
+    `);
+  })
+  .then(() => console.log('Account status columns ready'))
   .catch(err => console.error('Database setup error:', err.message));
 
 // Make db available to routes
@@ -118,6 +128,7 @@ app.use('/api/applications', require('./routes/applications'));
 app.use('/api/listeners', require('./routes/listeners'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/content', require('./routes/content'));
+app.use('/api/admin', require('./routes/admin'));
 // Aliases to match frontend expectations
 app.use('/api/creators', require('./routes/auth'));
 app.use('/api/upload', require('./routes/uploads'));
