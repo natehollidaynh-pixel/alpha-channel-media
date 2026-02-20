@@ -339,6 +339,11 @@
                 </div>
                 <div class="form-group"><label>Artist Name</label><input type="text" id="profileArtistName" placeholder="Your stage name"></div>
                 <div class="form-group"><label>Bio</label><textarea id="profileBio" placeholder="Tell listeners about yourself..." rows="4"></textarea></div>
+                <div class="form-group">
+                    <label>Creator Title / Tagline <span style="font-size:0.8rem;color:var(--text-secondary);">(shown on home page when featured)</span></label>
+                    <input type="text" id="profileCreatorTitle" placeholder="e.g. R&B Soul Artist, Lo-Fi Producer" minlength="10" maxlength="50">
+                    <div style="text-align:right;font-size:0.75rem;color:var(--text-secondary);margin-top:4px;"><span id="titleCharCount">0</span>/50</div>
+                </div>
                 <button type="submit" class="submit-btn">Save Profile</button>
                 <div class="status-msg" id="profileMessage"></div>
             </form>
@@ -1023,6 +1028,8 @@
             if (!creatorProfile) return;
             document.getElementById('profileArtistName').value = creatorProfile.artist_name || '';
             document.getElementById('profileBio').value = creatorProfile.bio || '';
+            document.getElementById('profileCreatorTitle').value = creatorProfile.creator_title || '';
+            document.getElementById('titleCharCount').textContent = (creatorProfile.creator_title || '').length;
             var photoPreview = document.getElementById('profilePhotoPreview');
             if (creatorProfile.profile_photo) {
                 photoPreview.innerHTML = '<img src="' + creatorProfile.profile_photo + '" style="width:100%;height:100%;object-fit:cover;">';
@@ -1030,6 +1037,10 @@
                 photoPreview.textContent = (creatorProfile.artist_name || creatorProfile.username || '?').charAt(0).toUpperCase();
             }
         }
+
+        document.getElementById('profileCreatorTitle').addEventListener('input', function() {
+            document.getElementById('titleCharCount').textContent = this.value.length;
+        });
 
         document.getElementById('profileForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1052,7 +1063,8 @@
                     body: JSON.stringify({
                         artist_name: document.getElementById('profileArtistName').value,
                         bio: document.getElementById('profileBio').value,
-                        profile_photo: photoUrl
+                        profile_photo: photoUrl,
+                        creator_title: document.getElementById('profileCreatorTitle').value
                     })
                 });
 
@@ -1060,6 +1072,7 @@
                     creatorProfile.artist_name = document.getElementById('profileArtistName').value;
                     creatorProfile.bio = document.getElementById('profileBio').value;
                     creatorProfile.profile_photo = photoUrl;
+                    creatorProfile.creator_title = document.getElementById('profileCreatorTitle').value;
                     document.querySelector('.logo').textContent = (creatorProfile.artist_name || creatorProfile.first_name) + "'s Dashboard";
                     loadProfileTab();
                     msg.className = 'status-msg success'; msg.textContent = 'Profile saved!'; msg.style.display = 'block';

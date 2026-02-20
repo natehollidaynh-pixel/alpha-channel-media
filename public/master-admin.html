@@ -355,7 +355,7 @@
                     row.setAttribute('onclick', 'viewCreator("' + c.id + '")');
                     var statusClass = c.status === 'deactivated' ? 'status-deactivated' : 'status-active';
                     row.innerHTML =
-                        '<td><strong>' + (c.artist_name || c.username) + '</strong></td>' +
+                        '<td><strong>' + (c.artist_name || c.username) + '</strong>' + (c.featured_on_home ? ' <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;background:var(--green-glow);color:var(--green);">FEATURED</span>' : '') + '</td>' +
                         '<td>' + c.email + '</td>' +
                         '<td style="font-family:monospace;letter-spacing:2px;">' + (c.listener_key || '-') + '</td>' +
                         '<td>' + c.total_songs + '</td>' +
@@ -453,6 +453,7 @@
                 var html = '<div class="detail-section"><h3>Account Information</h3><div class="detail-grid">' +
                     field('Full Name', c.first_name + ' ' + c.last_name) +
                     field('Artist Name', c.artist_name || '-') +
+                    field('Creator Title', c.creator_title || '<span style="color:var(--text-secondary);font-style:italic;">Not set</span>') +
                     field('Username', c.username) +
                     field('Email', c.email) +
                     field('Listener Key', c.listener_key ? '<span style="font-family:monospace;letter-spacing:2px;">' + c.listener_key + '</span>' : 'Not set') +
@@ -471,6 +472,38 @@
                 if (c.bio) {
                     html += '<div class="detail-section"><h3>Bio</h3><p style="color:var(--text);line-height:1.5;">' + c.bio + '</p></div>';
                 }
+
+                // Featured on Home Page
+                html += '<div class="detail-section"><h3>Featured on Home Page</h3>';
+                if (c.featured_on_home) {
+                    html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">' +
+                        '<span class="status-badge status-active">⭐ Featured #' + c.feature_order + '</span>' +
+                        '<span style="color:var(--text-secondary);font-size:0.85rem;">since ' + new Date(c.featured_at).toLocaleDateString() + '</span>' +
+                        '</div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                        '<select id="featuredPositionSelect" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:0.85rem;">' +
+                        '<option value="1"' + (c.feature_order === 1 ? ' selected' : '') + '>Position #1</option>' +
+                        '<option value="2"' + (c.feature_order === 2 ? ' selected' : '') + '>Position #2</option>' +
+                        '<option value="3"' + (c.feature_order === 3 ? ' selected' : '') + '>Position #3</option>' +
+                        '</select>' +
+                        '<button class="btn btn-approve" onclick="updateFeaturedPosition(\'' + c.id + '\')">Move</button>' +
+                        '<button class="btn btn-deny" onclick="removeFeatured(\'' + c.id + '\')">Remove from Featured</button>' +
+                        '</div>';
+                } else {
+                    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                        '<span style="color:var(--text-secondary);margin-right:4px;">Not featured</span>' +
+                        '<select id="featuredPositionSelect" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:0.85rem;">' +
+                        '<option value="1">Position #1</option>' +
+                        '<option value="2">Position #2</option>' +
+                        '<option value="3">Position #3</option>' +
+                        '</select>' +
+                        '<button class="btn btn-approve" onclick="addFeatured(\'' + c.id + '\')">⭐ Feature on Home</button>' +
+                        '</div>';
+                    if (!c.creator_title) {
+                        html += '<p style="color:var(--red);font-size:0.8rem;margin-top:8px;">⚠️ Creator has not set a title/tagline yet.</p>';
+                    }
+                }
+                html += '</div>';
 
                 // Songs
                 html += '<div class="detail-section"><h3>Uploaded Songs (' + data.songs.length + ')</h3>';
@@ -606,6 +639,60 @@
             } catch (err) { alert('Error generating PIN'); }
         }
         function closePinModal() { document.getElementById('pinModal').classList.remove('active'); }
+
+        // Featured creators actions
+        async function addFeatured(creatorId) {
+            var position = parseInt(document.getElementById('featuredPositionSelect').value);
+            try {
+                var res = await fetch(API + '/api/admin/featured/' + creatorId, {
+                    method: 'POST',
+                    headers: adminHeaders(),
+                    body: JSON.stringify({ position: position })
+                });
+                var data = await res.json();
+                if (res.ok) {
+                    viewCreator(creatorId);
+                    loadCreators();
+                } else {
+                    alert(data.error || 'Failed to feature creator');
+                }
+            } catch (err) { alert('Error featuring creator'); }
+        }
+
+        async function removeFeatured(creatorId) {
+            if (!confirm('Remove this creator from the featured section on the home page?')) return;
+            try {
+                var res = await fetch(API + '/api/admin/featured/' + creatorId, {
+                    method: 'DELETE',
+                    headers: adminHeaders()
+                });
+                if (res.ok) {
+                    viewCreator(creatorId);
+                    loadCreators();
+                } else {
+                    var data = await res.json();
+                    alert(data.error || 'Failed to remove featured status');
+                }
+            } catch (err) { alert('Error removing featured status'); }
+        }
+
+        async function updateFeaturedPosition(creatorId) {
+            var position = parseInt(document.getElementById('featuredPositionSelect').value);
+            try {
+                var res = await fetch(API + '/api/admin/featured/' + creatorId, {
+                    method: 'PUT',
+                    headers: adminHeaders(),
+                    body: JSON.stringify({ position: position })
+                });
+                var data = await res.json();
+                if (res.ok) {
+                    viewCreator(creatorId);
+                    loadCreators();
+                } else {
+                    alert(data.error || 'Failed to update position');
+                }
+            } catch (err) { alert('Error updating position'); }
+        }
 
         function logout() { masterPassword = ''; location.reload(); }
 

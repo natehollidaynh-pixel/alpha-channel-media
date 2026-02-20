@@ -143,7 +143,7 @@ router.get('/creators', async (req, res) => {
     const result = await db.query(`
       SELECT
         c.id, c.username, c.email, c.first_name, c.last_name,
-        c.artist_name, c.listener_key,
+        c.artist_name, c.listener_key, c.featured_on_home,
         c.pin_hash IS NOT NULL as pin_set,
         COALESCE(c.status, 'active') as status,
         c.created_at,
@@ -168,8 +168,9 @@ router.get('/creators/:id', async (req, res) => {
   const db = req.app.locals.db;
   try {
     const creatorResult = await db.query(
-      `SELECT id, username, email, first_name, last_name, artist_name, bio,
+      `SELECT id, username, email, first_name, last_name, artist_name, bio, creator_title,
               listener_key, pin_hash IS NOT NULL as pin_set,
+              featured_on_home, feature_order, featured_at,
               COALESCE(status, 'active') as status, created_at
        FROM creators WHERE id = $1`,
       [req.params.id]
@@ -241,6 +242,112 @@ router.delete('/creators/:id', async (req, res) => {
   } catch (err) {
     console.error('Delete creator error:', err);
     res.status(500).json({ error: 'Failed to delete creator' });
+  }
+});
+
+// ========================================
+// FEATURED CREATORS MANAGEMENT
+// ========================================
+
+// Get featured creators list + count
+router.get('/featured', async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    const result = await db.query(
+      `SELECT id, username, artist_name, creator_title, feature_order, featured_at
+       FROM creators
+       WHERE featured_on_home = true
+       ORDER BY feature_order ASC`
+    );
+    res.json({ featured: result.rows, count: result.rows.length });
+  } catch (err) {
+    console.error('Featured list error:', err);
+    res.status(500).json({ error: 'Failed to get featured creators' });
+  }
+});
+
+// Add creator to featured (enforce max 3)
+router.post('/featured/:id', async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    const { position } = req.body;
+    if (!position || position < 1 || position > 3) {
+      return res.status(400).json({ error: 'Position must be 1, 2, or 3' });
+    }
+    // Check current count
+    const countResult = await db.query(
+      'SELECT COUNT(*) as cnt FROM creators WHERE featured_on_home = true'
+    );
+    if (parseInt(countResult.rows[0].cnt) >= 3) {
+      return res.status(400).json({ error: 'Maximum 3 featured creators. Remove one first.' });
+    }
+    // Check if position is taken
+    const posResult = await db.query(
+      'SELECT id FROM creators WHERE featured_on_home = true AND feature_order = $1',
+      [position]
+    );
+    if (posResult.rows.length > 0) {
+      return res.status(400).json({ error: 'Position ' + position + ' is already taken' });
+    }
+    await db.query(
+      'UPDATE creators SET featured_on_home = true, feature_order = $1, featured_at = NOW() WHERE id = $2',
+      [position, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Feature creator error:', err);
+    res.status(500).json({ error: 'Failed to feature creator' });
+  }
+});
+
+// Remove creator from featured
+router.delete('/featured/:id', async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    await db.query(
+      'UPDATE creators SET featured_on_home = false, feature_order = NULL, featured_at = NULL WHERE id = $1',
+      [req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Unfeature creator error:', err);
+    res.status(500).json({ error: 'Failed to remove featured status' });
+  }
+});
+
+// Update featured position (swap with current holder)
+router.put('/featured/:id', async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    const { position } = req.body;
+    if (!position || position < 1 || position > 3) {
+      return res.status(400).json({ error: 'Position must be 1, 2, or 3' });
+    }
+    // Get this creator's current position
+    const movingResult = await db.query(
+      'SELECT feature_order FROM creators WHERE id = $1 AND featured_on_home = true',
+      [req.params.id]
+    );
+    if (movingResult.rows.length === 0) {
+      return res.status(400).json({ error: 'Creator is not currently featured' });
+    }
+    const oldPosition = movingResult.rows[0].feature_order;
+    if (oldPosition === position) {
+      return res.json({ success: true, message: 'No change needed' });
+    }
+    // Swap with whoever holds the target position
+    const holderResult = await db.query(
+      'SELECT id FROM creators WHERE featured_on_home = true AND feature_order = $1',
+      [position]
+    );
+    if (holderResult.rows.length > 0) {
+      await db.query('UPDATE creators SET feature_order = $1 WHERE id = $2', [oldPosition, holderResult.rows[0].id]);
+    }
+    await db.query('UPDATE creators SET feature_order = $1 WHERE id = $2', [position, req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update featured position error:', err);
+    res.status(500).json({ error: 'Failed to update position' });
   }
 });
 

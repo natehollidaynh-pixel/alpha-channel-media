@@ -136,6 +136,15 @@ pool.query('SELECT NOW()')
     `);
   })
   .then(() => console.log('Profile photo + song metadata columns ready'))
+  .then(() => {
+    return pool.query(`
+      DO $$ BEGIN ALTER TABLE creators ADD COLUMN featured_on_home BOOLEAN DEFAULT false; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE creators ADD COLUMN feature_order INTEGER; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE creators ADD COLUMN creator_title VARCHAR(50); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE creators ADD COLUMN featured_at TIMESTAMP; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+    `);
+  })
+  .then(() => console.log('Featured creators columns ready'))
   .catch(err => console.error('Database setup error:', err.message));
 
 // Make db available to routes
@@ -263,7 +272,7 @@ app.get('/api/creators/me', async (req, res) => {
     if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
 
     const result = await pool.query(
-      'SELECT id, username, email, first_name, last_name, artist_name, listener_key, bio, profile_photo, created_at FROM creators WHERE id = $1',
+      'SELECT id, username, email, first_name, last_name, artist_name, listener_key, bio, profile_photo, creator_title, created_at FROM creators WHERE id = $1',
       [decoded.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Creator not found' });

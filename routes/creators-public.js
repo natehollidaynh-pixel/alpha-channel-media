@@ -45,6 +45,46 @@ router.get('/top', async (req, res) => {
   }
 });
 
+// Get featured creators for home page
+router.get('/featured', async (req, res) => {
+  try {
+    const db = req.app.locals.db;
+
+    const result = await db.query(
+      `SELECT c.id, c.username, c.artist_name, c.bio, c.profile_photo, c.creator_title,
+              c.feature_order,
+              COUNT(DISTINCT lcs.listener_id) AS subscriber_count,
+              COUNT(DISTINCT s.id) AS song_count
+       FROM creators c
+       LEFT JOIN listener_creator_subscriptions lcs ON lcs.creator_id = c.id
+       LEFT JOIN songs s ON c.id = s.creator_id
+       WHERE c.featured_on_home = true AND c.status = 'active'
+       GROUP BY c.id
+       ORDER BY c.feature_order ASC`
+    );
+
+    const creators = [];
+    for (const creator of result.rows) {
+      const songsResult = await db.query(
+        `SELECT id, title, artist, artwork_url, audio_url
+         FROM songs WHERE creator_id = $1
+         ORDER BY display_order ASC, uploaded_at DESC
+         LIMIT 3`,
+        [creator.id]
+      );
+      creators.push({
+        ...creator,
+        top_songs: songsResult.rows
+      });
+    }
+
+    res.json({ creators });
+  } catch (err) {
+    console.error('Featured creators error:', err);
+    res.status(500).json({ error: 'Failed to fetch featured creators' });
+  }
+});
+
 // Get a single creator's public profile + all songs
 router.get('/:id/profile', async (req, res) => {
   try {

@@ -566,16 +566,89 @@
     </div>
 
     <script>
-        // Load top creators preview with song thumbnails
+        // Load featured creators (or fall back to top creators)
         (async function() {
             try {
-                var resp = await fetch(window.location.origin + '/api/creators-public/top?limit=6');
+                // Try featured creators first
+                var resp = await fetch(window.location.origin + '/api/creators-public/featured');
                 var data = await resp.json();
-                if (data.creators && data.creators.length > 0) {
-                    var grid = document.getElementById('welcomeCreatorsGrid');
+                var creators = data.creators || [];
+                var isFeatured = creators.length > 0;
+
+                // Fall back to top creators if none featured
+                if (!isFeatured) {
+                    resp = await fetch(window.location.origin + '/api/creators-public/top?limit=6');
+                    data = await resp.json();
+                    creators = data.creators || [];
+                }
+
+                if (creators.length === 0) return;
+
+                var container = document.getElementById('topCreatorsPreview');
+                var heading = container.querySelector('h2');
+                heading.textContent = isFeatured ? 'Featured Creators' : 'Discover Creators';
+
+                var grid = document.getElementById('welcomeCreatorsGrid');
+
+                if (isFeatured) {
+                    // Vertical stack for featured creators
+                    grid.style.gridTemplateColumns = '1fr';
+                    grid.style.gap = '16px';
+
+                    creators.forEach(function(c, idx) {
+                        var card = document.createElement('div');
+                        card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;backdrop-filter:blur(10px);';
+                        if (idx === 0) {
+                            card.style.border = '1px solid var(--green)';
+                            card.style.boxShadow = '0 0 20px var(--green-glow)';
+                        }
+
+                        var photoHtml = c.profile_photo
+                            ? '<img src="' + c.profile_photo + '" style="width:100%;height:100%;object-fit:cover;">'
+                            : '<span style="font-size:1.5rem;font-weight:700;color:var(--green);">' + ((c.artist_name || c.username || '?').charAt(0).toUpperCase()) + '</span>';
+
+                        var statsHtml = '<div style="display:flex;gap:12px;margin-top:6px;">' +
+                            '<span style="font-size:0.75rem;color:var(--text-secondary);">' + (parseInt(c.song_count) || 0) + ' songs</span>' +
+                            '<span style="font-size:0.75rem;color:var(--text-secondary);">' + (parseInt(c.subscriber_count) || 0) + ' followers</span>' +
+                            '</div>';
+
+                        // Song thumbnails strip
+                        var songsHtml = '';
+                        if (c.top_songs && c.top_songs.length > 0) {
+                            songsHtml = '<div class="creator-songs-strip" style="margin-top:10px;">';
+                            c.top_songs.forEach(function(song) {
+                                if (song.artwork_url) {
+                                    songsHtml += '<div class="song-thumb">' +
+                                        '<img src="' + song.artwork_url + '" alt="' + (song.title || '').replace(/"/g, '&quot;') + '">' +
+                                        '<div class="song-title">' + (song.title || 'Untitled') + '</div></div>';
+                                } else {
+                                    songsHtml += '<div class="song-thumb">' +
+                                        '<div class="song-placeholder"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>' +
+                                        '<div class="song-title">' + (song.title || 'Untitled') + '</div></div>';
+                                }
+                            });
+                            songsHtml += '</div>';
+                        }
+
+                        card.innerHTML =
+                            '<div style="display:flex;align-items:center;gap:14px;">' +
+                                '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--green-glow),var(--red-glow));display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">' + photoHtml + '</div>' +
+                                '<div style="flex:1;min-width:0;">' +
+                                    (idx === 0 ? '<div style="font-size:0.65rem;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">#1 Featured</div>' : '') +
+                                    '<div style="font-size:0.9rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (c.artist_name || c.username) + '</div>' +
+                                    (c.creator_title ? '<div style="font-size:0.75rem;color:var(--text-secondary);font-style:italic;">' + c.creator_title + '</div>' : '') +
+                                    statsHtml +
+                                '</div>' +
+                            '</div>' +
+                            songsHtml;
+
+                        grid.appendChild(card);
+                    });
+                } else {
+                    // Original 2-column grid for non-featured
                     var isMobile = window.innerWidth <= 768;
 
-                    data.creators.forEach(function(c) {
+                    creators.forEach(function(c) {
                         var card = document.createElement('div');
                         card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 10px;text-align:center;backdrop-filter:blur(10px);';
 
@@ -583,7 +656,6 @@
                             ? '<img src="' + c.profile_photo + '" style="width:100%;height:100%;object-fit:cover;">'
                             : '<span style="font-size:1.5rem;font-weight:700;color:var(--green);">' + ((c.artist_name || c.username || '?').charAt(0).toUpperCase()) + '</span>';
 
-                        // Build song strip HTML
                         var songsHtml = '';
                         if (c.top_songs && c.top_songs.length > 0) {
                             songsHtml = '<div class="creator-songs-strip">';
@@ -608,15 +680,14 @@
                         grid.appendChild(card);
                     });
 
-                    // On mobile: single-column grid
                     if (isMobile) {
                         grid.style.gridTemplateColumns = '1fr';
                         grid.style.gap = '16px';
                     }
-
-                    document.getElementById('topCreatorsPreview').style.display = 'block';
                 }
-            } catch (e) { console.log('Could not load creators preview'); }
+
+                container.style.display = 'block';
+            } catch (e) { console.log('Could not load creators preview', e); }
         })();
     </script>
 

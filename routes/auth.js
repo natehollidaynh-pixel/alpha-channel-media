@@ -147,7 +147,7 @@ router.put('/profile', async (req, res) => {
     if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
 
     const db = req.app.locals.db;
-    const { bio, artist_name, profile_photo } = req.body;
+    const { bio, artist_name, profile_photo, creator_title } = req.body;
 
     const updates = [];
     const values = [];
@@ -167,6 +167,15 @@ router.put('/profile', async (req, res) => {
       paramCount++;
       updates.push(`profile_photo = $${paramCount}`);
       values.push(profile_photo);
+    }
+    if (typeof creator_title === 'string') {
+      const trimmed = creator_title.trim();
+      if (trimmed.length > 0 && (trimmed.length < 10 || trimmed.length > 50)) {
+        return res.status(400).json({ error: 'Creator title must be 10-50 characters' });
+      }
+      paramCount++;
+      updates.push(`creator_title = $${paramCount}`);
+      values.push(trimmed || null);
     }
 
     if (updates.length === 0) {
