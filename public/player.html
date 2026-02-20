@@ -548,6 +548,150 @@
             .fs-controls { gap: 18px; }
             .fs-ctrl-btn.fs-play { width: 56px; height: 56px; }
         }
+        /* ===== SETTINGS OVERLAY ===== */
+        .settings-overlay {
+            position: fixed; inset: 0; z-index: 250;
+            display: flex; align-items: flex-start; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding: 40px 20px 40px;
+        }
+        .settings-overlay.active { opacity: 1; pointer-events: all; }
+        .settings-overlay-bg {
+            position: fixed; inset: 0;
+            background: var(--surface-solid); opacity: 0.97;
+        }
+        .settings-overlay-content {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 560px;
+            background: var(--surface); backdrop-filter: blur(25px);
+            border-radius: 24px; border: 1px solid var(--panel-border);
+            box-shadow: var(--panel-glow);
+            padding: 48px 40px; margin-top: 20px;
+        }
+        .settings-close-btn {
+            position: absolute; top: 16px; right: 16px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--surface); border: 1px solid var(--border);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 10; transition: all 0.2s; font-size: 1.2rem; color: var(--text-secondary);
+        }
+        .settings-close-btn:hover { box-shadow: var(--panel-glow); color: var(--text); }
+        .settings-header { text-align: center; margin-bottom: 36px; }
+        .settings-header h1 {
+            font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700;
+            color: var(--text); margin-bottom: 8px;
+        }
+        .settings-header p { color: var(--text-secondary); font-size: 0.95rem; }
+        /* Settings form styles */
+        .stg-section-title {
+            font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--text-secondary); margin-bottom: 14px;
+        }
+        .stg-profile-field { margin-bottom: 16px; }
+        .stg-profile-field label {
+            display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+        }
+        .stg-profile-field input {
+            width: 100%; padding: 12px 14px; background: var(--input-bg); border: 1px solid var(--border);
+            border-radius: 10px; font-size: 0.95rem; color: var(--text); font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s; outline: none; box-sizing: border-box;
+        }
+        .stg-profile-field input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+        .stg-profile-field input[readonly] { opacity: 0.6; cursor: not-allowed; }
+        .stg-profile-field .field-hint { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+        .stg-profile-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 480px) { .stg-profile-row { grid-template-columns: 1fr; } }
+        .stg-save-btn {
+            width: 100%; padding: 14px; background: var(--green); color: white; border: none;
+            border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            margin-top: 8px; transition: all 0.3s; font-family: 'Inter', sans-serif;
+        }
+        .stg-save-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .stg-save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .stg-section-divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+        .stg-pw-toggle-btn {
+            display: inline-block; padding: 10px 20px; background: transparent; border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;
+            cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif;
+        }
+        .stg-pw-toggle-btn:hover { border-color: var(--green); color: var(--green); }
+        .stg-pw-fields { display: none; margin-top: 16px; }
+        .stg-pw-fields.visible { display: block; }
+        .stg-status-msg { text-align: center; margin-top: 12px; font-size: 0.9rem; display: none; }
+        .stg-status-msg.success { color: var(--green); display: block; }
+        .stg-status-msg.error { color: var(--red); display: block; }
+        /* Theme selector */
+        .stg-theme-selector { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+        .stg-theme-option {
+            display: flex; align-items: center; padding: 16px;
+            background: var(--input-bg); border-radius: 12px;
+            border: 2px solid var(--border); cursor: pointer; transition: all 0.2s;
+        }
+        .stg-theme-option:has(input:checked) { border-color: var(--green); }
+        [data-theme="light"] .stg-theme-option:has(input:checked) { background: rgba(0,110,69,0.05); }
+        [data-theme="dark"] .stg-theme-option:has(input:checked) { background: rgba(0,201,122,0.08); }
+        .stg-theme-option input { margin-right: 12px; width: 18px; height: 18px; accent-color: var(--green); cursor: pointer; }
+        .stg-theme-option-label { font-weight: 600; font-size: 0.95rem; color: var(--text); margin-bottom: 2px; }
+        .stg-theme-option-desc { font-size: 0.8rem; color: var(--text-secondary); }
+        /* Global toggle */
+        .stg-global-toggle {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 20px; background: var(--input-bg); border-radius: 14px;
+            border: 1px solid var(--border); margin-bottom: 28px;
+        }
+        .stg-global-toggle h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+        .stg-global-toggle p { font-size: 0.85rem; color: var(--text-secondary); margin: 0; }
+        .stg-toggle-switch { position: relative; width: 50px; height: 28px; flex-shrink: 0; }
+        .stg-toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .stg-toggle-slider {
+            position: absolute; cursor: pointer; inset: 0; background: var(--border);
+            border-radius: 28px; transition: 0.3s;
+        }
+        .stg-toggle-slider::before {
+            content: ''; position: absolute; width: 22px; height: 22px; left: 3px; bottom: 3px;
+            background: white; border-radius: 50%; transition: 0.3s;
+        }
+        .stg-toggle-switch input:checked + .stg-toggle-slider { background: var(--green); }
+        .stg-toggle-switch input:checked + .stg-toggle-slider::before { transform: translateX(22px); }
+        /* Creator subscriptions */
+        .stg-creator-sub {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; background: var(--input-bg); border-radius: 12px;
+            border: 1px solid var(--border); margin-bottom: 10px;
+        }
+        .stg-creator-sub-info { display: flex; align-items: center; gap: 12px; }
+        .stg-creator-sub-icon {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--green-glow), var(--red-glow));
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .stg-creator-sub-icon svg { width: 20px; height: 20px; fill: var(--green); }
+        .stg-creator-sub-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+        .stg-creator-sub-detail { font-size: 0.8rem; color: var(--text-secondary); }
+        .stg-no-subs {
+            text-align: center; padding: 24px; color: var(--text-secondary);
+            font-size: 0.9rem; background: var(--input-bg); border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .stg-pref-save-btn {
+            width: 100%; padding: 16px; background: var(--green); color: white; border: none;
+            border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer;
+            margin-top: 24px; transition: all 0.3s; font-family: 'Inter', sans-serif;
+        }
+        .stg-pref-save-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .stg-pref-save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        @media (max-width: 768px) {
+            .settings-overlay-content { padding: 36px 28px; margin-top: 10px; }
+            .settings-header h1 { font-size: 1.6rem; }
+        }
+        @media (max-width: 480px) {
+            .settings-overlay-content { padding: 28px 18px; border-radius: 20px; }
+            .settings-header h1 { font-size: 1.4rem; }
+            .settings-overlay { padding: 20px 12px 20px; }
+        }
     </style>
 </head>
 <body>
@@ -562,7 +706,7 @@
             </div>
             <div class="browse-header-right">
                 <a href="videos.html" class="nav-link">Videos</a>
-                <a href="email-settings.html" class="settings-link">Settings</a>
+                <a href="#" onclick="openSettings(); return false;" class="settings-link">Settings</a>
                 <a href="#" onclick="logout(); return false;" class="logout-link">Logout</a>
             </div>
         </div>
@@ -619,7 +763,7 @@
             </div>
             <div class="player-header-right">
                 <a href="videos.html" class="nav-link">Videos</a>
-                <a href="email-settings.html" class="settings-link">Settings</a>
+                <a href="#" onclick="openSettings(); return false;" class="settings-link">Settings</a>
                 <a href="#" onclick="logout(); return false;" class="logout-link">Logout</a>
             </div>
         </div>
@@ -754,6 +898,121 @@
                     <div class="fs-vol-track"><div class="fs-vol-fill" id="fsVolFill"></div></div>
                     <div class="fs-vol-dot" id="fsVolDot"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS OVERLAY -->
+    <div class="settings-overlay" id="settingsOverlay">
+        <div class="settings-overlay-bg" onclick="closeSettings()"></div>
+        <div class="settings-overlay-content">
+            <button class="settings-close-btn" onclick="closeSettings()" title="Close">✕</button>
+            <div class="settings-header">
+                <h1>Settings</h1>
+                <p>Account, appearance, and notifications</p>
+            </div>
+
+            <!-- Account Section -->
+            <div class="stg-section-title">Account</div>
+            <div id="stgProfileSection">
+                <div class="stg-profile-field">
+                    <label>Username</label>
+                    <input type="text" id="stgUsername" readonly>
+                    <div class="field-hint">Username cannot be changed</div>
+                </div>
+                <div class="stg-profile-row">
+                    <div class="stg-profile-field">
+                        <label>First Name</label>
+                        <input type="text" id="stgFirstName">
+                    </div>
+                    <div class="stg-profile-field">
+                        <label>Last Name</label>
+                        <input type="text" id="stgLastName">
+                    </div>
+                </div>
+                <div class="stg-profile-field">
+                    <label>Email</label>
+                    <input type="email" id="stgEmail">
+                </div>
+                <div class="stg-profile-field">
+                    <label>Member Since</label>
+                    <input type="text" id="stgJoined" readonly>
+                </div>
+                <button class="stg-save-btn" id="stgProfileSaveBtn" onclick="stgSaveProfile()">Save Profile</button>
+                <div class="stg-status-msg" id="stgProfileStatus"></div>
+
+                <div style="margin-top: 20px;">
+                    <button class="stg-pw-toggle-btn" onclick="stgTogglePassword()">Change Password</button>
+                    <div class="stg-pw-fields" id="stgPwFields">
+                        <div class="stg-profile-field">
+                            <label>Current Password</label>
+                            <input type="password" id="stgCurrentPw" placeholder="Enter current password">
+                        </div>
+                        <div class="stg-profile-field">
+                            <label>New Password</label>
+                            <input type="password" id="stgNewPw" placeholder="Min 6 characters">
+                        </div>
+                        <div class="stg-profile-field">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="stgConfirmPw" placeholder="Confirm new password">
+                        </div>
+                        <button class="stg-save-btn" onclick="stgChangePassword()" style="background: var(--red);">Update Password</button>
+                        <div class="stg-status-msg" id="stgPwStatus"></div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="stg-section-divider">
+
+            <!-- Appearance Section -->
+            <div class="stg-section-title">Appearance</div>
+            <div class="stg-theme-selector">
+                <label class="stg-theme-option">
+                    <input type="radio" name="stgThemePref" value="system">
+                    <div>
+                        <div class="stg-theme-option-label">System Default</div>
+                        <div class="stg-theme-option-desc">Match your device settings</div>
+                    </div>
+                </label>
+                <label class="stg-theme-option">
+                    <input type="radio" name="stgThemePref" value="light">
+                    <div>
+                        <div class="stg-theme-option-label">Light Mode</div>
+                        <div class="stg-theme-option-desc">Always use light theme</div>
+                    </div>
+                </label>
+                <label class="stg-theme-option">
+                    <input type="radio" name="stgThemePref" value="dark">
+                    <div>
+                        <div class="stg-theme-option-label">Dark Mode</div>
+                        <div class="stg-theme-option-desc">Always use dark theme</div>
+                    </div>
+                </label>
+            </div>
+
+            <hr class="stg-section-divider">
+
+            <!-- Email Notifications -->
+            <div class="stg-section-title">Email Notifications</div>
+            <div class="stg-global-toggle">
+                <div>
+                    <h3>Email Notifications</h3>
+                    <p>Receive emails about new uploads</p>
+                </div>
+                <label class="stg-toggle-switch">
+                    <input type="checkbox" id="stgGlobalToggle" checked>
+                    <span class="stg-toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="stg-section-title">Creator Subscriptions</div>
+            <div id="stgSubsList"></div>
+
+            <button class="stg-pref-save-btn" id="stgPrefSaveBtn" onclick="stgSavePreferences()">Save Preferences</button>
+            <div class="stg-status-msg" id="stgPrefStatus"></div>
+
+            <div style="text-align:center; margin-top:20px;">
+                <a href="#" onclick="logout(); return false;" style="color:var(--text-secondary); font-size:0.85rem; text-decoration:none;">Sign Out</a>
             </div>
         </div>
     </div>
@@ -1517,6 +1776,232 @@
                 if (dy > 80) closeFullScreenPlayer();
             }, { passive: true });
         })();
+        // ===== SETTINGS OVERLAY =====
+        var settingsLoaded = false;
+
+        function openSettings() {
+            document.getElementById('settingsOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            if (!settingsLoaded) loadSettingsData();
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close settings on Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('settingsOverlay').classList.contains('active')) {
+                closeSettings();
+            }
+        });
+
+        async function loadSettingsData() {
+            var token = getAuthToken();
+            if (!token) return;
+
+            // Load profile
+            try {
+                var profileResp = await fetch(API + '/api/listeners/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (profileResp.ok) {
+                    var profileData = await profileResp.json();
+                    var l = profileData.listener;
+                    document.getElementById('stgUsername').value = l.username || '';
+                    document.getElementById('stgFirstName').value = l.first_name || '';
+                    document.getElementById('stgLastName').value = l.last_name || '';
+                    document.getElementById('stgEmail').value = l.email || '';
+                    if (l.created_at) {
+                        document.getElementById('stgJoined').value = new Date(l.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    }
+                }
+            } catch (err) {
+                console.error('Settings: failed to load profile:', err);
+            }
+
+            // Load email preferences
+            try {
+                var resp = await fetch(API + '/api/listeners/email-preferences', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (resp.ok) {
+                    var data = await resp.json();
+                    document.getElementById('stgGlobalToggle').checked = data.email_notifications !== false;
+                    var list = document.getElementById('stgSubsList');
+                    if (data.subscriptions.length === 0) {
+                        list.innerHTML = '<div class="stg-no-subs">No creator subscriptions yet. Subscribe to creators to get started.</div>';
+                    } else {
+                        list.innerHTML = '';
+                        data.subscriptions.forEach(function(sub) {
+                            var name = sub.artist_name || sub.username;
+                            var initial = name.charAt(0).toUpperCase();
+                            var div = document.createElement('div');
+                            div.className = 'stg-creator-sub';
+                            div.innerHTML =
+                                '<div class="stg-creator-sub-info">' +
+                                    '<div class="stg-creator-sub-icon"><svg viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--green)">' + escapeHtml(initial) + '</text></svg></div>' +
+                                    '<div><div class="stg-creator-sub-name">' + escapeHtml(name) + '</div>' +
+                                    '<div class="stg-creator-sub-detail">' + escapeHtml((sub.first_name || '') + ' ' + (sub.last_name || '')).trim() + '</div></div>' +
+                                '</div>' +
+                                '<label class="stg-toggle-switch">' +
+                                    '<input type="checkbox" data-stg-creator-id="' + sub.creator_id + '"' + (sub.email_on_upload ? ' checked' : '') + '>' +
+                                    '<span class="stg-toggle-slider"></span>' +
+                                '</label>';
+                            list.appendChild(div);
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Settings: failed to load preferences:', err);
+                document.getElementById('stgSubsList').innerHTML = '<div class="stg-no-subs">Failed to load preferences.</div>';
+            }
+
+            // Set theme radio
+            var currentPref = localStorage.getItem('themePreference') || 'system';
+            var radio = document.querySelector('input[name="stgThemePref"][value="' + currentPref + '"]');
+            if (radio) radio.checked = true;
+
+            settingsLoaded = true;
+        }
+
+        // Theme radio change — apply immediately
+        document.querySelectorAll('input[name="stgThemePref"]').forEach(function(r) {
+            r.addEventListener('change', function() {
+                var pref = this.value;
+                localStorage.setItem('themePreference', pref);
+                if (pref === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+                else if (pref === 'light') document.documentElement.setAttribute('data-theme', 'light');
+                else {
+                    if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+                        document.documentElement.setAttribute('data-theme', 'dark');
+                    else
+                        document.documentElement.setAttribute('data-theme', 'light');
+                }
+            });
+        });
+
+        // Save profile
+        async function stgSaveProfile() {
+            var token = getAuthToken();
+            if (!token) return;
+            var btn = document.getElementById('stgProfileSaveBtn');
+            var statusEl = document.getElementById('stgProfileStatus');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            statusEl.className = 'stg-status-msg';
+            statusEl.style.display = 'none';
+            try {
+                var resp = await fetch(API + '/api/listeners/me', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        first_name: document.getElementById('stgFirstName').value.trim(),
+                        last_name: document.getElementById('stgLastName').value.trim(),
+                        email: document.getElementById('stgEmail').value.trim()
+                    })
+                });
+                var data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || 'Failed to save');
+                statusEl.textContent = 'Profile updated successfully!';
+                statusEl.className = 'stg-status-msg success';
+            } catch (err) {
+                statusEl.textContent = err.message || 'Failed to save profile.';
+                statusEl.className = 'stg-status-msg error';
+            }
+            btn.disabled = false;
+            btn.textContent = 'Save Profile';
+            setTimeout(function() { statusEl.style.display = 'none'; }, 3000);
+        }
+
+        // Toggle password fields
+        function stgTogglePassword() {
+            document.getElementById('stgPwFields').classList.toggle('visible');
+        }
+
+        // Change password
+        async function stgChangePassword() {
+            var token = getAuthToken();
+            if (!token) return;
+            var statusEl = document.getElementById('stgPwStatus');
+            var newPw = document.getElementById('stgNewPw').value;
+            var confirmPw = document.getElementById('stgConfirmPw').value;
+            if (newPw !== confirmPw) {
+                statusEl.textContent = 'New passwords do not match.';
+                statusEl.className = 'stg-status-msg error';
+                return;
+            }
+            if (newPw.length < 6) {
+                statusEl.textContent = 'New password must be at least 6 characters.';
+                statusEl.className = 'stg-status-msg error';
+                return;
+            }
+            var btn = document.querySelector('#stgPwFields .stg-save-btn');
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+            statusEl.className = 'stg-status-msg';
+            statusEl.style.display = 'none';
+            try {
+                var resp = await fetch(API + '/api/listeners/change-password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        current_password: document.getElementById('stgCurrentPw').value,
+                        new_password: newPw
+                    })
+                });
+                var data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || 'Failed to change password');
+                statusEl.textContent = 'Password updated successfully!';
+                statusEl.className = 'stg-status-msg success';
+                document.getElementById('stgCurrentPw').value = '';
+                document.getElementById('stgNewPw').value = '';
+                document.getElementById('stgConfirmPw').value = '';
+            } catch (err) {
+                statusEl.textContent = err.message || 'Failed to change password.';
+                statusEl.className = 'stg-status-msg error';
+            }
+            btn.disabled = false;
+            btn.textContent = 'Update Password';
+            setTimeout(function() { statusEl.style.display = 'none'; }, 3000);
+        }
+
+        // Save email preferences
+        async function stgSavePreferences() {
+            var token = getAuthToken();
+            if (!token) return;
+            var btn = document.getElementById('stgPrefSaveBtn');
+            var statusEl = document.getElementById('stgPrefStatus');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            statusEl.className = 'stg-status-msg';
+            statusEl.style.display = 'none';
+            var email_notifications = document.getElementById('stgGlobalToggle').checked;
+            var subscriptions = [];
+            document.querySelectorAll('[data-stg-creator-id]').forEach(function(input) {
+                subscriptions.push({
+                    creator_id: input.getAttribute('data-stg-creator-id'),
+                    email_on_upload: input.checked
+                });
+            });
+            try {
+                var resp = await fetch(API + '/api/listeners/email-preferences', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ email_notifications: email_notifications, subscriptions: subscriptions })
+                });
+                if (!resp.ok) throw new Error('Failed to save');
+                statusEl.textContent = 'Preferences saved successfully!';
+                statusEl.className = 'stg-status-msg success';
+            } catch (err) {
+                statusEl.textContent = 'Failed to save preferences. Please try again.';
+                statusEl.className = 'stg-status-msg error';
+            }
+            btn.disabled = false;
+            btn.textContent = 'Save Preferences';
+            setTimeout(function() { statusEl.style.display = 'none'; }, 3000);
+        }
     </script>
 </body>
 </html>
