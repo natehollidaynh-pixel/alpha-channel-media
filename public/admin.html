@@ -316,6 +316,11 @@
                 <div class="form-group"><label>Audio File *</label><input type="file" accept="audio/*" name="audio" required></div>
                 <div class="form-group"><label>Artwork (optional)</label><input type="file" accept="image/*" name="artwork"></div>
                 <div class="form-group"><label>Lyrics (optional)</label><textarea name="lyrics"></textarea></div>
+                <div class="form-group"><label>Producer (optional)</label><input type="text" name="credits_producer" placeholder="e.g. John Smith"></div>
+                <div class="form-group"><label>Writer (optional)</label><input type="text" name="credits_writer" placeholder="e.g. Jane Doe"></div>
+                <div class="form-group"><label>Engineer (optional)</label><input type="text" name="credits_engineer" placeholder="e.g. Bob Johnson"></div>
+                <div class="form-group"><label>Mixed By (optional)</label><input type="text" name="credits_mixer" placeholder="e.g. Sarah Williams"></div>
+                <div class="form-group"><label>Mastered By (optional)</label><input type="text" name="credits_master" placeholder="e.g. Mike Brown"></div>
                 <button type="submit" class="submit-btn" id="musicSubmitBtn">Upload Track</button>
                 <div class="progress" id="musicProgress"><div class="progress-bar" id="musicBar"></div></div>
                 <div class="status-msg" id="musicStatus"></div>
@@ -890,7 +895,12 @@
                         audio_url: audioUrl,
                         artwork_url: artworkUrl,
                         file_size: audioFile.size,
-                        format: finalExt
+                        format: finalExt,
+                        credits_producer: form.querySelector('input[name="credits_producer"]').value || null,
+                        credits_writer: form.querySelector('input[name="credits_writer"]').value || null,
+                        credits_engineer: form.querySelector('input[name="credits_engineer"]').value || null,
+                        credits_mixer: form.querySelector('input[name="credits_mixer"]').value || null,
+                        credits_master: form.querySelector('input[name="credits_master"]').value || null
                     })
                 });
                 console.log('[MusicUpload] Step 4 fetch done — status:', response.status);

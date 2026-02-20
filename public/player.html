@@ -376,10 +376,12 @@
             .track-row { grid-template-columns: 40px 48px 1fr; }
             .track-row .tr-duration { display: none; }
             .track-row .tr-art { width: 48px; height: 48px; }
-            .npb-content { grid-template-columns: 1fr auto; }
-            .npb-right { display: none; }
+            .npb-content { grid-template-columns: 1fr auto; grid-template-rows: auto auto; }
+            .npb-right { display: flex; grid-column: 1 / -1; justify-content: center; padding-top: 4px; }
+            .npb-vol-slider { width: 140px; }
             .npb-center { gap: 4px; }
             .npb-times { display: none; }
+            .player-app { padding-bottom: 180px; }
         }
         @media (max-width: 480px) {
             .player-header-left h1 { font-size: 1rem; }
@@ -393,6 +395,136 @@
             .npb-art { width: 40px; height: 40px; }
             .npb-controls { gap: 16px; }
             .npb-btn.npb-play { width: 36px; height: 36px; }
+            .npb-vol-slider { width: 120px; }
+        }
+        /* ===== FULL-SCREEN PLAYER ===== */
+        .fs-player-overlay {
+            position: fixed; inset: 0; z-index: 300;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+        .fs-player-overlay.active { opacity: 1; pointer-events: all; }
+        .fs-player-bg {
+            position: absolute; inset: 0;
+            background: var(--surface-solid, var(--surface));
+            opacity: 0.97;
+        }
+        .fs-player-content {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 480px;
+            padding: 40px 32px;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 20px;
+            max-height: 100vh; overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .fs-close-btn {
+            position: absolute; top: 16px; right: 16px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--surface); border: 1px solid var(--border);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 10; transition: all 0.2s;
+        }
+        .fs-close-btn:hover { box-shadow: var(--panel-glow); }
+        .fs-close-btn svg { fill: var(--text-secondary); }
+        .fs-art {
+            width: 300px; height: 300px; border-radius: 20px;
+            background: linear-gradient(135deg, var(--green-glow, rgba(0,110,69,0.2)), var(--red-glow, rgba(211,47,47,0.2)));
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; flex-shrink: 0;
+            box-shadow: 0 16px 60px rgba(0,0,0,0.25);
+            transition: box-shadow 1s ease;
+        }
+        .fs-art img { width: 100%; height: 100%; object-fit: cover; }
+        .fs-art svg { width: 80px; height: 80px; fill: var(--text-secondary); opacity: 0.3; }
+        .fs-track-info { text-align: center; width: 100%; }
+        .fs-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem; font-weight: 700; color: var(--text);
+            margin-bottom: 4px;
+        }
+        .fs-artist { font-size: 1rem; color: var(--green); font-weight: 500; margin: 0; }
+        .fs-credits {
+            width: 100%; display: none;
+            padding: 16px; border-radius: 12px;
+            background: var(--surface); border: 1px solid var(--border);
+        }
+        .fs-credits.has-credits { display: block; }
+        .fs-credits h5 {
+            font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 1.5px; color: var(--text-secondary); margin: 0 0 10px 0;
+        }
+        .fs-credit-row {
+            display: flex; justify-content: space-between;
+            padding: 4px 0; font-size: 0.85rem;
+        }
+        .fs-credit-role { color: var(--text-secondary); }
+        .fs-credit-name { color: var(--text); font-weight: 500; }
+        .fs-progress { width: 100%; }
+        .fs-time-bar {
+            width: 100%; height: 6px; background: var(--border);
+            border-radius: 3px; cursor: pointer; position: relative;
+        }
+        .fs-time-fill {
+            height: 100%; background: var(--green); border-radius: 3px;
+            width: 0%; position: relative; transition: width 0.1s linear;
+        }
+        .fs-time-fill::after {
+            content: ''; position: absolute; right: -6px; top: -5px;
+            width: 16px; height: 16px; background: var(--green);
+            border-radius: 50%; opacity: 0; transition: opacity 0.15s;
+        }
+        .fs-time-bar:hover .fs-time-fill::after { opacity: 1; }
+        .fs-times {
+            display: flex; justify-content: space-between;
+            font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px;
+        }
+        .fs-controls { display: flex; align-items: center; gap: 24px; }
+        .fs-ctrl-btn {
+            background: none; border: none; cursor: pointer; padding: 8px;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.15s;
+        }
+        .fs-ctrl-btn:hover { transform: scale(1.1); }
+        .fs-ctrl-btn:active { transform: scale(0.95); }
+        .fs-ctrl-btn svg { fill: var(--text); }
+        .fs-ctrl-btn.active-mode svg { fill: var(--green); }
+        .fs-ctrl-btn.fs-play {
+            width: 64px; height: 64px; background: var(--green); border-radius: 50%;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+        .fs-ctrl-btn.fs-play svg { fill: white; width: 28px; height: 28px; }
+        .fs-volume {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            justify-content: center;
+        }
+        .fs-vol-icon { width: 20px; height: 20px; fill: var(--text-secondary); cursor: pointer; }
+        .fs-vol-slider {
+            position: relative; width: 160px; height: 20px; cursor: pointer;
+            display: flex; align-items: center;
+        }
+        .fs-vol-track {
+            position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+            height: 4px; background: var(--border); border-radius: 2px;
+        }
+        .fs-vol-fill {
+            height: 100%; background: var(--green); border-radius: 2px;
+            width: 80%; transition: width 0.05s linear;
+        }
+        .fs-vol-dot {
+            position: absolute; top: 50%; transform: translate(-50%, -50%);
+            width: 14px; height: 14px; border-radius: 50%;
+            background: var(--green); left: 80%;
+            box-shadow: 0 0 6px rgba(0,0,0,0.15); pointer-events: none;
+        }
+        .npb-left { cursor: pointer; }
+        @media (max-width: 480px) {
+            .fs-player-content { padding: 32px 20px; }
+            .fs-art { width: 260px; height: 260px; border-radius: 16px; }
+            .fs-title { font-size: 1.3rem; }
+            .fs-controls { gap: 18px; }
+            .fs-ctrl-btn.fs-play { width: 56px; height: 56px; }
         }
     </style>
 </head>
@@ -533,6 +665,57 @@
                 <div class="npb-vol-slider" id="volSlider">
                     <div class="npb-vol-track"><div class="npb-vol-fill" id="volFill"></div></div>
                     <div class="npb-vol-dot" id="volDot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULL-SCREEN PLAYER OVERLAY -->
+    <div class="fs-player-overlay" id="fsPlayer">
+        <div class="fs-player-bg" id="fsBg"></div>
+        <div class="fs-player-content">
+            <button class="fs-close-btn" id="fsCloseBtn" title="Close">
+                <svg width="24" height="24" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+            <div class="fs-art" id="fsArt">
+                <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            </div>
+            <div class="fs-track-info">
+                <h2 class="fs-title" id="fsTitle">-</h2>
+                <p class="fs-artist" id="fsArtist">-</p>
+            </div>
+            <div class="fs-credits" id="fsCredits"></div>
+            <div class="fs-progress">
+                <div class="fs-time-bar" id="fsTimeBar">
+                    <div class="fs-time-fill" id="fsTimeFill"></div>
+                </div>
+                <div class="fs-times">
+                    <span id="fsCurrentTime">0:00</span>
+                    <span id="fsDuration">0:00</span>
+                </div>
+            </div>
+            <div class="fs-controls">
+                <button class="fs-ctrl-btn" id="fsShuffleBtn" title="Shuffle">
+                    <svg width="22" height="22" viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                </button>
+                <button class="fs-ctrl-btn" id="fsPrevBtn" title="Previous">
+                    <svg width="28" height="28" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                </button>
+                <button class="fs-ctrl-btn fs-play" id="fsPlayBtn" title="Play">
+                    <svg viewBox="0 0 24 24" id="fsPlayIcon"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <button class="fs-ctrl-btn" id="fsNextBtn" title="Next">
+                    <svg width="28" height="28" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                </button>
+                <button class="fs-ctrl-btn" id="fsRepeatBtn" title="Repeat">
+                    <svg width="22" height="22" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+                </button>
+            </div>
+            <div class="fs-volume">
+                <svg class="fs-vol-icon" viewBox="0 0 24 24" id="fsVolIcon"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                <div class="fs-vol-slider" id="fsVolSlider">
+                    <div class="fs-vol-track"><div class="fs-vol-fill" id="fsVolFill"></div></div>
+                    <div class="fs-vol-dot" id="fsVolDot"></div>
                 </div>
             </div>
         </div>
@@ -941,6 +1124,9 @@
             document.querySelectorAll('.track-row').forEach(function(r, i) {
                 r.classList.toggle('active', i === index);
             });
+
+            // Sync full-screen player if open
+            if (fsOpen) setTimeout(syncFullScreenPlayer, 50);
         }
 
         function playAll() {
@@ -995,6 +1181,11 @@
             var dotSize = 10 + (currentVol / 100) * 6;
             volDot.style.width = dotSize + 'px';
             volDot.style.height = dotSize + 'px';
+            // Sync full-screen volume display
+            if (typeof fsOpen !== 'undefined' && fsOpen) {
+                document.getElementById('fsVolFill').style.width = currentVol + '%';
+                document.getElementById('fsVolDot').style.left = currentVol + '%';
+            }
         }
 
         function volFromEvent(e) {
@@ -1048,10 +1239,12 @@
         audio.addEventListener('play', function() {
             isPlaying = true;
             document.getElementById('mainPlayIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+            if (fsOpen) updateFsPlayIcon();
         });
         audio.addEventListener('pause', function() {
             isPlaying = false;
             document.getElementById('mainPlayIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+            if (fsOpen) updateFsPlayIcon();
         });
         audio.addEventListener('timeupdate', function() {
             if (!audio.duration) return;
@@ -1060,6 +1253,11 @@
             document.getElementById('npbTimeFill').style.width = pct + '%';
             document.getElementById('npbCurrentTime').textContent = formatTime(audio.currentTime);
             document.getElementById('npbDuration').textContent = formatTime(audio.duration);
+            if (fsOpen) {
+                document.getElementById('fsTimeFill').style.width = pct + '%';
+                document.getElementById('fsCurrentTime').textContent = formatTime(audio.currentTime);
+                document.getElementById('fsDuration').textContent = formatTime(audio.duration);
+            }
         });
         audio.addEventListener('loadedmetadata', function() {
             if (currentIndex >= 0) {
@@ -1099,6 +1297,178 @@
             var saved = localStorage.getItem('theme');
             if (saved) document.documentElement.setAttribute('data-theme', saved);
             else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+        })();
+        // ===== FULL-SCREEN PLAYER =====
+        var fsPlayer = document.getElementById('fsPlayer');
+        var fsOpen = false;
+
+        function openFullScreenPlayer() {
+            if (currentIndex < 0) return;
+            syncFullScreenPlayer();
+            fsPlayer.classList.add('active');
+            fsOpen = true;
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeFullScreenPlayer() {
+            fsPlayer.classList.remove('active');
+            fsOpen = false;
+            document.body.style.overflow = '';
+        }
+
+        function updateFsPlayIcon() {
+            document.getElementById('fsPlayIcon').innerHTML = isPlaying
+                ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+                : '<path d="M8 5v14l11-7z"/>';
+        }
+
+        function syncFullScreenPlayer() {
+            if (currentIndex < 0) return;
+            var track = tracks[currentIndex];
+
+            // Art
+            var fsArt = document.getElementById('fsArt');
+            if (track.artwork_url) {
+                fsArt.innerHTML = '<img src="' + track.artwork_url + '">';
+            } else {
+                fsArt.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+            }
+
+            // Track info
+            document.getElementById('fsTitle').textContent = track.title;
+            document.getElementById('fsArtist').textContent = track.artist;
+
+            // Credits
+            var creditsEl = document.getElementById('fsCredits');
+            var creditsHtml = '';
+            var hasAny = false;
+            var creditFields = [
+                { key: 'credits_producer', label: 'Produced by' },
+                { key: 'credits_writer', label: 'Written by' },
+                { key: 'credits_engineer', label: 'Engineered by' },
+                { key: 'credits_mixer', label: 'Mixed by' },
+                { key: 'credits_master', label: 'Mastered by' }
+            ];
+            creditFields.forEach(function(f) {
+                if (track[f.key]) {
+                    hasAny = true;
+                    creditsHtml += '<div class="fs-credit-row"><span class="fs-credit-role">' +
+                        f.label + '</span><span class="fs-credit-name">' + escapeHtml(track[f.key]) + '</span></div>';
+                }
+            });
+            if (hasAny) {
+                creditsEl.innerHTML = '<h5>Credits</h5>' + creditsHtml;
+                creditsEl.classList.add('has-credits');
+            } else {
+                creditsEl.innerHTML = '';
+                creditsEl.classList.remove('has-credits');
+            }
+
+            // Play/pause icon
+            updateFsPlayIcon();
+
+            // Shuffle/Repeat state
+            document.getElementById('fsShuffleBtn').classList.toggle('active-mode', shuffleOn);
+            document.getElementById('fsRepeatBtn').classList.toggle('active-mode', repeatOn);
+
+            // Volume
+            document.getElementById('fsVolFill').style.width = currentVol + '%';
+            document.getElementById('fsVolDot').style.left = currentVol + '%';
+
+            // Progress
+            if (audio.duration) {
+                var pct = (audio.currentTime / audio.duration) * 100;
+                document.getElementById('fsTimeFill').style.width = pct + '%';
+                document.getElementById('fsCurrentTime').textContent = formatTime(audio.currentTime);
+                document.getElementById('fsDuration').textContent = formatTime(audio.duration);
+            }
+        }
+
+        // Close button
+        document.getElementById('fsCloseBtn').addEventListener('click', closeFullScreenPlayer);
+
+        // Click on now-playing bar to open (but NOT on buttons/sliders/progress)
+        document.getElementById('nowPlayingBar').addEventListener('click', function(e) {
+            if (e.target.closest('button, .npb-vol-slider, .npb-progress, .npb-time-bar, svg, .npb-vol-icon')) return;
+            if (currentIndex >= 0) openFullScreenPlayer();
+        });
+
+        // FS Controls
+        document.getElementById('fsPlayBtn').addEventListener('click', function() { togglePlay(); });
+        document.getElementById('fsNextBtn').addEventListener('click', function() {
+            nextTrack();
+            setTimeout(syncFullScreenPlayer, 100);
+        });
+        document.getElementById('fsPrevBtn').addEventListener('click', function() {
+            prevTrack();
+            setTimeout(syncFullScreenPlayer, 100);
+        });
+        document.getElementById('fsShuffleBtn').addEventListener('click', function() {
+            toggleShuffle();
+            document.getElementById('fsShuffleBtn').classList.toggle('active-mode', shuffleOn);
+        });
+        document.getElementById('fsRepeatBtn').addEventListener('click', function() {
+            toggleRepeat();
+            document.getElementById('fsRepeatBtn').classList.toggle('active-mode', repeatOn);
+        });
+
+        // FS Seek
+        document.getElementById('fsTimeBar').addEventListener('click', function(e) {
+            seekFromBar(e, this);
+        });
+
+        // FS Mute toggle
+        document.getElementById('fsVolIcon').addEventListener('click', function() {
+            toggleMute();
+            document.getElementById('fsVolFill').style.width = currentVol + '%';
+            document.getElementById('fsVolDot').style.left = currentVol + '%';
+        });
+
+        // FS Volume slider
+        var fsVolSlider = document.getElementById('fsVolSlider');
+        var fsVolDragging = false;
+        function fsVolFromEvent(e) {
+            var rect = fsVolSlider.getBoundingClientRect();
+            var pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+            setVolume(pct);
+            document.getElementById('fsVolFill').style.width = currentVol + '%';
+            document.getElementById('fsVolDot').style.left = currentVol + '%';
+        }
+        fsVolSlider.addEventListener('mousedown', function(e) {
+            fsVolDragging = true; fsVolFromEvent(e); e.preventDefault();
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (fsVolDragging) fsVolFromEvent(e);
+        });
+        document.addEventListener('mouseup', function() {
+            if (fsVolDragging) fsVolDragging = false;
+        });
+        fsVolSlider.addEventListener('touchstart', function(e) {
+            fsVolDragging = true; fsVolFromEvent(e.touches[0]); e.preventDefault();
+        }, { passive: false });
+        document.addEventListener('touchmove', function(e) {
+            if (fsVolDragging) fsVolFromEvent(e.touches[0]);
+        });
+        document.addEventListener('touchend', function() {
+            if (fsVolDragging) fsVolDragging = false;
+        });
+
+        // Escape to close
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && fsOpen) closeFullScreenPlayer();
+        });
+
+        // Swipe down to close on mobile
+        (function() {
+            var startY = 0;
+            var fsContent = document.querySelector('.fs-player-content');
+            fsContent.addEventListener('touchstart', function(e) {
+                startY = e.touches[0].clientY;
+            }, { passive: true });
+            fsContent.addEventListener('touchend', function(e) {
+                var dy = e.changedTouches[0].clientY - startY;
+                if (dy > 80) closeFullScreenPlayer();
+            }, { passive: true });
         })();
     </script>
 </body>

@@ -77,17 +77,20 @@ router.post('/music', async (req, res) => {
     const db = req.app.locals.db;
     const creatorId = getCreatorId(req);
     if (!creatorId) return res.status(401).json({ error: 'Not authenticated' });
-    const { title, artist, lyrics, audio_url, artwork_url, file_size, format } = req.body;
+    const { title, artist, lyrics, audio_url, artwork_url, file_size, format,
+            credits_producer, credits_writer, credits_engineer, credits_mixer, credits_master } = req.body;
 
     if (!title || !artist || !audio_url) {
       return res.status(400).json({ error: 'Title, artist, and audio URL are required' });
     }
 
     const result = await db.query(
-      `INSERT INTO songs (creator_id, title, artist, lyrics, audio_url, artwork_url, file_size, format)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO songs (creator_id, title, artist, lyrics, audio_url, artwork_url, file_size, format,
+                          credits_producer, credits_writer, credits_engineer, credits_mixer, credits_master)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING *`,
-      [creatorId, title, artist, lyrics || null, audio_url, artwork_url || null, file_size || 0, format || 'mp3']
+      [creatorId, title, artist, lyrics || null, audio_url, artwork_url || null, file_size || 0, format || 'mp3',
+       credits_producer || null, credits_writer || null, credits_engineer || null, credits_mixer || null, credits_master || null]
     );
 
     const song = result.rows[0];

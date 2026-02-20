@@ -117,6 +117,16 @@ pool.query('SELECT NOW()')
     `);
   })
   .then(() => console.log('Account status columns ready'))
+  .then(() => {
+    return pool.query(`
+      DO $$ BEGIN ALTER TABLE songs ADD COLUMN credits_producer VARCHAR(255); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE songs ADD COLUMN credits_writer VARCHAR(255); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE songs ADD COLUMN credits_engineer VARCHAR(255); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE songs ADD COLUMN credits_mixer VARCHAR(255); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE songs ADD COLUMN credits_master VARCHAR(255); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+    `);
+  })
+  .then(() => console.log('Production credits columns ready'))
   .catch(err => console.error('Database setup error:', err.message));
 
 // Make db available to routes
