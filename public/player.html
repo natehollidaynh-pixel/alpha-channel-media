@@ -210,6 +210,12 @@
         .search-result-song .sr-info { min-width: 0; }
         .search-result-song .sr-info h4 { font-size: 0.95rem; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .search-result-song .sr-info p { font-size: 0.8rem; color: var(--text-secondary); }
+        .sr-artist-link {
+            color: var(--green); font-weight: 600; cursor: pointer;
+            text-decoration: underline; text-decoration-style: dotted;
+            text-underline-offset: 2px; transition: text-decoration-style 0.15s;
+        }
+        .sr-artist-link:hover { text-decoration-style: solid; }
 
         /* Main player layout */
         .player-app { display: none; min-height: 100vh; padding-bottom: 160px; position: relative; z-index: 1; }
@@ -351,8 +357,8 @@
         .npb-time-bar:hover .npb-time-fill::after { opacity: 1; }
         .npb-right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
         .npb-vol-slider {
-            position: relative; width: 100px; height: 20px; cursor: pointer;
-            display: flex; align-items: center;
+            position: relative; width: 100px; height: 36px; cursor: pointer;
+            display: flex; align-items: center; touch-action: none;
         }
         .npb-vol-track {
             position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
@@ -523,22 +529,22 @@
         }
         .fs-vol-icon { width: 20px; height: 20px; fill: var(--text-secondary); cursor: pointer; }
         .fs-vol-slider {
-            position: relative; width: 160px; height: 20px; cursor: pointer;
-            display: flex; align-items: center;
+            position: relative; width: 160px; height: 44px; cursor: pointer;
+            display: flex; align-items: center; touch-action: none;
         }
         .fs-vol-track {
             position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
-            height: 4px; background: var(--border); border-radius: 2px;
+            height: 6px; background: var(--border); border-radius: 3px;
         }
         .fs-vol-fill {
-            height: 100%; background: var(--green); border-radius: 2px;
+            height: 100%; background: var(--green); border-radius: 3px;
             width: 80%; transition: width 0.05s linear;
         }
         .fs-vol-dot {
             position: absolute; top: 50%; transform: translate(-50%, -50%);
-            width: 14px; height: 14px; border-radius: 50%;
+            width: 20px; height: 20px; border-radius: 50%;
             background: var(--green); left: 80%;
-            box-shadow: 0 0 6px rgba(0,0,0,0.15); pointer-events: none;
+            box-shadow: 0 0 8px rgba(0,0,0,0.2); pointer-events: none;
         }
         .npb-left { cursor: pointer; }
         @media (max-width: 480px) {
@@ -1134,8 +1140,12 @@
                             : '<svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:var(--text-secondary);opacity:0.4"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
                         row.innerHTML =
                             '<div class="sr-art">' + artHtml + '</div>' +
-                            '<div class="sr-info"><h4>' + escapeHtml(s.title) + '</h4><p>' + escapeHtml(s.artist) + ' &middot; ' + escapeHtml(s.creator_artist_name || '') + '</p></div>';
+                            '<div class="sr-info"><h4>' + escapeHtml(s.title) + '</h4><p>by <span class="sr-artist-link">' + escapeHtml(s.creator_artist_name || s.artist) + '</span></p></div>';
                         resultsEl.appendChild(row);
+                        row.querySelector('.sr-artist-link').addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            openCreatorProfile(s.creator_id);
+                        });
                     });
                 }
 
@@ -1512,8 +1522,8 @@
             e.preventDefault();
         }, { passive: false });
         document.addEventListener('touchmove', function(e) {
-            if (volDragging) volFromEvent(e.touches[0]);
-        });
+            if (volDragging) { volFromEvent(e.touches[0]); e.preventDefault(); }
+        }, { passive: false });
         document.addEventListener('touchend', function() {
             if (volDragging) { volDragging = false; volSlider.classList.remove('dragging'); }
         });
@@ -1753,8 +1763,8 @@
             fsVolDragging = true; fsVolFromEvent(e.touches[0]); e.preventDefault();
         }, { passive: false });
         document.addEventListener('touchmove', function(e) {
-            if (fsVolDragging) fsVolFromEvent(e.touches[0]);
-        });
+            if (fsVolDragging) { fsVolFromEvent(e.touches[0]); e.preventDefault(); }
+        }, { passive: false });
         document.addEventListener('touchend', function() {
             if (fsVolDragging) fsVolDragging = false;
         });
