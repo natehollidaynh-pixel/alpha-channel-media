@@ -87,11 +87,12 @@
         textarea { resize: vertical; min-height: 100px; }
         .name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .submit-btn {
-            width: 100%; padding: 16px; background: var(--green); color: white; border: none;
+            width: 100%; padding: 16px; background: var(--green-glow); color: var(--green); border: 1px solid var(--green);
             border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer;
             transition: all 0.3s; margin-top: 12px;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
         }
-        .submit-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .submit-btn:hover { box-shadow: 0 0 20px var(--green-glow); transform: translateY(-2px); }
         .success-message {
             display: none; background: var(--green-glow); border: 1px solid var(--green);
             color: var(--green); padding: 16px; border-radius: 12px; margin-bottom: 24px; font-weight: 500;

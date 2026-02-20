@@ -72,9 +72,11 @@
         }
         .login-box input:focus { outline: none; border-color: var(--green); }
         .login-box button {
-            width: 100%; padding: 14px; background: var(--green); color: white; border: none;
+            width: 100%; padding: 14px; background: var(--green-glow); color: var(--green); border: 1px solid var(--green);
             border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: all 0.3s;
         }
+        .login-box button:hover { box-shadow: 0 0 20px var(--green-glow); }
         .header {
             position: relative; z-index: 1; max-width: 1400px; margin: 0 auto 40px; padding: 20px;
             background: var(--surface); backdrop-filter: blur(25px); border-radius: 20px;
@@ -107,10 +109,16 @@
             font-weight: 500; margin-right: 8px; font-size: 0.85rem; transition: opacity 0.2s;
         }
         .btn:hover { opacity: 0.8; }
-        .btn-approve { background: var(--green); color: white; }
-        .btn-deny { background: var(--red); color: white; }
-        .btn-pin { background: #1565c0; color: white; }
-        .btn-delete { background: #333; color: white; }
+        .btn-approve { background: var(--green-glow); color: var(--green); border: 1px solid var(--green); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .btn-approve:hover { box-shadow: 0 0 20px var(--green-glow); }
+        .btn-deny { background: var(--red-glow); color: var(--red); border: 1px solid var(--red); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .btn-deny:hover { box-shadow: 0 0 20px var(--red-glow); }
+        .btn-pin { background: rgba(21,101,192,0.15); color: #1565c0; border: 1px solid #1565c0; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .btn-pin:hover { box-shadow: 0 0 20px rgba(21,101,192,0.15); }
+        [data-theme="dark"] .btn-pin { background: rgba(66,165,245,0.15); color: #42a5f5; border-color: #42a5f5; }
+        [data-theme="dark"] .btn-pin:hover { box-shadow: 0 0 20px rgba(66,165,245,0.15); }
+        .btn-delete { background: var(--surface); color: var(--text); border: 1px solid var(--border); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .btn-delete:hover { box-shadow: 0 0 20px var(--surface); }
         .hidden { display: none; }
         .status-badge {
             display: inline-block; padding: 3px 10px; border-radius: 10px;
@@ -133,13 +141,17 @@
         }
         .pin-warning { color: var(--red); font-size: 0.85rem; margin-bottom: 24px; }
         .pin-done-btn {
-            padding: 12px 32px; background: var(--green); color: white; border: none;
+            padding: 12px 32px; background: var(--green-glow); color: var(--green); border: 1px solid var(--green);
             border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: all 0.3s;
         }
+        .pin-done-btn:hover { box-shadow: 0 0 20px var(--green-glow); }
         .logout-btn {
-            padding: 10px 20px; background: var(--red); color: white; border: none;
+            padding: 10px 20px; background: var(--red-glow); color: var(--red); border: 1px solid var(--red);
             border-radius: 8px; cursor: pointer; font-weight: 500;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: all 0.3s;
         }
+        .logout-btn:hover { box-shadow: 0 0 20px var(--red-glow); }
         /* Detail modal */
         .detail-modal {
             position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000;

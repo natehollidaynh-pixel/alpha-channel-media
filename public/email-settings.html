@@ -86,11 +86,12 @@
         }
         @media (max-width: 480px) { .profile-row { grid-template-columns: 1fr; } }
         .profile-save-btn {
-            width: 100%; padding: 14px; background: var(--green); color: white; border: none;
+            width: 100%; padding: 14px; background: var(--green-glow); color: var(--green); border: 1px solid var(--green);
             border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
             margin-top: 8px; transition: all 0.3s;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
         }
-        .profile-save-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .profile-save-btn:hover { box-shadow: 0 0 20px var(--green-glow); transform: translateY(-2px); }
         .profile-save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .section-divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
         .pw-toggle-btn {
@@ -166,11 +167,12 @@
         }
 
         .save-btn {
-            width: 100%; padding: 16px; background: var(--green); color: white; border: none;
+            width: 100%; padding: 16px; background: var(--green-glow); color: var(--green); border: 1px solid var(--green);
             border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer;
             margin-top: 24px; transition: all 0.3s;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
         }
-        .save-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .save-btn:hover { box-shadow: 0 0 20px var(--green-glow); transform: translateY(-2px); }
         .save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .status-msg {
             text-align: center; margin-top: 12px; font-size: 0.9rem; display: none;
@@ -183,9 +185,13 @@
         }
         .login-prompt p { color: var(--text-secondary); margin-bottom: 20px; }
         .login-prompt a {
-            display: inline-block; padding: 14px 32px; background: var(--green); color: white;
+            display: inline-block; padding: 14px 32px; background: var(--green-glow); color: var(--green);
             text-decoration: none; border-radius: 12px; font-weight: 600;
+            border: 1px solid var(--green);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            transition: all 0.3s;
         }
+        .login-prompt a:hover { box-shadow: 0 0 20px var(--green-glow); transform: translateY(-2px); }
 
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-solid);
@@ -283,7 +289,7 @@
                             <label>Confirm New Password</label>
                             <input type="password" id="confirmNewPassword" placeholder="Confirm new password">
                         </div>
-                        <button class="profile-save-btn" id="pwSaveBtn" onclick="changePassword()" style="background: var(--red);">Update Password</button>
+                        <button class="profile-save-btn" id="pwSaveBtn" onclick="changePassword()" style="background: var(--red-glow); color: var(--red); border-color: var(--red);">Update Password</button>
                         <div class="status-msg" id="pwStatus"></div>
                     </div>
                 </div>

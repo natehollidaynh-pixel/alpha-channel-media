@@ -403,11 +403,13 @@
             font-family: 'Inter', sans-serif;
         }
         .tour-btn-primary {
-            background: linear-gradient(135deg, var(--green), var(--green-light));
-            color: white;
-            box-shadow: 0 4px 16px var(--green-glow);
+            background: var(--green-glow);
+            color: var(--green);
+            border: 1px solid var(--green);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            box-shadow: none;
         }
-        .tour-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--green-glow); }
+        .tour-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 20px var(--green-glow); }
         .tour-btn-secondary {
             background: var(--surface);
             color: var(--text-secondary);
