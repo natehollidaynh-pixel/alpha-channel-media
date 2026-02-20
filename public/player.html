@@ -103,31 +103,121 @@
         [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
         [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
 
-        /* Gate */
-        .gate-container {
-            display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;
+        /* Browse / Discovery View */
+        .browse-view {
             position: relative; z-index: 1;
+            min-height: 100vh; padding: 0 0 160px 0;
         }
-        .gate-box {
-            max-width: 440px; width: 100%; background: var(--surface); backdrop-filter: blur(25px);
-            border-radius: 24px; border: 1px solid var(--panel-border); box-shadow: var(--panel-glow);
-            padding: 48px 36px; text-align: center;
+        .browse-header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
         }
-        .gate-icon { margin-bottom: 20px; }
-        .gate-icon svg { width: 56px; height: 56px; fill: var(--green); opacity: 0.7; }
-        .gate-box h2 { margin-bottom: 8px; color: var(--text); font-size: 1.5rem; }
-        .gate-box p { color: var(--text-secondary); margin-bottom: 28px; font-size: 0.95rem; }
-        .gate-input {
-            width: 100%; padding: 16px; border: 1px solid var(--border); border-radius: 12px;
-            margin-bottom: 16px; font-size: 1.8rem; text-align: center; letter-spacing: 10px;
-            font-family: monospace; background: var(--input-bg); color: var(--text); font-weight: 600;
+        [data-theme="dark"] .browse-header { background: rgba(10,10,10,0.85); }
+        .browse-header-left { display: flex; align-items: center; gap: 12px; }
+        .browse-header-left h1 { font-size: 1.2rem; font-weight: 700; color: var(--text); }
+        .browse-header-right { display: flex; align-items: center; gap: 16px; }
+        .browse-header-right a { color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.9rem; }
+        .browse-header-right a:hover { color: var(--green); }
+
+        .search-container {
+            max-width: 600px; margin: 24px auto 0; padding: 0 20px;
         }
-        .gate-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
-        .gate-btn {
-            width: 100%; padding: 16px; background: var(--green); color: white; border: none;
-            border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: opacity 0.2s;
+        .search-box {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 12px 16px;
+            backdrop-filter: blur(15px); transition: all 0.3s;
         }
-        .gate-btn:hover { opacity: 0.85; }
+        .search-box:focus-within { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+        .search-box svg { width: 20px; height: 20px; fill: var(--text-secondary); flex-shrink: 0; }
+        .search-box input {
+            flex: 1; border: none; background: transparent; font-size: 1rem;
+            color: var(--text); font-family: 'Inter', sans-serif; outline: none;
+        }
+        .search-box input::placeholder { color: var(--text-secondary); opacity: 0.6; }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem; font-weight: 700; color: var(--text);
+            padding: 32px 20px 16px; max-width: 900px; margin: 0 auto;
+        }
+
+        /* Creator Cards Grid */
+        .creators-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px; max-width: 900px; margin: 0 auto; padding: 0 20px;
+        }
+        .creator-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 20px 16px; text-align: center;
+            cursor: pointer; transition: all 0.25s; backdrop-filter: blur(15px);
+        }
+        .creator-card:hover { transform: translateY(-4px); box-shadow: var(--panel-glow); border-color: var(--green); }
+        .creator-card-photo {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--green-glow), var(--red-glow));
+            margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; font-size: 2rem; font-weight: 700; color: var(--green);
+        }
+        .creator-card-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .creator-card h4 { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .creator-card p { font-size: 0.8rem; color: var(--text-secondary); }
+
+        /* Creator Profile View */
+        .profile-view { display: none; max-width: 900px; margin: 0 auto; padding: 0 20px 24px; }
+        .profile-view.active { display: block; }
+        .profile-back {
+            display: inline-flex; align-items: center; gap: 6px; padding: 10px 0;
+            color: var(--text-secondary); font-size: 0.9rem; cursor: pointer;
+            background: none; border: none; font-family: 'Inter', sans-serif;
+        }
+        .profile-back:hover { color: var(--green); }
+        .profile-back svg { width: 18px; height: 18px; fill: currentColor; }
+        .profile-header {
+            display: flex; align-items: center; gap: 24px; padding: 16px 0 24px;
+        }
+        .profile-photo {
+            width: 120px; height: 120px; border-radius: 50%; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--green-glow), var(--red-glow));
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; font-size: 3rem; font-weight: 700; color: var(--green);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+        .profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-info { flex: 1; min-width: 0; }
+        .profile-info h2 { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+        .profile-info .profile-bio { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px; line-height: 1.4; }
+        .profile-info .profile-stats { font-size: 0.85rem; color: var(--text-secondary); }
+        .subscribe-btn {
+            display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px;
+            border-radius: 20px; font-weight: 600; font-size: 0.9rem;
+            cursor: pointer; transition: all 0.2s; border: 2px solid var(--green);
+            margin-top: 8px;
+        }
+        .subscribe-btn.subscribed { background: transparent; color: var(--green); }
+        .subscribe-btn:not(.subscribed) { background: var(--green); color: white; }
+        .subscribe-btn:hover { opacity: 0.85; transform: scale(1.02); }
+
+        /* Search Results */
+        .search-results { max-width: 900px; margin: 0 auto; padding: 0 20px; display: none; }
+        .search-results.active { display: block; }
+        .search-result-song {
+            display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+            border-radius: 10px; cursor: pointer; transition: background 0.15s;
+        }
+        .search-result-song:hover { background: var(--track-hover); }
+        .search-result-song .sr-art {
+            width: 44px; height: 44px; border-radius: 8px; flex-shrink: 0;
+            background: var(--green-glow); display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .search-result-song .sr-art img { width: 100%; height: 100%; object-fit: cover; }
+        .search-result-song .sr-info { min-width: 0; }
+        .search-result-song .sr-info h4 { font-size: 0.95rem; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .search-result-song .sr-info p { font-size: 0.8rem; color: var(--text-secondary); }
 
         /* Main player layout */
         .player-app { display: none; min-height: 100vh; padding-bottom: 160px; position: relative; z-index: 1; }
@@ -182,11 +272,7 @@
         }
         .play-all-btn:hover { opacity: 0.85; transform: scale(1.02); }
         .play-all-btn svg { width: 20px; height: 20px; fill: white; }
-        .change-key-link {
-            display: inline-block; margin-top: 8px; color: var(--text-secondary);
-            text-decoration: none; font-size: 0.85rem;
-        }
-        .change-key-link:hover { color: var(--green); }
+        .change-key-link { display: none; }
 
         /* Track list */
         .track-list-container { max-width: 900px; margin: 0 auto; padding: 0 20px 24px; }
@@ -299,67 +385,7 @@
         }
         .npb-vol-icon { width: 18px; height: 18px; fill: var(--text-secondary); cursor: pointer; }
 
-        /* Creator Selector Overlay */
-        .creator-selector-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000;
-            display: none; align-items: center; justify-content: center; padding: 20px;
-        }
-        .creator-selector-overlay.active { display: flex; }
-        .creator-selector-box {
-            background: var(--surface-solid); border-radius: 24px; padding: 40px 32px;
-            max-width: 480px; width: 100%; max-height: 80vh; overflow-y: auto;
-            box-shadow: var(--panel-glow);
-        }
-        .cs-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; color: var(--text); text-align: center; }
-        .cs-desc { color: var(--text-secondary); margin-bottom: 24px; font-size: 0.9rem; text-align: center; }
-        .cs-list { display: flex; flex-direction: column; gap: 10px; }
-        .cs-card {
-            display: flex; align-items: center; gap: 14px; padding: 14px 16px;
-            border-radius: 14px; border: 1px solid var(--border); cursor: pointer;
-            background: var(--input-bg); transition: all 0.2s;
-        }
-        .cs-card:hover { border-color: var(--green); background: var(--track-hover); transform: translateY(-1px); }
-        .cs-card-icon {
-            width: 44px; height: 44px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--green-glow), var(--red-glow));
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
-        .cs-card-icon svg { width: 22px; height: 22px; fill: var(--green); }
-        .cs-card-info h4 { font-size: 0.95rem; font-weight: 600; color: var(--text); }
-        .cs-card-info p { font-size: 0.8rem; color: var(--text-secondary); }
-        .cs-add-card {
-            display: flex; align-items: center; gap: 14px; padding: 14px 16px;
-            border-radius: 14px; border: 1px dashed var(--border); cursor: pointer;
-            background: transparent; transition: all 0.2s;
-        }
-        .cs-add-card:hover { border-color: var(--green); background: var(--track-hover); }
-        .cs-add-icon {
-            width: 44px; height: 44px; border-radius: 50%;
-            border: 2px dashed var(--border); display: flex; align-items: center;
-            justify-content: center; flex-shrink: 0;
-        }
-        .cs-add-icon svg { width: 22px; height: 22px; fill: var(--text-secondary); }
-        .cs-add-card span { color: var(--text-secondary); font-weight: 500; font-size: 0.95rem; }
-
-        /* Add Creator sub-view inside selector */
-        .cs-add-form { display: none; margin-top: 20px; }
-        .cs-add-form.active { display: block; }
-        .cs-add-input {
-            width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px;
-            font-size: 1.4rem; text-align: center; letter-spacing: 6px; font-family: monospace;
-            background: var(--input-bg); color: var(--text); margin-bottom: 12px;
-        }
-        .cs-add-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
-        .cs-add-btn {
-            width: 100%; padding: 14px; background: var(--green); color: white; border: none;
-            border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: opacity 0.2s;
-        }
-        .cs-add-btn:hover { opacity: 0.85; }
-        .cs-add-error { color: var(--red); font-size: 0.85rem; margin-top: 8px; display: none; text-align: center; }
-        .cs-close {
-            display: block; margin-top: 16px; text-align: center; color: var(--text-secondary);
-            text-decoration: none; font-size: 0.9rem; cursor: pointer;
-        }
+        /* No longer using creator selector overlay */
 
         /* Empty state */
         .empty-tracks { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
@@ -367,6 +393,11 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            .creators-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+            .profile-header { flex-direction: column; text-align: center; gap: 16px; }
+            .profile-photo { width: 100px; height: 100px; }
+            .profile-info h2 { font-size: 1.5rem; }
+            .browse-header-right { display: none; }
             .player-header-left { margin-left: 48px; }
             .player-header-right { margin-right: 48px; }
             .hero-inner { flex-direction: column; align-items: center; text-align: center; gap: 24px; }
@@ -537,39 +568,65 @@
         <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
 
-    <!-- GATE -->
-    <div class="gate-container" id="accessGate">
-        <div class="gate-box">
-            <div class="gate-icon">
-                <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+    <!-- BROWSE VIEW (Top Creators + Search — default landing) -->
+    <div class="browse-view" id="browseView">
+        <div class="browse-header">
+            <div class="browse-header-left">
+                <h1 class="shimmer-text">Alpha Channel Media</h1>
             </div>
-            <h2 class="shimmer-text">Enter Listener Key</h2>
-            <p>Enter a creator's 4-digit key to listen to their music.</p>
-            <form id="accessForm">
-                <input type="text" id="listenerKeyInput" class="gate-input" placeholder="0000" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
-                <button type="submit" class="gate-btn">Unlock Music</button>
-            </form>
-            <div id="accessError" style="color:var(--red); margin-top:12px; display:none;"></div>
+            <div class="browse-header-right">
+                <a href="videos.html">Videos</a>
+                <a href="email-settings.html">Settings</a>
+                <a href="#" onclick="logout(); return false;">Logout</a>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <div class="search-box">
+                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="searchInput" placeholder="Search creators or songs..." autocomplete="off">
+            </div>
+        </div>
+
+        <!-- Search Results (hidden by default) -->
+        <div class="search-results" id="searchResults"></div>
+
+        <!-- Top Creators Grid -->
+        <div id="topCreatorsSection">
+            <h2 class="section-title">Top Creators</h2>
+            <div class="creators-grid" id="topCreatorsGrid"></div>
+        </div>
+
+        <!-- Creator Profile View (hidden by default) -->
+        <div class="profile-view" id="profileView">
+            <button class="profile-back" onclick="showBrowse()">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                Back to Creators
+            </button>
+            <div class="profile-header">
+                <div class="profile-photo" id="profilePhoto"></div>
+                <div class="profile-info">
+                    <h2 id="profileName"></h2>
+                    <div class="profile-bio" id="profileBio"></div>
+                    <div class="profile-stats" id="profileStats"></div>
+                    <button class="subscribe-btn" id="subscribeBtn" onclick="toggleSubscribe()">Subscribe</button>
+                </div>
+            </div>
+            <h3 class="section-title" style="padding-left:0;">Songs</h3>
+            <div class="track-table">
+                <div class="track-table-header">
+                    <span>#</span>
+                    <span></span>
+                    <span>Title</span>
+                    <span style="text-align:right;">Duration</span>
+                </div>
+                <div id="profileTracksList"></div>
+            </div>
         </div>
     </div>
 
-    <!-- CREATOR SELECTOR OVERLAY -->
-    <div class="creator-selector-overlay" id="creatorSelector">
-        <div class="creator-selector-box">
-            <div class="cs-title">Your Creators</div>
-            <div class="cs-desc">Choose a creator to listen to their music</div>
-            <div class="cs-list" id="creatorList"></div>
-            <div class="cs-add-form" id="csAddForm">
-                <input type="text" class="cs-add-input" id="csAddKeyInput" placeholder="0000" inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
-                <button class="cs-add-btn" onclick="addCreatorByKey()">Unlock Creator</button>
-                <div class="cs-add-error" id="csAddError"></div>
-            </div>
-            <a class="cs-close" id="csCloseBtn" onclick="closeCreatorSelector()">Cancel</a>
-        </div>
-    </div>
-
-    <!-- PLAYER APP -->
-    <div class="player-app" id="playerApp">
+    <!-- PLAYER APP (used when playing a specific creator's songs — now also works as song list backdrop) -->
+    <div class="player-app" id="playerApp" style="display:none;">
         <div class="player-header">
             <div class="player-header-left">
                 <h1 id="headerTitle" class="shimmer-text">Alpha Channel Media</h1>
@@ -577,7 +634,6 @@
             <div class="player-header-right">
                 <a href="videos.html">Videos</a>
                 <a href="email-settings.html">Settings</a>
-                <a href="#" onclick="showCreatorSelector(); return false;" id="switchCreatorLink">Switch Creator</a>
                 <a href="#" onclick="logout(); return false;">Logout</a>
             </div>
         </div>
@@ -597,8 +653,6 @@
                         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         Play All
                     </button>
-                    <br>
-                    <a href="#" onclick="showCreatorSelector(); return false;" class="change-key-link">Switch Creator</a>
                 </div>
             </div>
         </div>
@@ -730,10 +784,6 @@
         function logout() {
             localStorage.removeItem('authToken');
             sessionStorage.removeItem('authToken');
-            localStorage.removeItem('unlockedCreators');
-            localStorage.removeItem('currentCreatorId');
-            localStorage.removeItem('currentCreatorName');
-            localStorage.removeItem('listenerKey');
             window.location.href = 'login.html';
         }
 
@@ -744,7 +794,224 @@
         var shuffleOn = false;
         var repeatOn = false;
         var currentCreatorId = null;
-        var unlockedCreators = []; // server-side persistent list
+        var currentProfileCreatorId = null;
+        var isSubscribedToProfile = false;
+
+        // ===== BROWSE / TOP CREATORS / SEARCH =====
+        (async function init() {
+            var token = getAuthToken();
+            if (!token) { window.location.href = 'welcome.html'; return; }
+            loadTopCreators();
+        })();
+
+        var searchTimeout = null;
+        document.getElementById('searchInput').addEventListener('input', function() {
+            var q = this.value.trim();
+            clearTimeout(searchTimeout);
+            if (!q) {
+                document.getElementById('searchResults').classList.remove('active');
+                document.getElementById('topCreatorsSection').style.display = '';
+                document.getElementById('profileView').classList.remove('active');
+                return;
+            }
+            searchTimeout = setTimeout(function() { performSearch(q); }, 300);
+        });
+
+        async function loadTopCreators() {
+            try {
+                var resp = await fetch(API + '/api/creators-public/top?limit=20');
+                var data = await resp.json();
+                var grid = document.getElementById('topCreatorsGrid');
+                grid.innerHTML = '';
+                if (!data.creators || data.creators.length === 0) {
+                    grid.innerHTML = '<p style="color:var(--text-secondary);padding:20px;text-align:center;">No creators yet. Be the first!</p>';
+                    return;
+                }
+                data.creators.forEach(function(c) {
+                    var card = document.createElement('div');
+                    card.className = 'creator-card';
+                    card.onclick = function() { openCreatorProfile(c.id); };
+                    var photoHtml = c.profile_photo
+                        ? '<img src="' + c.profile_photo + '">'
+                        : escapeHtml((c.artist_name || c.username || '?').charAt(0).toUpperCase());
+                    card.innerHTML =
+                        '<div class="creator-card-photo">' + photoHtml + '</div>' +
+                        '<h4>' + escapeHtml(c.artist_name || c.username) + '</h4>' +
+                        '<p>' + (parseInt(c.subscriber_count) || 0) + ' subscriber' + ((parseInt(c.subscriber_count) || 0) !== 1 ? 's' : '') + '</p>';
+                    grid.appendChild(card);
+                });
+            } catch (err) {
+                console.error('Failed to load top creators:', err);
+            }
+        }
+
+        async function performSearch(q) {
+            try {
+                var resp = await fetch(API + '/api/search?q=' + encodeURIComponent(q));
+                var data = await resp.json();
+
+                document.getElementById('topCreatorsSection').style.display = 'none';
+                document.getElementById('profileView').classList.remove('active');
+                var resultsEl = document.getElementById('searchResults');
+                resultsEl.innerHTML = '';
+                resultsEl.classList.add('active');
+
+                // Creators
+                if (data.creators && data.creators.length > 0) {
+                    resultsEl.innerHTML += '<h2 class="section-title" style="padding-left:0;">Creators</h2>';
+                    var crGrid = document.createElement('div');
+                    crGrid.className = 'creators-grid';
+                    data.creators.forEach(function(c) {
+                        var card = document.createElement('div');
+                        card.className = 'creator-card';
+                        card.onclick = function() { openCreatorProfile(c.id); };
+                        var photoHtml = c.profile_photo
+                            ? '<img src="' + c.profile_photo + '">'
+                            : escapeHtml((c.artist_name || c.username || '?').charAt(0).toUpperCase());
+                        card.innerHTML =
+                            '<div class="creator-card-photo">' + photoHtml + '</div>' +
+                            '<h4>' + escapeHtml(c.artist_name || c.username) + '</h4>' +
+                            '<p>' + (parseInt(c.subscriber_count) || 0) + ' subscribers</p>';
+                        crGrid.appendChild(card);
+                    });
+                    resultsEl.appendChild(crGrid);
+                }
+
+                // Songs
+                if (data.songs && data.songs.length > 0) {
+                    resultsEl.innerHTML += '<h2 class="section-title" style="padding-left:0;">Songs</h2>';
+                    data.songs.forEach(function(s) {
+                        var row = document.createElement('div');
+                        row.className = 'search-result-song';
+                        row.onclick = function() { playSingleSong(s); };
+                        var artHtml = s.artwork_url
+                            ? '<img src="' + s.artwork_url + '">'
+                            : '<svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:var(--text-secondary);opacity:0.4"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+                        row.innerHTML =
+                            '<div class="sr-art">' + artHtml + '</div>' +
+                            '<div class="sr-info"><h4>' + escapeHtml(s.title) + '</h4><p>' + escapeHtml(s.artist) + ' &middot; ' + escapeHtml(s.creator_artist_name || '') + '</p></div>';
+                        resultsEl.appendChild(row);
+                    });
+                }
+
+                if ((!data.creators || data.creators.length === 0) && (!data.songs || data.songs.length === 0)) {
+                    resultsEl.innerHTML = '<p style="color:var(--text-secondary);padding:40px 0;text-align:center;">No results found</p>';
+                }
+            } catch (err) {
+                console.error('Search error:', err);
+            }
+        }
+
+        function playSingleSong(song) {
+            tracks = [song];
+            currentIndex = -1;
+            currentCreatorId = song.creator_id;
+            document.getElementById('nowPlayingBar').classList.add('active');
+            playTrack(0);
+        }
+
+        async function openCreatorProfile(creatorId) {
+            try {
+                var token = getAuthToken();
+                var headers = {};
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                var resp = await fetch(API + '/api/creators-public/' + creatorId + '/profile', { headers: headers });
+                var data = await resp.json();
+
+                currentProfileCreatorId = creatorId;
+                isSubscribedToProfile = data.isSubscribed;
+
+                // Hide top creators and search, show profile
+                document.getElementById('topCreatorsSection').style.display = 'none';
+                document.getElementById('searchResults').classList.remove('active');
+                var pv = document.getElementById('profileView');
+                pv.classList.add('active');
+
+                // Photo
+                var photoEl = document.getElementById('profilePhoto');
+                if (data.creator.profile_photo) {
+                    photoEl.innerHTML = '<img src="' + data.creator.profile_photo + '">';
+                } else {
+                    photoEl.textContent = (data.creator.artist_name || data.creator.username || '?').charAt(0).toUpperCase();
+                }
+
+                document.getElementById('profileName').textContent = data.creator.artist_name || data.creator.username;
+                document.getElementById('profileBio').textContent = data.creator.bio || '';
+                var subCount = parseInt(data.creator.subscriber_count) || 0;
+                document.getElementById('profileStats').textContent = subCount + ' subscriber' + (subCount !== 1 ? 's' : '') + ' \u00b7 ' + (data.songs ? data.songs.length : 0) + ' songs';
+
+                // Subscribe button
+                updateSubscribeBtn();
+
+                // Song list
+                var listEl = document.getElementById('profileTracksList');
+                if (!data.songs || data.songs.length === 0) {
+                    listEl.innerHTML = '<div class="empty-tracks"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg><p>No tracks uploaded yet.</p></div>';
+                    return;
+                }
+
+                // Store tracks for playback
+                tracks = data.songs;
+                currentCreatorId = creatorId;
+                listEl.innerHTML = '';
+                tracks.forEach(function(track, i) {
+                    var row = document.createElement('div');
+                    row.className = 'track-row' + (i === currentIndex ? ' active' : '');
+                    row.onclick = function() { playTrack(i); };
+                    var artHtml = track.artwork_url
+                        ? '<img src="' + track.artwork_url + '">'
+                        : '<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
+                    var descHtml = track.description ? '<p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(track.description) + '</p>' : '';
+                    row.innerHTML = '<div class="tr-num">' + (i + 1) + '</div>' +
+                        '<div class="tr-art">' + artHtml + '</div>' +
+                        '<div class="tr-info"><h4>' + escapeHtml(track.title) + '</h4><p>' + escapeHtml(track.artist) + '</p>' + descHtml + '</div>' +
+                        '<div class="tr-duration" id="dur-' + i + '">--:--</div>';
+                    listEl.appendChild(row);
+                });
+            } catch (err) {
+                console.error('Failed to load creator profile:', err);
+            }
+        }
+
+        function updateSubscribeBtn() {
+            var btn = document.getElementById('subscribeBtn');
+            if (isSubscribedToProfile) {
+                btn.className = 'subscribe-btn subscribed';
+                btn.textContent = 'Subscribed \u2713';
+            } else {
+                btn.className = 'subscribe-btn';
+                btn.textContent = 'Subscribe';
+            }
+        }
+
+        async function toggleSubscribe() {
+            var token = getAuthToken();
+            if (!token) return;
+            try {
+                if (isSubscribedToProfile) {
+                    await fetch(API + '/api/creators-public/' + currentProfileCreatorId + '/subscribe', {
+                        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    isSubscribedToProfile = false;
+                } else {
+                    await fetch(API + '/api/creators-public/' + currentProfileCreatorId + '/subscribe', {
+                        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    isSubscribedToProfile = true;
+                }
+                updateSubscribeBtn();
+            } catch (err) {
+                console.error('Subscribe toggle error:', err);
+            }
+        }
+
+        function showBrowse() {
+            document.getElementById('profileView').classList.remove('active');
+            document.getElementById('searchResults').classList.remove('active');
+            document.getElementById('topCreatorsSection').style.display = '';
+            document.getElementById('searchInput').value = '';
+        }
 
         // ===== ADAPTIVE COLOR EXTRACTION =====
         function extractColors(imgUrl) {
@@ -842,217 +1109,6 @@
             // Tint the hero art shadow
             var heroArt = document.getElementById('heroArt');
             heroArt.style.boxShadow = '0 16px 60px rgba(' + primary.join(',') + ',0.35), 0 8px 30px rgba(' + secondary.join(',') + ',0.2)';
-        }
-
-        // ===== INITIALIZATION — check for server-side access first =====
-        (async function initAccess() {
-            var token = getAuthToken();
-
-            // Try server-side: fetch unlocked creators if we have a JWT
-            if (token) {
-                try {
-                    var resp = await fetch(API + '/api/listeners/my-creators', {
-                        headers: { 'Authorization': 'Bearer ' + token }
-                    });
-                    if (resp.ok) {
-                        var data = await resp.json();
-                        if (data.creators && data.creators.length > 0) {
-                            unlockedCreators = data.creators;
-                            localStorage.setItem('unlockedCreators', JSON.stringify(unlockedCreators));
-
-                            if (unlockedCreators.length === 1) {
-                                // Single creator — auto-load
-                                selectCreator(unlockedCreators[0]);
-                                return;
-                            } else {
-                                // Multiple creators — check if we have a current selection
-                                var savedId = localStorage.getItem('currentCreatorId');
-                                var found = savedId && unlockedCreators.find(function(c) { return c.id === savedId; });
-                                if (found) {
-                                    selectCreator(found);
-                                    return;
-                                }
-                                // No saved selection — show selector
-                                showCreatorSelector();
-                                return;
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.log('Server access check failed, falling back to localStorage');
-                }
-            }
-
-            // Fallback: check localStorage (backwards compatible)
-            var storedCreators = localStorage.getItem('unlockedCreators');
-            if (storedCreators) {
-                try {
-                    unlockedCreators = JSON.parse(storedCreators);
-                    if (unlockedCreators.length > 0) {
-                        var savedId = localStorage.getItem('currentCreatorId');
-                        var found = savedId && unlockedCreators.find(function(c) { return c.id === savedId; });
-                        if (found) { selectCreator(found); return; }
-                        if (unlockedCreators.length === 1) { selectCreator(unlockedCreators[0]); return; }
-                        showCreatorSelector();
-                        return;
-                    }
-                } catch (e) {}
-            }
-
-            // Final fallback: check old listenerKey localStorage
-            var storedKey = localStorage.getItem('listenerKey');
-            if (storedKey) { validateAndLoad(storedKey); return; }
-
-            // No access at all — show gate
-            document.getElementById('accessGate').style.display = 'flex';
-        })();
-
-        function selectCreator(creator) {
-            currentCreatorId = creator.id;
-            localStorage.setItem('currentCreatorId', creator.id);
-            localStorage.setItem('currentCreatorName', creator.artist_name || creator.username);
-            document.getElementById('accessGate').style.display = 'none';
-            document.getElementById('creatorSelector').classList.remove('active');
-            document.getElementById('playerApp').classList.add('active');
-            var name = creator.artist_name || creator.first_name || creator.username;
-            document.getElementById('headerTitle').textContent = name;
-            document.getElementById('libraryTitle').textContent = name + "'s Music";
-            document.getElementById('libraryArtist').textContent = name;
-            loadTracks(currentCreatorId);
-        }
-
-        // ===== CREATOR SELECTOR =====
-        function showCreatorSelector() {
-            var list = document.getElementById('creatorList');
-            list.innerHTML = '';
-            document.getElementById('csAddForm').classList.remove('active');
-            document.getElementById('csAddError').style.display = 'none';
-
-            unlockedCreators.forEach(function(c) {
-                var card = document.createElement('div');
-                card.className = 'cs-card';
-                card.onclick = function() { selectCreator(c); };
-                var initial = (c.artist_name || c.username || '?').charAt(0).toUpperCase();
-                card.innerHTML = '<div class="cs-card-icon"><svg viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--green)">' + escapeHtml(initial) + '</text></svg></div>' +
-                    '<div class="cs-card-info"><h4>' + escapeHtml(c.artist_name || c.username) + '</h4><p>' + escapeHtml((c.first_name || '') + ' ' + (c.last_name || '')).trim() + '</p></div>';
-                list.appendChild(card);
-            });
-
-            // Add "Add Another Creator" card
-            var addCard = document.createElement('div');
-            addCard.className = 'cs-add-card';
-            addCard.onclick = function() {
-                document.getElementById('csAddForm').classList.add('active');
-                document.getElementById('csAddKeyInput').focus();
-            };
-            addCard.innerHTML = '<div class="cs-add-icon"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div><span>Add Another Creator</span>';
-            list.appendChild(addCard);
-
-            // Show/hide close button based on whether player is already active
-            document.getElementById('csCloseBtn').style.display = document.getElementById('playerApp').classList.contains('active') ? 'block' : 'none';
-            document.getElementById('creatorSelector').classList.add('active');
-        }
-
-        function closeCreatorSelector() {
-            document.getElementById('creatorSelector').classList.remove('active');
-        }
-
-        async function addCreatorByKey() {
-            var key = document.getElementById('csAddKeyInput').value.trim();
-            var errEl = document.getElementById('csAddError');
-            errEl.style.display = 'none';
-            if (!/^\d{4}$/.test(key)) {
-                errEl.textContent = 'Enter a valid 4-digit key.';
-                errEl.style.display = 'block';
-                return;
-            }
-            try {
-                var token = getAuthToken();
-                var headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = 'Bearer ' + token;
-
-                var response = await fetch(API + '/api/listener-key/validate', {
-                    method: 'POST', headers: headers,
-                    body: JSON.stringify({ listener_key: key })
-                });
-                var data = await response.json();
-                if (response.ok && data.success) {
-                    localStorage.setItem('listenerKey', key);
-                    var creator = data.creator;
-                    // Add to local list if not already there
-                    if (!unlockedCreators.find(function(c) { return c.id === creator.id; })) {
-                        unlockedCreators.push(creator);
-                        localStorage.setItem('unlockedCreators', JSON.stringify(unlockedCreators));
-                    }
-                    selectCreator(creator);
-                } else {
-                    errEl.textContent = 'Invalid listener key. Please try again.';
-                    errEl.style.display = 'block';
-                }
-            } catch (err) {
-                errEl.textContent = 'Error validating key.';
-                errEl.style.display = 'block';
-            }
-        }
-
-        // Gate form (fallback for non-authenticated users)
-        document.getElementById('accessForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            validateAndLoad(document.getElementById('listenerKeyInput').value.trim());
-        });
-
-        async function validateAndLoad(key) {
-            try {
-                var token = getAuthToken();
-                var headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = 'Bearer ' + token;
-
-                var response = await fetch(API + '/api/listener-key/validate', {
-                    method: 'POST', headers: headers,
-                    body: JSON.stringify({ listener_key: key })
-                });
-                var data = await response.json();
-                if (response.ok && data.success) {
-                    currentCreatorId = data.creator.id;
-                    localStorage.setItem('listenerKey', key);
-                    localStorage.setItem('currentCreatorId', data.creator.id);
-                    localStorage.setItem('currentCreatorName', data.creator.artist_name || data.creator.username);
-                    // Add to unlocked creators if not there
-                    if (!unlockedCreators.find(function(c) { return c.id === data.creator.id; })) {
-                        unlockedCreators.push(data.creator);
-                        localStorage.setItem('unlockedCreators', JSON.stringify(unlockedCreators));
-                    }
-                    document.getElementById('accessGate').style.display = 'none';
-                    document.getElementById('playerApp').classList.add('active');
-                    var name = data.creator.artist_name || data.creator.first_name;
-                    document.getElementById('headerTitle').textContent = name;
-                    document.getElementById('libraryTitle').textContent = name + "'s Music";
-                    document.getElementById('libraryArtist').textContent = name;
-                    loadTracks(currentCreatorId);
-                } else {
-                    document.getElementById('accessError').textContent = 'Invalid listener key';
-                    document.getElementById('accessError').style.display = 'block';
-                }
-            } catch (err) {
-                document.getElementById('accessError').textContent = 'Error validating key';
-                document.getElementById('accessError').style.display = 'block';
-            }
-        }
-
-        function clearListenerKey() {
-            localStorage.removeItem('listenerKey');
-            localStorage.removeItem('currentCreatorId');
-            localStorage.removeItem('currentCreatorName');
-            currentCreatorId = null;
-            audio.pause(); audio.src = '';
-            document.getElementById('nowPlayingBar').classList.remove('active');
-            document.getElementById('playerApp').classList.remove('active');
-            document.getElementById('accessGate').style.display = 'flex';
-            document.getElementById('tracksList').innerHTML = '';
-            document.getElementById('listenerKeyInput').value = '';
-            document.getElementById('accessError').style.display = 'none';
-            document.getElementById('adaptiveBg').classList.remove('active');
-            tracks = []; currentIndex = -1;
         }
 
         async function loadTracks(creatorId) {

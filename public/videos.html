@@ -197,35 +197,11 @@
         <div class="logo">Videos</div>
         <nav><a href="player.html">Music</a><a href="email-settings.html">Settings</a><a href="#" onclick="logout(); return false;">Logout</a></nav>
     </div>
-    <div class="container" id="accessGate" style="text-align:center; margin-top:60px; max-width:500px; margin-left:auto; margin-right:auto;">
-        <h2 style="margin-bottom:16px; color:var(--text);">Enter Listener Key</h2>
-        <p style="color:var(--text-secondary); margin-bottom:24px;">Enter a creator's 4-digit key to watch their videos.</p>
-        <form id="accessForm" style="max-width:400px; margin:0 auto;">
-            <input type="text" id="listenerKeyInput" class="gate-input" placeholder="0000" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
-            <button type="submit" class="gate-btn">Unlock Videos</button>
-        </form>
-        <div id="accessError" style="color:var(--red); margin-top:12px; display:none;"></div>
-    </div>
-    <div class="container" id="videosContainer" style="display:none;">
+    <div class="container" id="videosContainer">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
-            <h1 style="color:var(--text);" id="libraryTitle">Video Library</h1>
-            <a href="#" onclick="showCreatorSelector(); return false;" style="color:var(--text-secondary); font-size:0.9rem; text-decoration:none;">Switch Creator</a>
+            <h1 style="color:var(--text);" id="libraryTitle">Videos</h1>
         </div>
         <div class="videos-grid" id="videosGrid"></div>
-    </div>
-    <!-- CREATOR SELECTOR OVERLAY -->
-    <div class="creator-selector-overlay" id="creatorSelector">
-        <div class="creator-selector-box">
-            <div class="cs-title">Your Creators</div>
-            <div class="cs-desc">Choose a creator to watch their videos</div>
-            <div class="cs-list" id="creatorList"></div>
-            <div class="cs-add-form" id="csAddForm">
-                <input type="text" class="cs-add-input" id="csAddKeyInput" placeholder="0000" inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
-                <button class="cs-add-btn" onclick="addCreatorByKey()">Unlock Creator</button>
-                <div class="cs-add-error" id="csAddError"></div>
-            </div>
-            <a class="cs-close" id="csCloseBtn" onclick="closeCreatorSelector()">Cancel</a>
-        </div>
     </div>
 
     <script>
@@ -238,202 +214,16 @@
         function logout() {
             localStorage.removeItem('authToken');
             sessionStorage.removeItem('authToken');
-            localStorage.removeItem('unlockedCreators');
-            localStorage.removeItem('currentCreatorId');
-            localStorage.removeItem('currentCreatorName');
-            localStorage.removeItem('listenerKey');
             window.location.href = 'login.html';
         }
 
-        var currentCreatorId = null;
-        var unlockedCreators = [];
-
-        // ===== INITIALIZATION — check for server-side access first =====
-        (async function initAccess() {
+        // Check auth — redirect if not logged in
+        (function() {
             var token = getAuthToken();
-
-            if (token) {
-                try {
-                    var resp = await fetch(API + '/api/listeners/my-creators', {
-                        headers: { 'Authorization': 'Bearer ' + token }
-                    });
-                    if (resp.ok) {
-                        var data = await resp.json();
-                        if (data.creators && data.creators.length > 0) {
-                            unlockedCreators = data.creators;
-                            localStorage.setItem('unlockedCreators', JSON.stringify(unlockedCreators));
-
-                            if (unlockedCreators.length === 1) {
-                                selectCreator(unlockedCreators[0]);
-                                return;
-                            } else {
-                                var savedId = localStorage.getItem('currentCreatorId');
-                                var found = savedId && unlockedCreators.find(function(c) { return c.id === savedId; });
-                                if (found) { selectCreator(found); return; }
-                                showCreatorSelector();
-                                return;
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.log('Server access check failed, falling back');
-                }
-            }
-
-            // Fallback: localStorage
-            var storedCreators = localStorage.getItem('unlockedCreators');
-            if (storedCreators) {
-                try {
-                    unlockedCreators = JSON.parse(storedCreators);
-                    if (unlockedCreators.length > 0) {
-                        var savedId = localStorage.getItem('currentCreatorId');
-                        var found = savedId && unlockedCreators.find(function(c) { return c.id === savedId; });
-                        if (found) { selectCreator(found); return; }
-                        if (unlockedCreators.length === 1) { selectCreator(unlockedCreators[0]); return; }
-                        showCreatorSelector();
-                        return;
-                    }
-                } catch (e) {}
-            }
-
-            var storedKey = localStorage.getItem('listenerKey');
-            if (storedKey) { validateAndLoad(storedKey); return; }
-
-            // Show gate
+            if (!token) { window.location.href = 'welcome.html'; return; }
+            // Load all videos (no gate needed)
+            loadVideos();
         })();
-
-        function selectCreator(creator) {
-            currentCreatorId = creator.id;
-            localStorage.setItem('currentCreatorId', creator.id);
-            localStorage.setItem('currentCreatorName', creator.artist_name || creator.username);
-            document.getElementById('accessGate').style.display = 'none';
-            document.getElementById('creatorSelector').classList.remove('active');
-            document.getElementById('videosContainer').style.display = 'block';
-            var name = creator.artist_name || creator.first_name || creator.username;
-            document.getElementById('libraryTitle').textContent = name + "'s Videos";
-            loadVideos(currentCreatorId);
-        }
-
-        function showCreatorSelector() {
-            var list = document.getElementById('creatorList');
-            list.innerHTML = '';
-            document.getElementById('csAddForm').classList.remove('active');
-            document.getElementById('csAddError').style.display = 'none';
-
-            unlockedCreators.forEach(function(c) {
-                var card = document.createElement('div');
-                card.className = 'cs-card';
-                card.onclick = function() { selectCreator(c); };
-                var initial = (c.artist_name || c.username || '?').charAt(0).toUpperCase();
-                card.innerHTML = '<div class="cs-card-icon"><svg viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--green)">' + escapeHtml(initial) + '</text></svg></div>' +
-                    '<div class="cs-card-info"><h4>' + escapeHtml(c.artist_name || c.username) + '</h4><p>' + escapeHtml((c.first_name || '') + ' ' + (c.last_name || '')).trim() + '</p></div>';
-                list.appendChild(card);
-            });
-
-            var addCard = document.createElement('div');
-            addCard.className = 'cs-add-card';
-            addCard.onclick = function() {
-                document.getElementById('csAddForm').classList.add('active');
-                document.getElementById('csAddKeyInput').focus();
-            };
-            addCard.innerHTML = '<div class="cs-add-icon"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div><span>Add Another Creator</span>';
-            list.appendChild(addCard);
-
-            document.getElementById('csCloseBtn').style.display = document.getElementById('videosContainer').style.display === 'block' ? 'block' : 'none';
-            document.getElementById('creatorSelector').classList.add('active');
-        }
-
-        function closeCreatorSelector() {
-            document.getElementById('creatorSelector').classList.remove('active');
-        }
-
-        async function addCreatorByKey() {
-            var key = document.getElementById('csAddKeyInput').value.trim();
-            var errEl = document.getElementById('csAddError');
-            errEl.style.display = 'none';
-            if (!/^\d{4}$/.test(key)) {
-                errEl.textContent = 'Enter a valid 4-digit key.';
-                errEl.style.display = 'block';
-                return;
-            }
-            try {
-                var token = getAuthToken();
-                var headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = 'Bearer ' + token;
-
-                var response = await fetch(API + '/api/listener-key/validate', {
-                    method: 'POST', headers: headers,
-                    body: JSON.stringify({ listener_key: key })
-                });
-                var data = await response.json();
-                if (response.ok && data.success) {
-                    localStorage.setItem('listenerKey', key);
-                    var creator = data.creator;
-                    if (!unlockedCreators.find(function(c) { return c.id === creator.id; })) {
-                        unlockedCreators.push(creator);
-                        localStorage.setItem('unlockedCreators', JSON.stringify(unlockedCreators));
-                    }
-                    selectCreator(creator);
-                } else {
-                    errEl.textContent = 'Invalid listener key. Please try again.';
-                    errEl.style.display = 'block';
-                }
-            } catch (err) {
-                errEl.textContent = 'Error validating key.';
-                errEl.style.display = 'block';
-            }
-        }
-
-        document.getElementById('accessForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            validateAndLoad(document.getElementById('listenerKeyInput').value.trim());
-        });
-
-        async function validateAndLoad(key) {
-            try {
-                var token = getAuthToken();
-                var headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = 'Bearer ' + token;
-
-                var response = await fetch(API + '/api/listener-key/validate', {
-                    method: 'POST', headers: headers,
-                    body: JSON.stringify({ listener_key: key })
-                });
-                var data = await response.json();
-                if (response.ok && data.success) {
-                    currentCreatorId = data.creator.id;
-                    localStorage.setItem('listenerKey', key);
-                    localStorage.setItem('currentCreatorId', data.creator.id);
-                    localStorage.setItem('currentCreatorName', data.creator.artist_name || data.creator.username);
-                    if (!unlockedCreators.find(function(c) { return c.id === data.creator.id; })) {
-                        unlockedCreators.push(data.creator);
-                        localStorage.setItem('unlockedCreators', JSON.stringify(unlockedCreators));
-                    }
-                    document.getElementById('accessGate').style.display = 'none';
-                    document.getElementById('videosContainer').style.display = 'block';
-                    document.getElementById('libraryTitle').textContent = (data.creator.artist_name || data.creator.first_name) + "'s Videos";
-                    loadVideos(currentCreatorId);
-                } else {
-                    document.getElementById('accessError').textContent = 'Invalid listener key';
-                    document.getElementById('accessError').style.display = 'block';
-                }
-            } catch (err) {
-                document.getElementById('accessError').textContent = 'Error validating key';
-                document.getElementById('accessError').style.display = 'block';
-            }
-        }
-
-        function clearListenerKey() {
-            localStorage.removeItem('listenerKey');
-            localStorage.removeItem('currentCreatorId');
-            localStorage.removeItem('currentCreatorName');
-            currentCreatorId = null;
-            document.getElementById('accessGate').style.display = 'block';
-            document.getElementById('videosContainer').style.display = 'none';
-            document.getElementById('videosGrid').innerHTML = '';
-            document.getElementById('listenerKeyInput').value = '';
-            document.getElementById('accessError').style.display = 'none';
-        }
 
         function escapeHtml(str) {
             var div = document.createElement('div');
@@ -442,7 +232,7 @@
         }
 
         async function loadVideos(creatorId) {
-            var url = creatorId ? API + '/api/videos?creator_id=' + creatorId : API + '/api/videos';
+            var url = API + '/api/videos' + (creatorId ? '?creator_id=' + creatorId : '');
             var response = await fetch(url);
             var data = await response.json();
             var grid = document.getElementById('videosGrid');

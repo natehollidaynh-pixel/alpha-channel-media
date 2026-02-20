@@ -475,6 +475,37 @@
         </div>
     </div>
 
+    <!-- Top Creators Preview -->
+    <div id="topCreatorsPreview" style="max-width:600px;margin:0 auto 100px;padding:0 20px;display:none;">
+        <h2 style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--text);text-align:center;margin-bottom:16px;">Discover Creators</h2>
+        <div id="welcomeCreatorsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:12px;"></div>
+    </div>
+
+    <script>
+        // Load top creators preview (non-clickable teaser)
+        (async function() {
+            try {
+                var resp = await fetch(window.location.origin + '/api/creators-public/top?limit=6');
+                var data = await resp.json();
+                if (data.creators && data.creators.length > 0) {
+                    var grid = document.getElementById('welcomeCreatorsGrid');
+                    data.creators.forEach(function(c) {
+                        var card = document.createElement('div');
+                        card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 10px;text-align:center;backdrop-filter:blur(10px);';
+                        var photoHtml = c.profile_photo
+                            ? '<img src="' + c.profile_photo + '" style="width:100%;height:100%;object-fit:cover;">'
+                            : '<span style="font-size:1.5rem;font-weight:700;color:var(--green);">' + ((c.artist_name || c.username || '?').charAt(0).toUpperCase()) + '</span>';
+                        card.innerHTML =
+                            '<div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--green-glow),var(--red-glow));margin:0 auto 8px;display:flex;align-items:center;justify-content:center;overflow:hidden;">' + photoHtml + '</div>' +
+                            '<div style="font-size:0.8rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (c.artist_name || c.username) + '</div>';
+                        grid.appendChild(card);
+                    });
+                    document.getElementById('topCreatorsPreview').style.display = 'block';
+                }
+            } catch (e) { console.log('Could not load creators preview'); }
+        })();
+    </script>
+
     <nav class="bottom-nav">
         <a href="welcome.html" class="active">
             <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
@@ -502,7 +533,7 @@
             {
                 emoji: '\uD83C\uDFA7',
                 title: 'For Listeners',
-                body: "Love discovering new music? <strong>Sign up as a Listener</strong> and use a creator's 4-digit Listener Key to unlock their full music library with our built-in player."
+                body: "Love discovering new music? <strong>Sign up as a Listener</strong> to browse top creators, search for your favorites, and stream their full music library with our built-in player."
             },
             {
                 emoji: '\uD83D\uDD12',

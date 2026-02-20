@@ -6,14 +6,18 @@ const { sendListenerConfirmationEmail, sendAdminListenerNotification } = require
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-me';
 
-// Create a new listener account (no password required)
+// Create a new listener account (password required)
 router.post('/create', async (req, res) => {
   try {
-    const { firstName, lastName, email, username, emailConsent } = req.body;
+    const { firstName, lastName, email, username, password, emailConsent } = req.body;
     const db = req.app.locals.db;
 
     if (!firstName || !lastName || !email || !username) {
       return res.status(400).json({ error: 'First name, last name, email, and username are required' });
+    }
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
     // Check if username or email already exists (case-sensitive username)
@@ -27,12 +31,13 @@ router.post('/create', async (req, res) => {
     }
 
     const wantsEmails = emailConsent !== false && emailConsent !== 'false';
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await db.query(
       `INSERT INTO listeners (username, email, password_hash, first_name, last_name, email_notifications)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [username, email, null, firstName, lastName, wantsEmails]
+      [username, email, passwordHash, firstName, lastName, wantsEmails]
     );
 
     const listener = result.rows[0];
@@ -61,7 +66,7 @@ router.post('/create', async (req, res) => {
   }
 });
 
-// Listener login (case-sensitive username)
+// Listener login (case-sensitive username, password required)
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -79,27 +84,17 @@ router.post('/login', async (req, res) => {
 
     const listener = result.rows[0];
 
-    // If listener has no password (new flow), just check username match
+    // If listener has no password (legacy account), prompt them to set one
     if (!listener.password_hash) {
-      const token = jwt.sign(
-        { id: listener.id, type: 'listener' },
-        JWT_SECRET,
-        { expiresIn: '30d' }
-      );
       return res.json({
-        success: true,
-        token,
-        user: {
-          id: listener.id,
-          username: listener.username,
-          email: listener.email,
-          firstName: listener.first_name,
-          lastName: listener.last_name
-        }
+        success: false,
+        needsPassword: true,
+        username: listener.username,
+        message: 'Please set a password for your account'
       });
     }
 
-    // If password exists (legacy accounts), validate it
+    // Validate password
     const validPassword = await bcrypt.compare(password, listener.password_hash);
 
     if (!validPassword) {
@@ -125,6 +120,51 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     console.error('Listener login error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Set password for legacy passwordless listeners
+router.post('/set-password', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const db = req.app.locals.db;
+
+    if (!username || !password || password.length < 6) {
+      return res.status(400).json({ error: 'Username and password (min 6 chars) are required' });
+    }
+
+    // Find the listener — only allow setting password if they don't already have one
+    const result = await db.query(
+      'SELECT * FROM listeners WHERE username = $1',
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    const listener = result.rows[0];
+    if (listener.password_hash) {
+      return res.status(400).json({ error: 'Password already set. Use login instead.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await db.query(
+      'UPDATE listeners SET password_hash = $1 WHERE id = $2',
+      [passwordHash, listener.id]
+    );
+
+    // Auto-login after setting password
+    const token = jwt.sign(
+      { id: listener.id, type: 'listener' },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({ success: true, token });
+  } catch (err) {
+    console.error('Set password error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

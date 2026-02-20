@@ -127,6 +127,15 @@ pool.query('SELECT NOW()')
     `);
   })
   .then(() => console.log('Production credits columns ready'))
+  .then(() => {
+    return pool.query(`
+      DO $$ BEGIN ALTER TABLE creators ADD COLUMN profile_photo TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE songs ADD COLUMN description TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE songs ADD COLUMN backstory TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE songs ADD COLUMN display_order INTEGER DEFAULT 0; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+    `);
+  })
+  .then(() => console.log('Profile photo + song metadata columns ready'))
   .catch(err => console.error('Database setup error:', err.message));
 
 // Make db available to routes
@@ -139,6 +148,8 @@ app.use('/api/listeners', require('./routes/listeners'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/content', require('./routes/content'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/search', require('./routes/search'));
+app.use('/api/creators-public', require('./routes/creators-public'));
 // Aliases to match frontend expectations
 app.use('/api/creators', require('./routes/auth'));
 app.use('/api/upload', require('./routes/uploads'));
@@ -154,6 +165,32 @@ app.post('/api/master/login', (req, res) => {
   }
   const token = jwt.sign({ type: 'master' }, JWT_SECRET, { expiresIn: '24h' });
   res.json({ success: true, token });
+});
+
+// Reorder songs (requires creator auth)
+app.put('/api/songs/reorder', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
+
+    const { songs } = req.body; // array of { id, display_order }
+    if (!Array.isArray(songs)) return res.status(400).json({ error: 'songs array is required' });
+
+    for (const song of songs) {
+      await pool.query(
+        'UPDATE songs SET display_order = $1 WHERE id = $2 AND creator_id = $3',
+        [song.display_order, song.id, decoded.id]
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Reorder error:', err);
+    res.status(500).json({ error: 'Failed to reorder songs' });
+  }
 });
 
 // Tracks - supports optional ?creator_id= filter
@@ -187,100 +224,6 @@ app.get('/api/videos', async (req, res) => {
   } catch (err) {
     console.error('Error fetching videos:', err);
     res.status(500).json({ error: 'Failed to fetch videos' });
-  }
-});
-
-// Validate listener key (and persist access if listener is authenticated)
-app.post('/api/listener-key/validate', async (req, res) => {
-  try {
-    const { listener_key } = req.body;
-    if (!listener_key) {
-      return res.status(400).json({ error: 'Listener key is required' });
-    }
-    const result = await pool.query(
-      'SELECT id, username, artist_name, first_name, last_name FROM creators WHERE listener_key = $1',
-      [listener_key]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Invalid listener key' });
-    }
-
-    const creator = result.rows[0];
-    let accessSaved = false;
-
-    // If listener is authenticated, persist the creator access and create subscription
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded.type === 'listener') {
-          await pool.query(
-            'INSERT INTO listener_creator_access (listener_id, creator_id) VALUES ($1, $2) ON CONFLICT (listener_id, creator_id) DO NOTHING',
-            [decoded.id, creator.id]
-          );
-          // Auto-create email subscription for this creator
-          await pool.query(
-            'INSERT INTO listener_creator_subscriptions (listener_id, creator_id, email_on_upload) VALUES ($1, $2, true) ON CONFLICT (listener_id, creator_id) DO NOTHING',
-            [decoded.id, creator.id]
-          );
-          accessSaved = true;
-        }
-      } catch (e) { /* token invalid, skip saving */ }
-    }
-
-    res.json({ success: true, creator, access_saved: accessSaved });
-  } catch (err) {
-    console.error('Listener key validation error:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Get creator's listener key (requires auth)
-app.get('/api/creators/listener-key', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
-
-    const result = await pool.query('SELECT listener_key FROM creators WHERE id = $1', [decoded.id]);
-    res.json({ listener_key: result.rows[0]?.listener_key || null });
-  } catch (err) {
-    console.error('Listener key fetch error:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Set/update creator's listener key (requires auth)
-app.post('/api/creators/listener-key', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
-
-    const { listener_key } = req.body;
-    if (!listener_key || !/^\d{4}$/.test(listener_key)) {
-      return res.status(400).json({ error: 'Listener key must be exactly 4 digits' });
-    }
-
-    // Check if key is already taken by another creator
-    const existing = await pool.query(
-      'SELECT id FROM creators WHERE listener_key = $1 AND id != $2',
-      [listener_key, decoded.id]
-    );
-    if (existing.rows.length > 0) {
-      return res.status(400).json({ error: 'This listener key is already in use' });
-    }
-
-    await pool.query('UPDATE creators SET listener_key = $1 WHERE id = $2', [listener_key, decoded.id]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Listener key update error:', err);
-    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -320,7 +263,7 @@ app.get('/api/creators/me', async (req, res) => {
     if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
 
     const result = await pool.query(
-      'SELECT id, username, email, first_name, last_name, artist_name, listener_key, created_at FROM creators WHERE id = $1',
+      'SELECT id, username, email, first_name, last_name, artist_name, listener_key, bio, profile_photo, created_at FROM creators WHERE id = $1',
       [decoded.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Creator not found' });

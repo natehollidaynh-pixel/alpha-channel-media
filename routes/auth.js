@@ -137,4 +137,55 @@ router.post('/master/login', async (req, res) => {
   }
 });
 
+// Update creator profile (bio, artist_name, profile_photo)
+router.put('/profile', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'creator') return res.status(403).json({ error: 'Not a creator' });
+
+    const db = req.app.locals.db;
+    const { bio, artist_name, profile_photo } = req.body;
+
+    const updates = [];
+    const values = [];
+    let paramCount = 0;
+
+    if (typeof bio === 'string') {
+      paramCount++;
+      updates.push(`bio = $${paramCount}`);
+      values.push(bio);
+    }
+    if (typeof artist_name === 'string' && artist_name.trim()) {
+      paramCount++;
+      updates.push(`artist_name = $${paramCount}`);
+      values.push(artist_name.trim());
+    }
+    if (typeof profile_photo === 'string') {
+      paramCount++;
+      updates.push(`profile_photo = $${paramCount}`);
+      values.push(profile_photo);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    paramCount++;
+    values.push(decoded.id);
+
+    await db.query(
+      `UPDATE creators SET ${updates.join(', ')} WHERE id = $${paramCount}`,
+      values
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Profile update error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

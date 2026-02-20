@@ -92,34 +92,6 @@
         .back-link a { color: var(--text-secondary); text-decoration: none; }
         .back-link a:hover { color: var(--green); }
 
-        /* Popup Modal */
-        .popup-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000;
-            display: none; align-items: center; justify-content: center; padding: 20px;
-        }
-        .popup-overlay.active { display: flex; }
-        .popup-box {
-            background: var(--surface-solid); border-radius: 24px; padding: 48px 40px;
-            max-width: 440px; width: 100%; text-align: center; box-shadow: var(--panel-glow);
-        }
-        .popup-icon { width: 56px; height: 56px; margin: 0 auto 20px; opacity: 0.6; }
-        .popup-icon svg { width: 100%; height: 100%; }
-        .popup-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; margin-bottom: 12px; color: var(--text); }
-        .popup-desc { color: var(--text-secondary); margin-bottom: 28px; line-height: 1.5; }
-        .popup-input {
-            width: 100%; padding: 16px; border: 1px solid var(--border); border-radius: 12px;
-            font-size: 1.5rem; text-align: center; letter-spacing: 6px; font-family: monospace;
-            background: var(--input-bg); color: var(--text); margin-bottom: 16px;
-        }
-        .popup-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
-        .popup-btn {
-            width: 100%; padding: 16px; background: var(--green); color: white; border: none;
-            border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s;
-        }
-        .popup-btn:hover { opacity: 0.9; }
-        .popup-skip { display: block; margin-top: 16px; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; cursor: pointer; }
-        .popup-error { color: var(--red); margin-top: 8px; display: none; font-size: 0.9rem; }
-
         /* Email consent & Privacy */
         .consent-row {
             display: flex; align-items: flex-start; gap: 8px; margin-bottom: 20px;
@@ -189,6 +161,12 @@
             </div>
             <div class="form-group"><label>Email *</label><input type="email" name="email" required></div>
             <div class="form-group"><label>Username *</label><input type="text" name="username" required></div>
+            <div class="form-group"><label>Password *</label><input type="password" name="password" required minlength="6" placeholder="At least 6 characters"></div>
+            <div class="form-group"><label>Confirm Password *</label><input type="password" name="confirmPassword" required minlength="6"></div>
+            <div class="consent-row" style="margin-bottom:8px;">
+                <input type="checkbox" id="rememberMe" name="rememberMe" checked>
+                <label for="rememberMe">Remember me on this device</label>
+            </div>
             <div class="consent-row">
                 <input type="checkbox" id="emailConsent" name="emailConsent" checked>
                 <label for="emailConsent">Email me when creators I follow upload new music or videos</label>
@@ -203,22 +181,6 @@
         <div class="back-link"><a href="welcome.html">Back to home</a></div>
     </div>
 
-    <!-- Listener Key Popup -->
-    <div class="popup-overlay" id="keyPopup">
-        <div class="popup-box">
-            <div class="popup-icon"><svg viewBox="0 0 24 24" fill="var(--text)" opacity="0.6"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
-            <div class="popup-title">Find Your Favorite Creator's Music</div>
-            <p class="popup-desc">Enter a creator's 4-digit listener key to start listening to their music and videos.</p>
-            <form id="keyForm">
-                <input type="text" class="popup-input" id="popupKeyInput" placeholder="0000"
-                       inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required>
-                <button type="submit" class="popup-btn">Unlock Music</button>
-                <div class="popup-error" id="popupError"></div>
-            </form>
-            <a class="popup-skip" onclick="skipPopup()">Skip for now</a>
-        </div>
-    </div>
-
     <script>
         const API = window.location.origin;
 
@@ -227,23 +189,48 @@
             return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
         }
 
+        function storeAuthToken(token) {
+            const remember = document.getElementById('rememberMe').checked;
+            if (remember) {
+                localStorage.setItem('authToken', token);
+            } else {
+                sessionStorage.setItem('authToken', token);
+            }
+        }
+
         document.getElementById('listenerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
-            // Include email consent
             data.emailConsent = document.getElementById('emailConsent').checked;
+
             const errEl = document.getElementById('errorMsg');
             errEl.style.display = 'none';
+
+            // Validate passwords match
+            if (data.password !== data.confirmPassword) {
+                errEl.textContent = 'Passwords do not match.';
+                errEl.style.display = 'block';
+                return;
+            }
+            if (data.password.length < 6) {
+                errEl.textContent = 'Password must be at least 6 characters.';
+                errEl.style.display = 'block';
+                return;
+            }
+
+            // Don't send confirmPassword to server
+            delete data.confirmPassword;
+            delete data.rememberMe;
+
             try {
                 const response = await fetch(`${API}/api/listeners/create`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
                 });
                 const result = await response.json();
                 if (response.ok && result.token) {
-                    localStorage.setItem('authToken', result.token);
-                    // Go straight to listener key popup
-                    document.getElementById('keyPopup').classList.add('active');
+                    storeAuthToken(result.token);
+                    window.location.href = 'player.html';
                 } else {
                     errEl.textContent = result.error || 'Error creating account.';
                     errEl.style.display = 'block';
@@ -253,42 +240,6 @@
                 errEl.style.display = 'block';
             }
         });
-
-        // Listener key form — sends JWT header for persistent access
-        document.getElementById('keyForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const key = document.getElementById('popupKeyInput').value.trim();
-            const errEl = document.getElementById('popupError');
-            errEl.style.display = 'none';
-            try {
-                const token = getAuthToken();
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = `Bearer ${token}`;
-
-                const response = await fetch(`${API}/api/listener-key/validate`, {
-                    method: 'POST', headers,
-                    body: JSON.stringify({ listener_key: key })
-                });
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    localStorage.setItem('listenerKey', key);
-                    // Store creator info for the player
-                    if (data.creator) {
-                        localStorage.setItem('currentCreatorId', data.creator.id);
-                        localStorage.setItem('currentCreatorName', data.creator.artist_name || data.creator.username);
-                    }
-                    window.location.href = 'player.html';
-                } else {
-                    errEl.textContent = 'Invalid listener key. Please try again.';
-                    errEl.style.display = 'block';
-                }
-            } catch (err) {
-                errEl.textContent = 'Error validating key.';
-                errEl.style.display = 'block';
-            }
-        });
-
-        function skipPopup() { window.location.href = 'player.html'; }
 
         function toggleTheme() {
             const html = document.documentElement;
