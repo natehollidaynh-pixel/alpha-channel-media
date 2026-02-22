@@ -1,12 +1,16 @@
 require('dotenv').config();
 
+const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
+const { Server } = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-me';
 
 // Middleware
@@ -145,10 +149,161 @@ pool.query('SELECT NOW()')
     `);
   })
   .then(() => console.log('Featured creators columns ready'))
+  .then(() => {
+    // Judge & Trader system — core tables
+    return pool.query(`
+      CREATE TABLE IF NOT EXISTS judges (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        user_type VARCHAR(10) NOT NULL,
+        status VARCHAR(20) DEFAULT 'active',
+        accuracy_score NUMERIC(5,2) DEFAULT 0,
+        total_ratings INTEGER DEFAULT 0,
+        sessions_judged INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, user_type)
+      );
+
+      CREATE TABLE IF NOT EXISTS judge_applications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        user_type VARCHAR(10) NOT NULL,
+        music_background TEXT,
+        genres_familiar TEXT,
+        screening_score NUMERIC(5,2),
+        screening_deviation NUMERIC(5,2),
+        status VARCHAR(20) DEFAULT 'pending',
+        rejection_reason TEXT,
+        next_attempt_date TIMESTAMP,
+        attempts INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT NOW(),
+        reviewed_at TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS anchor_songs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        song_id UUID REFERENCES songs(id) ON DELETE CASCADE,
+        correct_rating INTEGER NOT NULL,
+        tolerance INTEGER DEFAULT 10,
+        genre VARCHAR(50),
+        difficulty VARCHAR(20) DEFAULT 'medium',
+        active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+  })
+  .then(() => console.log('Judge tables ready'))
+  .then(() => {
+    // Judge & Trader system — session and rating tables
+    return pool.query(`
+      CREATE TABLE IF NOT EXISTS judging_sessions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        song_id UUID REFERENCES songs(id) ON DELETE CASCADE,
+        title VARCHAR(255),
+        scheduled_start TIMESTAMP,
+        actual_start TIMESTAMP,
+        trading_window_end TIMESTAMP,
+        end_time TIMESTAMP,
+        final_consensus NUMERIC(5,2),
+        judge_count INTEGER DEFAULT 0,
+        total_snapshots INTEGER DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'scheduled',
+        created_by UUID,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS judge_rating_snapshots (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        session_id UUID REFERENCES judging_sessions(id) ON DELETE CASCADE,
+        judge_id UUID REFERENCES judges(id) ON DELETE CASCADE,
+        rating INTEGER CHECK (rating >= 0 AND rating <= 100),
+        timestamp TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_snapshots_session ON judge_rating_snapshots(session_id);
+      CREATE INDEX IF NOT EXISTS idx_snapshots_judge ON judge_rating_snapshots(judge_id);
+      CREATE INDEX IF NOT EXISTS idx_snapshots_time ON judge_rating_snapshots(timestamp);
+    `);
+  })
+  .then(() => console.log('Session and rating tables ready'))
+  .then(() => {
+    // Judge & Trader system — trading, notifications, waitlist
+    return pool.query(`
+      CREATE TABLE IF NOT EXISTS traders (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        user_type VARCHAR(10) NOT NULL,
+        play_money_balance NUMERIC(10,2) DEFAULT 100.00,
+        total_trades INTEGER DEFAULT 0,
+        winning_trades INTEGER DEFAULT 0,
+        losing_trades INTEGER DEFAULT 0,
+        total_profit_loss NUMERIC(10,2) DEFAULT 0,
+        biggest_win NUMERIC(10,2) DEFAULT 0,
+        biggest_loss NUMERIC(10,2) DEFAULT 0,
+        current_streak INTEGER DEFAULT 0,
+        best_streak INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        last_trade_at TIMESTAMP,
+        UNIQUE(user_id, user_type)
+      );
+
+      CREATE TABLE IF NOT EXISTS trades (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        session_id UUID REFERENCES judging_sessions(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL,
+        user_type VARCHAR(10) NOT NULL,
+        trader_id UUID REFERENCES traders(id) ON DELETE CASCADE,
+        direction VARCHAR(10) CHECK (direction IN ('over', 'under')),
+        entry_sentiment NUMERIC(5,2),
+        final_sentiment NUMERIC(5,2),
+        amount NUMERIC(10,2),
+        payout NUMERIC(10,2),
+        outcome VARCHAR(10) CHECK (outcome IN ('win', 'loss', 'push')),
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT NOW(),
+        settled_at TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        user_type VARCHAR(10) NOT NULL,
+        type VARCHAR(50),
+        title VARCHAR(255),
+        message TEXT,
+        data JSONB,
+        read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS waitlist (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        name VARCHAR(255),
+        wants_to_judge BOOLEAN DEFAULT false,
+        wants_to_trade BOOLEAN DEFAULT false,
+        wants_to_upload BOOLEAN DEFAULT false,
+        referral_source VARCHAR(100),
+        referral_code VARCHAR(50),
+        referred_by UUID,
+        status VARCHAR(20) DEFAULT 'waiting',
+        invited_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_trades_session ON trades(session_id);
+      CREATE INDEX IF NOT EXISTS idx_trades_user ON trades(user_id, user_type);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, user_type);
+      CREATE INDEX IF NOT EXISTS idx_waitlist_email ON waitlist(email);
+    `);
+  })
+  .then(() => console.log('Trading, notification, and waitlist tables ready'))
   .catch(err => console.error('Database setup error:', err.message));
 
-// Make db available to routes
+// Make db and io available to routes
 app.locals.db = pool;
+app.locals.io = io;
 
 // Mount routes
 app.use('/api/auth', require('./routes/auth'));
@@ -159,9 +314,13 @@ app.use('/api/content', require('./routes/content'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/creators-public', require('./routes/creators-public'));
+app.use('/api/judging', require('./routes/judging'));
 // Aliases to match frontend expectations
 app.use('/api/creators', require('./routes/auth'));
 app.use('/api/upload', require('./routes/uploads'));
+
+// Initialize Socket.IO judging namespace
+require('./sockets/judging')(io, pool);
 
 // Master admin login
 app.post('/api/master/login', (req, res) => {
@@ -401,7 +560,7 @@ app.get('/', (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Frontend: http://localhost:${PORT}`);
   console.log(`API: http://localhost:${PORT}/api`);
