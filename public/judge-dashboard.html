@@ -308,7 +308,6 @@
         <a href="email-settings.html"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.611 3.611 0 0112 15.6z"/></svg>Settings</a>
     </nav>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
         const API = window.location.origin;
         let currentToken = null;
@@ -317,6 +316,7 @@
         let currentApplicationId = null;
         let screeningAnchors = [];
         let socket = null;
+        let ratingDebounce = null;
 
         function getAuthToken() {
             return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -333,8 +333,6 @@
                 document.getElementById('authGate').style.display = 'block';
                 return;
             }
-
-            // Decode token to get user info
             try {
                 const payload = JSON.parse(atob(currentToken.split('.')[1]));
                 currentUser = { id: payload.id, type: payload.type };
@@ -342,7 +340,6 @@
                 document.getElementById('authGate').style.display = 'block';
                 return;
             }
-
             document.getElementById('mainContent').style.display = 'block';
             await loadJudgeProfile();
         }
@@ -351,7 +348,6 @@
             try {
                 const res = await fetch(API + '/api/judging/judges/profile', { headers: authHeaders() });
                 const data = await res.json();
-
                 if (data.isJudge) {
                     showJudgeSection(data.judge);
                 } else {
@@ -366,9 +362,7 @@
             document.getElementById('applySection').style.display = 'block';
             document.getElementById('judgeSection').style.display = 'none';
             document.getElementById('screeningSection').style.display = 'none';
-
             const statusDiv = document.getElementById('applicationStatus');
-
             if (!application) {
                 statusDiv.innerHTML = '<div class="msg-box info">Apply below to become a judge. You\'ll take a short screening test to qualify.</div>';
                 document.getElementById('applyForm').style.display = 'block';
@@ -397,13 +391,11 @@
             document.getElementById('applySection').style.display = 'none';
             document.getElementById('screeningSection').style.display = 'none';
             document.getElementById('judgeSection').style.display = 'block';
-
             document.getElementById('judgeStats').innerHTML =
                 '<div class="stat-item"><div class="stat-value">' + (judge.accuracy_score || 0) + '</div><div class="stat-label">Accuracy</div></div>' +
                 '<div class="stat-item"><div class="stat-value">' + (judge.total_ratings || 0) + '</div><div class="stat-label">Ratings</div></div>' +
                 '<div class="stat-item"><div class="stat-value">' + (judge.sessions_judged || 0) + '</div><div class="stat-label">Sessions</div></div>' +
                 '<div class="stat-item"><div class="stat-value">' + (judge.status || 'active') + '</div><div class="stat-label">Status</div></div>';
-
             loadSessions();
             loadJudgeLeaderboard();
         }
@@ -414,7 +406,6 @@
             const btn = e.target.querySelector('.submit-btn');
             btn.disabled = true;
             btn.textContent = 'Submitting...';
-
             try {
                 const res = await fetch(API + '/api/judging/judges/apply', {
                     method: 'POST', headers: authHeaders(),
@@ -443,7 +434,6 @@
         async function loadScreeningTest(appId) {
             document.getElementById('applySection').style.display = 'none';
             document.getElementById('screeningSection').style.display = 'block';
-
             try {
                 const res = await fetch(API + '/api/judging/judges/screening/' + appId, { headers: authHeaders() });
                 const data = await res.json();
@@ -478,13 +468,11 @@
             const btn = document.getElementById('submitScreeningBtn');
             btn.disabled = true;
             btn.textContent = 'Submitting...';
-
             const sliders = document.querySelectorAll('#screeningSongs input[type="range"]');
             const ratings = [];
             sliders.forEach(s => {
                 ratings.push({ anchorId: s.dataset.anchor, rating: parseInt(s.value) });
             });
-
             try {
                 const res = await fetch(API + '/api/judging/judges/screening/' + currentApplicationId + '/submit', {
                     method: 'POST', headers: authHeaders(),
@@ -505,17 +493,44 @@
             }
         }
 
+        // Socket.IO connection
+        function connectSocket() {
+            if (socket) return;
+            const script = document.createElement('script');
+            script.src = '/socket.io/socket.io.js';
+            script.onload = () => {
+                socket = io(API + '/judging', {
+                    auth: { token: currentToken }
+                });
+                socket.on('connect', () => console.log('Socket connected'));
+                socket.on('consensus-update', (data) => {
+                    document.getElementById('consensusValue').textContent = Math.round(data.consensus);
+                });
+                socket.on('session-ended', (data) => {
+                    document.getElementById('consensusValue').textContent = Math.round(data.finalConsensus);
+                    const panel = document.getElementById('livePanel');
+                    panel.insertAdjacentHTML('afterbegin',
+                        '<div class="msg-box success" style="margin-bottom:16px;">Session ended! Final consensus: ' + Math.round(data.finalConsensus) + '</div>');
+                    document.getElementById('judgeSlider').disabled = true;
+                    loadSessions();
+                });
+                // If already in a session, rejoin
+                if (currentSessionId) {
+                    socket.emit('join-session', currentSessionId);
+                }
+            };
+            document.head.appendChild(script);
+        }
+
         // Sessions
         async function loadSessions() {
             try {
                 const res = await fetch(API + '/api/judging/sessions', { headers: authHeaders() });
                 const data = await res.json();
-
                 if (!data.sessions || data.sessions.length === 0) {
                     document.getElementById('sessionsList').innerHTML = '<div class="empty-state">No sessions available right now. Check back soon!</div>';
                     return;
                 }
-
                 let html = '';
                 data.sessions.forEach(s => {
                     const statusClass = s.status === 'live' ? 'live' : s.status === 'scheduled' ? 'scheduled' : 'completed';
@@ -536,42 +551,28 @@
                 const res = await fetch(API + '/api/judging/sessions/' + sessionId, { headers: authHeaders() });
                 const data = await res.json();
                 if (!res.ok) return;
-
                 const session = data.session;
+                // Leave previous session
+                if (currentSessionId && socket) {
+                    socket.emit('leave-session', currentSessionId);
+                }
                 currentSessionId = sessionId;
                 const panel = document.getElementById('livePanel');
                 panel.classList.add('active');
-
                 document.getElementById('liveSongTitle').textContent = session.song_title + ' - ' + session.song_artist;
                 document.getElementById('liveAudioWrap').innerHTML =
                     '<audio controls style="width:100%;height:36px;" src="' + session.audio_url + '"></audio>';
-
                 if (session.current_consensus !== null) {
                     document.getElementById('consensusValue').textContent = Math.round(session.current_consensus);
+                } else {
+                    document.getElementById('consensusValue').textContent = '--';
                 }
-
-                // Connect to Socket.IO for real-time updates
-                if (socket) {
-                    socket.emit('leave-session', currentSessionId);
-                    socket.disconnect();
-                }
-                socket = io('/judging', { auth: { token: currentToken } });
-                socket.on('connect', () => {
+                document.getElementById('judgeSlider').disabled = session.status !== 'live';
+                // Connect socket and join room
+                connectSocket();
+                if (socket && socket.connected) {
                     socket.emit('join-session', sessionId);
-                });
-                socket.on('consensus-update', (data) => {
-                    document.getElementById('consensusValue').textContent = Math.round(data.consensus);
-                });
-                socket.on('session-ended', (data) => {
-                    document.getElementById('consensusValue').textContent = Math.round(data.finalConsensus);
-                    document.getElementById('liveSongTitle').textContent += ' — COMPLETED';
-                    document.getElementById('judgeSlider').disabled = true;
-                    loadSessions();
-                });
-                socket.on('connect_error', (err) => {
-                    console.error('Socket connection error:', err.message);
-                });
-
+                }
                 panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } catch (err) {
                 console.error('Failed to join session:', err);
@@ -580,31 +581,27 @@
 
         function onRatingChange(val) {
             document.getElementById('yourRatingVal').textContent = val;
-            // Send rating via socket in real time
-            if (socket && currentSessionId) {
-                socket.emit('submit-rating', { sessionId: currentSessionId, rating: parseInt(val) });
-            }
+            // Debounced socket emit
+            if (ratingDebounce) clearTimeout(ratingDebounce);
+            ratingDebounce = setTimeout(() => {
+                if (socket && socket.connected && currentSessionId) {
+                    socket.emit('submit-rating', {
+                        sessionId: currentSessionId,
+                        rating: parseInt(val)
+                    });
+                }
+            }, 500);
         }
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (socket && currentSessionId) {
-                socket.emit('leave-session', currentSessionId);
-                socket.disconnect();
-            }
-        });
 
         // Leaderboard
         async function loadJudgeLeaderboard() {
             try {
                 const res = await fetch(API + '/api/judging/leaderboards/judges');
                 const data = await res.json();
-
                 if (!data.leaderboard || data.leaderboard.length === 0) {
                     document.getElementById('judgeLeaderboard').innerHTML = '<div class="empty-state">No judges ranked yet.</div>';
                     return;
                 }
-
                 let html = '';
                 data.leaderboard.forEach((j, i) => {
                     html += '<div class="leaderboard-row">' +

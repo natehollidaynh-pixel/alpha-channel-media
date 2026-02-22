@@ -289,6 +289,40 @@
                 <h2>All Listeners</h2>
                 <table><thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Creators</th><th>Status</th><th>Joined</th></tr></thead><tbody id="listenersList"></tbody></table>
             </div>
+            <div class="section">
+                <h2>Anchor Songs (Judge Screening)</h2>
+                <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                    <div style="flex:1;min-width:200px;">
+                        <label style="display:block;font-size:0.8rem;color:var(--text-secondary);margin-bottom:4px;">Song</label>
+                        <select id="anchorSongSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);font-size:0.9rem;"></select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.8rem;color:var(--text-secondary);margin-bottom:4px;">Correct Rating</label>
+                        <input type="number" id="anchorRating" min="0" max="100" value="50" style="width:80px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);font-size:0.9rem;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.8rem;color:var(--text-secondary);margin-bottom:4px;">Tolerance</label>
+                        <input type="number" id="anchorTolerance" min="1" max="50" value="10" style="width:80px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);font-size:0.9rem;">
+                    </div>
+                    <button class="btn btn-approve" onclick="createAnchor()">Add Anchor</button>
+                </div>
+                <table><thead><tr><th>Song</th><th>Artist</th><th>Rating</th><th>Tolerance</th><th>Genre</th><th>Actions</th></tr></thead><tbody id="anchorsList"></tbody></table>
+            </div>
+            <div class="section">
+                <h2>Judging Sessions</h2>
+                <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                    <div style="flex:1;min-width:200px;">
+                        <label style="display:block;font-size:0.8rem;color:var(--text-secondary);margin-bottom:4px;">Song to Judge</label>
+                        <select id="sessionSongSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);font-size:0.9rem;"></select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.8rem;color:var(--text-secondary);margin-bottom:4px;">Trade Window (min)</label>
+                        <input type="number" id="tradeWindowMin" min="1" max="60" value="10" style="width:100px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);font-size:0.9rem;">
+                    </div>
+                    <button class="btn btn-approve" onclick="createSession()">Create Session</button>
+                </div>
+                <table><thead><tr><th>Song</th><th>Artist</th><th>Status</th><th>Consensus</th><th>Judges</th><th>Trades</th><th>Actions</th></tr></thead><tbody id="sessionsList"></tbody></table>
+            </div>
         </div>
     </div>
 
@@ -318,7 +352,7 @@
 
         // Load full dashboard
         async function loadDashboard() {
-            await Promise.all([loadStats(), loadApplications(), loadCreators(), loadListeners()]);
+            await Promise.all([loadStats(), loadApplications(), loadCreators(), loadListeners(), loadAnchors(), loadSessions(), loadSongsForSelect()]);
         }
 
         // Stats
@@ -704,6 +738,144 @@
                     alert(data.error || 'Failed to update position');
                 }
             } catch (err) { alert('Error updating position'); }
+        }
+
+        // ========================================
+        // ANCHOR SONG MANAGEMENT
+        // ========================================
+        async function loadAnchors() {
+            try {
+                var res = await fetch(API + '/api/judging/admin/anchors', { headers: adminHeaders() });
+                var data = await res.json();
+                var tbody = document.getElementById('anchorsList');
+                tbody.innerHTML = '';
+                if (!data.anchors || data.anchors.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text-secondary);text-align:center;">No anchor songs configured. Add at least 5 for screening to work.</td></tr>';
+                    return;
+                }
+                data.anchors.forEach(function(a) {
+                    var row = document.createElement('tr');
+                    row.innerHTML = '<td>' + a.title + '</td><td>' + a.artist + '</td><td style="font-weight:700;color:var(--green);">' + a.correct_rating + '</td><td>±' + a.tolerance + '</td><td>' + (a.genre || '-') + '</td><td><button class="btn btn-deny" onclick="deleteAnchor(\'' + a.id + '\')">Remove</button></td>';
+                    tbody.appendChild(row);
+                });
+            } catch (e) { console.error('Anchors error:', e); }
+        }
+
+        async function loadSongsForSelect() {
+            try {
+                var res = await fetch(API + '/api/admin/all-songs', { headers: adminHeaders() });
+                if (!res.ok) {
+                    // Fallback: try content endpoint
+                    res = await fetch(API + '/api/content/tracks');
+                }
+                var data = await res.json();
+                var songs = data.songs || data.tracks || [];
+                var anchorSelect = document.getElementById('anchorSongSelect');
+                var sessionSelect = document.getElementById('sessionSongSelect');
+                anchorSelect.innerHTML = '<option value="">Select a song...</option>';
+                sessionSelect.innerHTML = '<option value="">Select a song...</option>';
+                songs.forEach(function(s) {
+                    var opt = '<option value="' + s.id + '">' + s.title + ' — ' + s.artist + '</option>';
+                    anchorSelect.innerHTML += opt;
+                    sessionSelect.innerHTML += opt;
+                });
+            } catch (e) { console.error('Load songs error:', e); }
+        }
+
+        async function createAnchor() {
+            var songId = document.getElementById('anchorSongSelect').value;
+            var rating = parseInt(document.getElementById('anchorRating').value);
+            var tolerance = parseInt(document.getElementById('anchorTolerance').value);
+            if (!songId) { alert('Select a song'); return; }
+            try {
+                var res = await fetch(API + '/api/judging/admin/anchors', {
+                    method: 'POST', headers: adminHeaders(),
+                    body: JSON.stringify({ song_id: songId, correct_rating: rating, tolerance: tolerance })
+                });
+                var data = await res.json();
+                if (res.ok) { loadAnchors(); }
+                else { alert(data.error || 'Failed to create anchor'); }
+            } catch (e) { alert('Error creating anchor'); }
+        }
+
+        async function deleteAnchor(id) {
+            if (!confirm('Remove this anchor song?')) return;
+            try {
+                await fetch(API + '/api/judging/admin/anchors/' + id, { method: 'DELETE', headers: adminHeaders() });
+                loadAnchors();
+            } catch (e) { alert('Error deleting anchor'); }
+        }
+
+        // ========================================
+        // SESSION MANAGEMENT
+        // ========================================
+        async function loadSessions() {
+            try {
+                var res = await fetch(API + '/api/judging/admin/sessions', { headers: adminHeaders() });
+                var data = await res.json();
+                var tbody = document.getElementById('sessionsList');
+                tbody.innerHTML = '';
+                if (!data.sessions || data.sessions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--text-secondary);text-align:center;">No judging sessions yet.</td></tr>';
+                    return;
+                }
+                data.sessions.forEach(function(s) {
+                    var row = document.createElement('tr');
+                    var statusColor = s.status === 'live' ? 'var(--green)' : s.status === 'completed' ? 'var(--text-secondary)' : 'var(--text)';
+                    var consensus = s.final_consensus !== null ? Math.round(s.final_consensus) : '-';
+                    var actions = '';
+                    if (s.status === 'scheduled') {
+                        actions = '<button class="btn btn-approve" onclick="startSession(\'' + s.id + '\')">Go Live</button>';
+                    } else if (s.status === 'live') {
+                        actions = '<button class="btn btn-deny" onclick="settleSession(\'' + s.id + '\')">Settle</button>';
+                    } else {
+                        actions = '<span style="color:var(--text-secondary);font-size:0.85rem;">Done</span>';
+                    }
+                    row.innerHTML = '<td>' + s.song_title + '</td><td>' + s.song_artist + '</td><td><span style="color:' + statusColor + ';font-weight:600;text-transform:uppercase;">' + s.status + '</span></td><td>' + consensus + '</td><td>' + (s.judge_count || 0) + '</td><td>' + (s.trade_count || 0) + '</td><td>' + actions + '</td>';
+                    tbody.appendChild(row);
+                });
+            } catch (e) { console.error('Sessions error:', e); }
+        }
+
+        async function createSession() {
+            var songId = document.getElementById('sessionSongSelect').value;
+            if (!songId) { alert('Select a song'); return; }
+            try {
+                var res = await fetch(API + '/api/judging/sessions', {
+                    method: 'POST', headers: adminHeaders(),
+                    body: JSON.stringify({ song_id: songId })
+                });
+                var data = await res.json();
+                if (res.ok) { loadSessions(); }
+                else { alert(data.error || 'Failed to create session'); }
+            } catch (e) { alert('Error creating session'); }
+        }
+
+        async function startSession(id) {
+            var windowMin = parseInt(document.getElementById('tradeWindowMin').value) || 10;
+            try {
+                var res = await fetch(API + '/api/judging/sessions/' + id + '/start', {
+                    method: 'PATCH', headers: adminHeaders(),
+                    body: JSON.stringify({ trading_window_minutes: windowMin })
+                });
+                var data = await res.json();
+                if (res.ok) { loadSessions(); }
+                else { alert(data.error || 'Failed to start session'); }
+            } catch (e) { alert('Error starting session'); }
+        }
+
+        async function settleSession(id) {
+            if (!confirm('Settle this session? This will finalize the consensus and resolve all trades.')) return;
+            try {
+                var res = await fetch(API + '/api/judging/sessions/' + id + '/settle', {
+                    method: 'POST', headers: adminHeaders()
+                });
+                var data = await res.json();
+                if (res.ok) {
+                    alert('Settled! Final consensus: ' + data.finalConsensus + ', Trades settled: ' + data.tradesSettled);
+                    loadSessions();
+                } else { alert(data.error || 'Failed to settle session'); }
+            } catch (e) { alert('Error settling session'); }
         }
 
         function logout() { masterPassword = ''; location.reload(); }

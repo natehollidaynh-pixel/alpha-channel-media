@@ -308,14 +308,12 @@
         <a href="email-settings.html"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.611 3.611 0 0112 15.6z"/></svg>Settings</a>
     </nav>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
         const API = window.location.origin;
         let currentToken = null;
         let currentUser = null;
         let traderProfile = null;
         let socket = null;
-        let liveSessionIds = [];
 
         function getAuthToken() {
             return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -338,13 +336,41 @@
                 document.getElementById('authGate').style.display = 'block';
                 return;
             }
-
             document.getElementById('mainContent').style.display = 'block';
             await loadTraderProfile();
             loadMarkets();
             loadActiveTrades();
             loadTradeHistory();
             loadLeaderboard('alltime');
+            connectSocket();
+        }
+
+        // Socket.IO connection for real-time updates
+        function connectSocket() {
+            const script = document.createElement('script');
+            script.src = '/socket.io/socket.io.js';
+            script.onload = () => {
+                socket = io(API + '/judging', {
+                    auth: { token: currentToken }
+                });
+                socket.on('connect', () => console.log('Trader socket connected'));
+                socket.on('consensus-update', (data) => {
+                    // Update any visible consensus values in market cards
+                    const consensusEls = document.querySelectorAll('.ts-consensus-val');
+                    consensusEls.forEach(el => {
+                        // Update all live market consensus displays
+                        el.textContent = Math.round(data.consensus);
+                    });
+                });
+                socket.on('session-ended', (data) => {
+                    // Refresh all data when a session ends
+                    loadTraderProfile();
+                    loadMarkets();
+                    loadActiveTrades();
+                    loadTradeHistory();
+                });
+            };
+            document.head.appendChild(script);
         }
 
         async function loadTraderProfile() {
@@ -352,14 +378,11 @@
                 const res = await fetch(API + '/api/judging/traders/profile', { headers: authHeaders() });
                 const data = await res.json();
                 traderProfile = data.trader;
-
                 document.getElementById('balanceAmount').textContent = '$' + parseFloat(traderProfile.play_money_balance).toFixed(2);
-
                 const winRate = traderProfile.total_trades > 0
                     ? Math.round((traderProfile.winning_trades / traderProfile.total_trades) * 100) : 0;
                 const pnl = parseFloat(traderProfile.total_profit_loss);
                 const pnlClass = pnl < 0 ? 'negative' : '';
-
                 document.getElementById('traderStats').innerHTML =
                     '<div class="stat-item"><div class="stat-value">' + traderProfile.total_trades + '</div><div class="stat-label">Total Trades</div></div>' +
                     '<div class="stat-item"><div class="stat-value">' + winRate + '%</div><div class="stat-label">Win Rate</div></div>' +
@@ -374,26 +397,22 @@
             try {
                 const res = await fetch(API + '/api/judging/sessions?status=live', { headers: authHeaders() });
                 const data = await res.json();
-
                 if (!data.sessions || data.sessions.length === 0) {
                     document.getElementById('marketsList').innerHTML =
                         '<div class="card"><div class="empty-state">No live markets right now. Check back when a judging session starts!</div></div>';
                     return;
                 }
-
                 let html = '';
                 data.sessions.forEach(s => {
                     const consensus = s.current_consensus !== null ? Math.round(s.current_consensus) : '--';
                     const isOpen = s.status === 'live' && (!s.trading_window_end || new Date(s.trading_window_end) > new Date());
-
                     html += '<div class="card trade-session">' +
                         '<div class="trade-session-header">' +
                             '<img src="' + (s.artwork_url || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%23333%22 width=%221%22 height=%221%22/></svg>') + '" alt="">' +
                             '<div class="ts-meta"><h3>' + (s.title || s.song_title) + '</h3><p>' + s.song_artist + '</p></div>' +
                             '<span class="ts-status ' + (isOpen ? 'live' : 'closed') + '">' + (isOpen ? 'Open' : 'Closed') + '</span>' +
                         '</div>' +
-                        '<div class="ts-consensus"><div class="ts-consensus-val" data-session-id="' + s.id + '">' + consensus + '</div><div class="ts-consensus-label">Current Consensus</div></div>';
-
+                        '<div class="ts-consensus"><div class="ts-consensus-val">' + consensus + '</div><div class="ts-consensus-label">Current Consensus</div></div>';
                     if (isOpen) {
                         html += '<div class="trade-form">' +
                             '<div class="tf-field"><label>Direction</label><select id="dir-' + s.id + '"><option value="over">Over</option><option value="under">Under</option></select></div>' +
@@ -401,53 +420,18 @@
                             '<button class="trade-btn" onclick="placeTrade(\'' + s.id + '\')">Place Trade</button>' +
                         '</div>';
                     }
-
                     html += '</div>';
+                    // Join session room for live updates
+                    if (s.status === 'live' && socket && socket.connected) {
+                        socket.emit('join-session', s.id);
+                    }
                 });
                 document.getElementById('marketsList').innerHTML = html;
-
-                // Connect to Socket.IO for live consensus updates
-                connectMarketSocket(data.sessions.filter(s => s.status === 'live').map(s => s.id));
             } catch (err) {
                 document.getElementById('marketsList').innerHTML =
                     '<div class="card"><div class="empty-state">Failed to load markets.</div></div>';
             }
         }
-
-        function connectMarketSocket(sessionIds) {
-            if (!sessionIds.length || !currentToken) return;
-            liveSessionIds = sessionIds;
-
-            if (socket) { socket.disconnect(); }
-            socket = io('/judging', { auth: { token: currentToken } });
-            socket.on('connect', () => {
-                sessionIds.forEach(id => socket.emit('join-session', id));
-            });
-            socket.on('consensus-update', (data) => {
-                // Update any matching consensus display on the page
-                var el = document.querySelector('.ts-consensus-val[data-session-id]');
-                // Check all consensus elements
-                document.querySelectorAll('.ts-consensus-val[data-session-id]').forEach(el => {
-                    el.textContent = Math.round(data.consensus);
-                });
-            });
-            socket.on('session-ended', (data) => {
-                // Refresh markets and trades when a session settles
-                loadMarkets();
-                loadActiveTrades();
-                loadTraderProfile();
-            });
-            socket.on('connect_error', (err) => {
-                console.error('Socket connection error:', err.message);
-            });
-        }
-
-        window.addEventListener('beforeunload', () => {
-            if (socket) {
-                liveSessionIds.forEach(id => socket.emit('leave-session', id));
-                socket.disconnect();
-            }
-        });
 
         async function placeTrade(sessionId) {
             const direction = document.getElementById('dir-' + sessionId).value;
@@ -455,7 +439,6 @@
             const btn = event.target;
             btn.disabled = true;
             btn.textContent = 'Placing...';
-
             try {
                 const res = await fetch(API + '/api/judging/trades', {
                     method: 'POST', headers: authHeaders(),
@@ -482,12 +465,10 @@
             try {
                 const res = await fetch(API + '/api/judging/trades/active', { headers: authHeaders() });
                 const data = await res.json();
-
                 if (!data.trades || data.trades.length === 0) {
                     document.getElementById('activeTradesList').innerHTML = '<div class="empty-state">No active trades.</div>';
                     return;
                 }
-
                 let html = '';
                 data.trades.forEach(t => {
                     html += '<div class="active-trade">' +
@@ -506,19 +487,16 @@
             try {
                 const res = await fetch(API + '/api/judging/trades/history', { headers: authHeaders() });
                 const data = await res.json();
-
                 if (!data.trades || data.trades.length === 0) {
                     document.getElementById('tradeHistoryList').innerHTML = '<div class="empty-state">No trade history yet.</div>';
                     return;
                 }
-
                 let html = '';
                 data.trades.forEach(t => {
                     const outcomeIcon = t.outcome === 'win' ? 'W' : t.outcome === 'loss' ? 'L' : 'P';
                     const payout = t.payout ? parseFloat(t.payout) : 0;
                     const net = payout - parseFloat(t.amount);
                     const payoutClass = net >= 0 ? 'positive' : 'negative';
-
                     html += '<div class="trade-history-item">' +
                         '<div class="th-outcome ' + t.outcome + '">' + outcomeIcon + '</div>' +
                         '<div class="th-details"><h4>' + (t.song_title || 'Session') + '</h4><p>' + t.direction.toUpperCase() + ' &bull; $' + parseFloat(t.amount).toFixed(2) + '</p></div>' +
@@ -539,12 +517,10 @@
             try {
                 const res = await fetch(API + '/api/judging/leaderboards/traders?period=' + period);
                 const data = await res.json();
-
                 if (!data.leaderboard || data.leaderboard.length === 0) {
                     document.getElementById('traderLeaderboard').innerHTML = '<div class="empty-state">No traders ranked yet.</div>';
                     return;
                 }
-
                 let html = '';
                 data.leaderboard.forEach((t, i) => {
                     const profit = parseFloat(t.period_profit || 0);
