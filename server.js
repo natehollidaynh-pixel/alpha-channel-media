@@ -301,9 +301,12 @@ pool.query('SELECT NOW()')
   .then(() => console.log('Trading, notification, and waitlist tables ready'))
   .catch(err => console.error('Database setup error:', err.message));
 
-// Make db and io available to routes
+// Make db available to routes
 app.locals.db = pool;
+
+// Initialize Socket.IO judging namespace
 app.locals.io = io;
+require('./sockets/judging')(io, pool);
 
 // Mount routes
 app.use('/api/auth', require('./routes/auth'));
@@ -318,9 +321,6 @@ app.use('/api/judging', require('./routes/judging'));
 // Aliases to match frontend expectations
 app.use('/api/creators', require('./routes/auth'));
 app.use('/api/upload', require('./routes/uploads'));
-
-// Initialize Socket.IO judging namespace
-require('./sockets/judging')(io, pool);
 
 // Master admin login
 app.post('/api/master/login', (req, res) => {
