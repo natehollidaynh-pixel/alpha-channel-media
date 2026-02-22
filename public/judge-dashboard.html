@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Judge Dashboard - Alpha Channel Media</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #f0ede8;
+            --bg-glossy: linear-gradient(135deg, #f5f2ed 0%, #faf8f5 20%, #f0ede8 40%, #fdf5f5 60%, #f0f7f3 80%, #f5f2ed 100%);
+            --surface: rgba(255,255,255,0.55); --surface-solid: #ffffff;
+            --green: #006e45; --green-glow: rgba(0,110,69,0.25); --red: #b82e2e; --red-glow: rgba(184,46,46,0.2);
+            --text: #111111; --text-secondary: #555555; --border: rgba(0,0,0,0.08);
+            --panel-glow: 0 0 30px rgba(0,110,69,0.12), 0 0 60px rgba(184,46,46,0.08);
+            --panel-border: rgba(0,0,0,0.06); --input-bg: rgba(255,255,255,0.7);
+            --shimmer-color: rgba(0,110,69,0.15);
+        }
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --bg-glossy: linear-gradient(135deg, #0e0e0e 0%, #121210 20%, #0e100e 40%, #140e0e 60%, #0e1210 80%, #0e0e0e 100%);
+            --surface: rgba(25,25,25,0.7); --surface-solid: #141414;
+            --green: #00c97a; --green-glow: rgba(0,201,122,0.2); --red: #e04545; --red-glow: rgba(224,69,69,0.15);
+            --text: #eaeaea; --text-secondary: #999999; --border: rgba(255,255,255,0.08);
+            --panel-glow: 0 0 40px rgba(0,201,122,0.1), 0 0 80px rgba(224,69,69,0.06);
+            --panel-border: rgba(255,255,255,0.06); --input-bg: rgba(40,40,40,0.7);
+            --shimmer-color: rgba(0,201,122,0.2);
+        }
+        .shimmer-text {
+            background: linear-gradient(120deg, var(--text) 0%, var(--text) 40%, var(--shimmer-color) 50%, var(--text) 60%, var(--text) 100%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmerSlide 3s ease-in-out infinite;
+        }
+        @keyframes shimmerSlide { 0% { background-position: 200% center; } 100% { background-position: -200% center; } }
+        body {
+            font-family: 'Inter', sans-serif; background: var(--bg-glossy); background-attachment: fixed;
+            color: var(--text); min-height: 100vh; padding: 0; position: relative; overflow-x: hidden;
+        }
+        body::before, body::after {
+            content: ''; position: fixed; border-radius: 50%;
+            filter: blur(80px); opacity: 0.4; pointer-events: none; z-index: 0;
+        }
+        body::before { width: 500px; height: 500px; background: radial-gradient(circle, rgba(0,150,80,0.2), transparent 70%); top: -100px; right: -100px; }
+        body::after { width: 400px; height: 400px; background: radial-gradient(circle, rgba(200,40,40,0.15), transparent 70%); bottom: -50px; left: -50px; }
+
+        .back-arrow {
+            position: fixed; top: 20px; left: 20px; width: 40px; height: 40px; border-radius: 50%;
+            background: var(--surface); border: 1px solid var(--border); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 100;
+            backdrop-filter: blur(10px); text-decoration: none; transition: all 0.3s;
+        }
+        .back-arrow:hover { box-shadow: var(--panel-glow); }
+        .back-arrow svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+
+        .page-container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 80px 20px 100px; }
+
+        .page-header { text-align: center; margin-bottom: 32px; }
+        .page-header h1 { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+        .page-header p { color: var(--text-secondary); font-size: 0.95rem; }
+
+        .card {
+            background: var(--surface); backdrop-filter: blur(25px); border-radius: 20px;
+            border: 1px solid var(--panel-border); box-shadow: var(--panel-glow);
+            padding: 28px; margin-bottom: 20px;
+        }
+        .card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+        /* Auth gate */
+        .auth-gate { text-align: center; padding: 60px 20px; }
+        .auth-gate p { color: var(--text-secondary); margin-bottom: 20px; }
+        .auth-gate a {
+            display: inline-block; padding: 14px 32px; background: var(--green-glow); color: var(--green);
+            border: 1px solid var(--green); border-radius: 12px; text-decoration: none; font-weight: 600;
+            backdrop-filter: blur(12px); transition: all 0.3s;
+        }
+        .auth-gate a:hover { box-shadow: 0 0 20px var(--green-glow); transform: translateY(-2px); }
+
+        /* Stats grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-item {
+            background: var(--input-bg); border-radius: 14px; padding: 16px; text-align: center;
+            border: 1px solid var(--border);
+        }
+        .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--green); }
+        .stat-label { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
+
+        /* Application form */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text); font-size: 0.95rem; }
+        textarea, input[type="text"] {
+            width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px;
+            background: var(--input-bg); font-size: 16px; color: var(--text); font-family: 'Inter', sans-serif;
+            transition: all 0.3s;
+        }
+        textarea { resize: vertical; min-height: 100px; }
+        textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+
+        .submit-btn {
+            width: 100%; padding: 16px; background: var(--green-glow); color: var(--green); border: 1px solid var(--green);
+            border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: all 0.3s;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        }
+        .submit-btn:hover { box-shadow: 0 0 20px var(--green-glow); transform: translateY(-2px); }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Screening test */
+        .screening-song {
+            background: var(--input-bg); border-radius: 14px; padding: 20px; margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+        .screening-song-info { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+        .screening-song-info img { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; }
+        .screening-song-info .song-meta h3 { font-size: 1rem; font-weight: 600; }
+        .screening-song-info .song-meta p { font-size: 0.85rem; color: var(--text-secondary); }
+        .screening-audio { width: 100%; margin-bottom: 12px; }
+        .screening-audio audio { width: 100%; height: 36px; }
+        .rating-slider-wrap { display: flex; align-items: center; gap: 12px; }
+        .rating-slider-wrap input[type="range"] { flex: 1; accent-color: var(--green); height: 6px; }
+        .rating-value { font-size: 1.4rem; font-weight: 700; color: var(--green); min-width: 36px; text-align: center; }
+
+        /* Sessions list */
+        .session-item {
+            display: flex; align-items: center; gap: 14px; padding: 16px;
+            background: var(--input-bg); border-radius: 14px; margin-bottom: 10px;
+            border: 1px solid var(--border); cursor: pointer; transition: all 0.3s;
+        }
+        .session-item:hover { border-color: var(--green); box-shadow: 0 0 12px var(--green-glow); }
+        .session-item img { width: 50px; height: 50px; border-radius: 10px; object-fit: cover; }
+        .session-meta { flex: 1; }
+        .session-meta h3 { font-size: 0.95rem; font-weight: 600; }
+        .session-meta p { font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; }
+        .session-status {
+            font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;
+        }
+        .session-status.live { background: var(--green-glow); color: var(--green); }
+        .session-status.scheduled { background: var(--input-bg); color: var(--text-secondary); border: 1px solid var(--border); }
+        .session-status.completed { background: var(--border); color: var(--text-secondary); }
+
+        /* Live judging panel */
+        .live-panel { display: none; }
+        .live-panel.active { display: block; }
+        .consensus-display { text-align: center; padding: 24px 0; }
+        .consensus-value { font-size: 4rem; font-weight: 700; color: var(--green); line-height: 1; }
+        .consensus-label { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; }
+        .judge-slider-container { margin: 24px 0; }
+        .judge-slider-container input[type="range"] { width: 100%; accent-color: var(--green); height: 8px; }
+        .judge-slider-labels { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; }
+        .your-rating { text-align: center; font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+
+        /* Leaderboard */
+        .leaderboard-row {
+            display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .leaderboard-row:last-child { border-bottom: none; }
+        .leaderboard-rank { font-weight: 700; color: var(--green); width: 28px; text-align: center; font-size: 1rem; }
+        .leaderboard-name { flex: 1; font-weight: 500; }
+        .leaderboard-score { font-weight: 600; color: var(--text-secondary); }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab {
+            padding: 8px 18px; border-radius: 10px; cursor: pointer; font-size: 0.9rem; font-weight: 500;
+            background: var(--input-bg); color: var(--text-secondary); border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+        .tab.active {
+            background: var(--green-glow); color: var(--green); border-color: var(--green);
+            backdrop-filter: blur(12px);
+        }
+        .tab:hover { border-color: var(--green); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .msg-box {
+            padding: 14px 18px; border-radius: 12px; margin-bottom: 16px; font-size: 0.95rem;
+        }
+        .msg-box.success { background: var(--green-glow); color: var(--green); border: 1px solid var(--green); }
+        .msg-box.error { background: var(--red-glow); color: var(--red); border: 1px solid var(--red); }
+        .msg-box.info { background: var(--input-bg); color: var(--text-secondary); border: 1px solid var(--border); }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-solid);
+            border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 48px;
+            padding: 10px 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); z-index: 1000;
+        }
+        .bottom-nav a {
+            display: flex; flex-direction: column; align-items: center; text-decoration: none;
+            color: var(--text-secondary); font-size: 0.7rem; font-weight: 500; padding: 4px 16px;
+            -webkit-tap-highlight-color: transparent; gap: 4px; transition: color 0.2s;
+        }
+        .bottom-nav a.active { color: var(--green); }
+        .bottom-nav a:hover { color: var(--green); }
+        .bottom-nav a svg { width: 22px; height: 22px; fill: currentColor; }
+
+        @media (max-width: 768px) {
+            .page-container { padding: 70px 16px 100px; }
+            .page-header h1 { font-size: 1.6rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <a href="player.html" class="back-arrow" aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </a>
+
+    <div class="page-container">
+        <!-- Auth gate -->
+        <div id="authGate" class="auth-gate" style="display:none;">
+            <div class="card">
+                <h2>Sign in to Judge</h2>
+                <p>You need to be logged in to access the Judge Dashboard.</p>
+                <a href="login.html">Sign In</a>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div id="mainContent" style="display:none;">
+            <div class="page-header">
+                <h1 class="shimmer-text">Judge Dashboard</h1>
+                <p>Rate songs, earn accuracy points, and help discover great music</p>
+            </div>
+
+            <!-- Not yet a judge -->
+            <div id="applySection" style="display:none;">
+                <div class="card">
+                    <h2>Become a Judge</h2>
+                    <div id="applicationStatus"></div>
+                    <form id="applyForm" style="display:none;">
+                        <div class="form-group">
+                            <label for="musicBg">Music Background</label>
+                            <textarea id="musicBg" placeholder="Tell us about your musical experience, genres you listen to, etc."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="genresFamiliar">Genres You Know Well</label>
+                            <input type="text" id="genresFamiliar" placeholder="e.g. Hip-Hop, R&B, Jazz, Electronic">
+                        </div>
+                        <button type="submit" class="submit-btn">Submit Application</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Screening test -->
+            <div id="screeningSection" style="display:none;">
+                <div class="card">
+                    <h2>Screening Test</h2>
+                    <p style="color:var(--text-secondary);margin-bottom:20px;">Listen to each song and rate it 0-100. Your accuracy determines if you qualify as a judge.</p>
+                    <div id="screeningSongs"></div>
+                    <button id="submitScreeningBtn" class="submit-btn" onclick="submitScreening()">Submit Ratings</button>
+                </div>
+            </div>
+
+            <!-- Judge is active -->
+            <div id="judgeSection" style="display:none;">
+                <!-- Stats -->
+                <div class="stats-grid" id="judgeStats"></div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <div class="tab active" data-tab="sessions" onclick="switchTab('sessions')">Live Sessions</div>
+                    <div class="tab" data-tab="leaderboard" onclick="switchTab('leaderboard')">Leaderboard</div>
+                </div>
+
+                <!-- Sessions tab -->
+                <div class="tab-content active" id="tab-sessions">
+                    <div class="card">
+                        <h2>Active & Upcoming Sessions</h2>
+                        <div id="sessionsList"></div>
+                    </div>
+
+                    <!-- Live judging panel -->
+                    <div id="livePanel" class="live-panel card">
+                        <h2 id="liveSongTitle">Now Judging</h2>
+                        <div id="liveAudioWrap" style="margin-bottom:16px;"></div>
+                        <div class="consensus-display">
+                            <div class="consensus-value" id="consensusValue">--</div>
+                            <div class="consensus-label">Current Consensus</div>
+                        </div>
+                        <div class="your-rating">Your Rating: <span id="yourRatingVal">50</span></div>
+                        <div class="judge-slider-container">
+                            <input type="range" id="judgeSlider" min="0" max="100" value="50" oninput="onRatingChange(this.value)">
+                            <div class="judge-slider-labels"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leaderboard tab -->
+                <div class="tab-content" id="tab-leaderboard">
+                    <div class="card">
+                        <h2>Top Judges</h2>
+                        <div id="judgeLeaderboard"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="welcome.html"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+        <a href="player.html"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>Music</a>
+        <a href="judge-dashboard.html" class="active"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Judge</a>
+        <a href="email-settings.html"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.611 3.611 0 0112 15.6z"/></svg>Settings</a>
+    </nav>
+
+    <script>
+        const API = window.location.origin;
+        let currentToken = null;
+        let currentUser = null;
+        let currentSessionId = null;
+        let currentApplicationId = null;
+        let screeningAnchors = [];
+        let socket = null;
+
+        function getAuthToken() {
+            return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        }
+
+        function authHeaders() {
+            return { 'Authorization': 'Bearer ' + currentToken, 'Content-Type': 'application/json' };
+        }
+
+        // Initialize
+        async function init() {
+            currentToken = getAuthToken();
+            if (!currentToken) {
+                document.getElementById('authGate').style.display = 'block';
+                return;
+            }
+
+            // Decode token to get user info
+            try {
+                const payload = JSON.parse(atob(currentToken.split('.')[1]));
+                currentUser = { id: payload.id, type: payload.type };
+            } catch(e) {
+                document.getElementById('authGate').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('mainContent').style.display = 'block';
+            await loadJudgeProfile();
+        }
+
+        async function loadJudgeProfile() {
+            try {
+                const res = await fetch(API + '/api/judging/judges/profile', { headers: authHeaders() });
+                const data = await res.json();
+
+                if (data.isJudge) {
+                    showJudgeSection(data.judge);
+                } else {
+                    showApplySection(data.application);
+                }
+            } catch (err) {
+                console.error('Failed to load profile:', err);
+            }
+        }
+
+        function showApplySection(application) {
+            document.getElementById('applySection').style.display = 'block';
+            document.getElementById('judgeSection').style.display = 'none';
+            document.getElementById('screeningSection').style.display = 'none';
+
+            const statusDiv = document.getElementById('applicationStatus');
+
+            if (!application) {
+                statusDiv.innerHTML = '<div class="msg-box info">Apply below to become a judge. You\'ll take a short screening test to qualify.</div>';
+                document.getElementById('applyForm').style.display = 'block';
+            } else if (application.status === 'screening') {
+                currentApplicationId = application.id;
+                statusDiv.innerHTML = '<div class="msg-box success">Your application is ready for screening!</div>';
+                document.getElementById('applyForm').style.display = 'none';
+                loadScreeningTest(application.id);
+            } else if (application.status === 'rejected') {
+                const canRetry = !application.next_attempt_date || new Date(application.next_attempt_date) <= new Date();
+                if (canRetry) {
+                    statusDiv.innerHTML = '<div class="msg-box info">Your previous application was not accepted. You may apply again.</div>';
+                    document.getElementById('applyForm').style.display = 'block';
+                } else {
+                    const retryDate = new Date(application.next_attempt_date).toLocaleDateString();
+                    statusDiv.innerHTML = '<div class="msg-box error">Your application was not accepted. You can try again after ' + retryDate + '.</div>';
+                    document.getElementById('applyForm').style.display = 'none';
+                }
+            } else if (application.status === 'pending') {
+                statusDiv.innerHTML = '<div class="msg-box info">Your application is being reviewed. Check back soon!</div>';
+                document.getElementById('applyForm').style.display = 'none';
+            }
+        }
+
+        function showJudgeSection(judge) {
+            document.getElementById('applySection').style.display = 'none';
+            document.getElementById('screeningSection').style.display = 'none';
+            document.getElementById('judgeSection').style.display = 'block';
+
+            document.getElementById('judgeStats').innerHTML =
+                '<div class="stat-item"><div class="stat-value">' + (judge.accuracy_score || 0) + '</div><div class="stat-label">Accuracy</div></div>' +
+                '<div class="stat-item"><div class="stat-value">' + (judge.total_ratings || 0) + '</div><div class="stat-label">Ratings</div></div>' +
+                '<div class="stat-item"><div class="stat-value">' + (judge.sessions_judged || 0) + '</div><div class="stat-label">Sessions</div></div>' +
+                '<div class="stat-item"><div class="stat-value">' + (judge.status || 'active') + '</div><div class="stat-label">Status</div></div>';
+
+            loadSessions();
+            loadJudgeLeaderboard();
+        }
+
+        // Application form
+        document.getElementById('applyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('.submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Submitting...';
+
+            try {
+                const res = await fetch(API + '/api/judging/judges/apply', {
+                    method: 'POST', headers: authHeaders(),
+                    body: JSON.stringify({
+                        music_background: document.getElementById('musicBg').value,
+                        genres_familiar: document.getElementById('genresFamiliar').value
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    currentApplicationId = data.application.id;
+                    loadScreeningTest(data.application.id);
+                } else {
+                    document.getElementById('applicationStatus').innerHTML =
+                        '<div class="msg-box error">' + (data.error || 'Failed to submit') + '</div>';
+                }
+            } catch (err) {
+                document.getElementById('applicationStatus').innerHTML =
+                    '<div class="msg-box error">Network error. Please try again.</div>';
+            }
+            btn.disabled = false;
+            btn.textContent = 'Submit Application';
+        });
+
+        // Screening
+        async function loadScreeningTest(appId) {
+            document.getElementById('applySection').style.display = 'none';
+            document.getElementById('screeningSection').style.display = 'block';
+
+            try {
+                const res = await fetch(API + '/api/judging/judges/screening/' + appId, { headers: authHeaders() });
+                const data = await res.json();
+                if (!res.ok) {
+                    document.getElementById('screeningSongs').innerHTML =
+                        '<div class="msg-box error">' + (data.error || 'Failed to load test') + '</div>';
+                    return;
+                }
+                screeningAnchors = data.songs;
+                let html = '';
+                data.songs.forEach((song, i) => {
+                    html += '<div class="screening-song">' +
+                        '<div class="screening-song-info">' +
+                            '<img src="' + (song.artwork_url || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%23333%22 width=%221%22 height=%221%22/></svg>') + '" alt="">' +
+                            '<div class="song-meta"><h3>' + song.title + '</h3><p>' + song.artist + '</p></div>' +
+                        '</div>' +
+                        '<div class="screening-audio"><audio controls preload="none" src="' + song.audio_url + '"></audio></div>' +
+                        '<div class="rating-slider-wrap">' +
+                            '<input type="range" min="0" max="100" value="50" data-anchor="' + song.id + '" oninput="this.nextElementSibling.textContent=this.value">' +
+                            '<div class="rating-value">50</div>' +
+                        '</div>' +
+                    '</div>';
+                });
+                document.getElementById('screeningSongs').innerHTML = html;
+            } catch (err) {
+                document.getElementById('screeningSongs').innerHTML =
+                    '<div class="msg-box error">Failed to load screening test.</div>';
+            }
+        }
+
+        async function submitScreening() {
+            const btn = document.getElementById('submitScreeningBtn');
+            btn.disabled = true;
+            btn.textContent = 'Submitting...';
+
+            const sliders = document.querySelectorAll('#screeningSongs input[type="range"]');
+            const ratings = [];
+            sliders.forEach(s => {
+                ratings.push({ anchorId: s.dataset.anchor, rating: parseInt(s.value) });
+            });
+
+            try {
+                const res = await fetch(API + '/api/judging/judges/screening/' + currentApplicationId + '/submit', {
+                    method: 'POST', headers: authHeaders(),
+                    body: JSON.stringify({ ratings })
+                });
+                const data = await res.json();
+                if (data.passed) {
+                    document.getElementById('screeningSection').innerHTML =
+                        '<div class="card"><div class="msg-box success">Congratulations! You passed with a score of ' + Math.round(data.score) + '. Welcome to the judge panel!</div></div>';
+                    setTimeout(() => loadJudgeProfile(), 2000);
+                } else {
+                    document.getElementById('screeningSection').innerHTML =
+                        '<div class="card"><div class="msg-box error">Score: ' + Math.round(data.score) + '. You can retry after ' + new Date(data.next_attempt_date).toLocaleDateString() + '.</div></div>';
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = 'Submit Ratings';
+            }
+        }
+
+        // Sessions
+        async function loadSessions() {
+            try {
+                const res = await fetch(API + '/api/judging/sessions', { headers: authHeaders() });
+                const data = await res.json();
+
+                if (!data.sessions || data.sessions.length === 0) {
+                    document.getElementById('sessionsList').innerHTML = '<div class="empty-state">No sessions available right now. Check back soon!</div>';
+                    return;
+                }
+
+                let html = '';
+                data.sessions.forEach(s => {
+                    const statusClass = s.status === 'live' ? 'live' : s.status === 'scheduled' ? 'scheduled' : 'completed';
+                    html += '<div class="session-item" onclick="joinSession(\'' + s.id + '\')">' +
+                        '<img src="' + (s.artwork_url || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%23333%22 width=%221%22 height=%221%22/></svg>') + '" alt="">' +
+                        '<div class="session-meta"><h3>' + (s.title || s.song_title) + '</h3><p>' + s.song_artist + '</p></div>' +
+                        '<span class="session-status ' + statusClass + '">' + s.status + '</span>' +
+                    '</div>';
+                });
+                document.getElementById('sessionsList').innerHTML = html;
+            } catch (err) {
+                document.getElementById('sessionsList').innerHTML = '<div class="empty-state">Failed to load sessions.</div>';
+            }
+        }
+
+        async function joinSession(sessionId) {
+            try {
+                const res = await fetch(API + '/api/judging/sessions/' + sessionId, { headers: authHeaders() });
+                const data = await res.json();
+                if (!res.ok) return;
+
+                const session = data.session;
+                currentSessionId = sessionId;
+                const panel = document.getElementById('livePanel');
+                panel.classList.add('active');
+
+                document.getElementById('liveSongTitle').textContent = session.song_title + ' - ' + session.song_artist;
+                document.getElementById('liveAudioWrap').innerHTML =
+                    '<audio controls style="width:100%;height:36px;" src="' + session.audio_url + '"></audio>';
+
+                if (session.current_consensus !== null) {
+                    document.getElementById('consensusValue').textContent = Math.round(session.current_consensus);
+                }
+
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (err) {
+                console.error('Failed to join session:', err);
+            }
+        }
+
+        function onRatingChange(val) {
+            document.getElementById('yourRatingVal').textContent = val;
+        }
+
+        // Leaderboard
+        async function loadJudgeLeaderboard() {
+            try {
+                const res = await fetch(API + '/api/judging/leaderboards/judges');
+                const data = await res.json();
+
+                if (!data.leaderboard || data.leaderboard.length === 0) {
+                    document.getElementById('judgeLeaderboard').innerHTML = '<div class="empty-state">No judges ranked yet.</div>';
+                    return;
+                }
+
+                let html = '';
+                data.leaderboard.forEach((j, i) => {
+                    html += '<div class="leaderboard-row">' +
+                        '<div class="leaderboard-rank">' + (i + 1) + '</div>' +
+                        '<div class="leaderboard-name">' + j.username + '</div>' +
+                        '<div class="leaderboard-score">' + j.accuracy_score + ' pts</div>' +
+                    '</div>';
+                });
+                document.getElementById('judgeLeaderboard').innerHTML = html;
+            } catch (err) {
+                document.getElementById('judgeLeaderboard').innerHTML = '<div class="empty-state">Failed to load leaderboard.</div>';
+            }
+        }
+
+        // Tabs
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + tabName));
+        }
+
+        // Theme
+        (function() {
+            var old = localStorage.getItem('theme');
+            if (old && !localStorage.getItem('themePreference')) {
+                localStorage.setItem('themePreference', old);
+                localStorage.removeItem('theme');
+            }
+            var pref = localStorage.getItem('themePreference') || 'system';
+            if (pref === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            else if (pref === 'light') document.documentElement.setAttribute('data-theme', 'light');
+            else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.setAttribute('data-theme', 'light');
+        })();
+
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join the Waitlist - Alpha Channel Media</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #f0ede8;
+            --bg-glossy: linear-gradient(135deg, #f5f2ed 0%, #faf8f5 20%, #f0ede8 40%, #fdf5f5 60%, #f0f7f3 80%, #f5f2ed 100%);
+            --surface: rgba(255,255,255,0.55); --surface-solid: #ffffff;
+            --green: #006e45; --green-glow: rgba(0,110,69,0.25); --red: #b82e2e; --red-glow: rgba(184,46,46,0.2);
+            --text: #111111; --text-secondary: #555555; --border: rgba(0,0,0,0.08);
+            --panel-glow: 0 0 30px rgba(0,110,69,0.12), 0 0 60px rgba(184,46,46,0.08);
+            --panel-border: rgba(0,0,0,0.06); --input-bg: rgba(255,255,255,0.7);
+            --shimmer-color: rgba(0,110,69,0.15);
+        }
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --bg-glossy: linear-gradient(135deg, #0e0e0e 0%, #121210 20%, #0e100e 40%, #140e0e 60%, #0e1210 80%, #0e0e0e 100%);
+            --surface: rgba(25,25,25,0.7); --surface-solid: #141414;
+            --green: #00c97a; --green-glow: rgba(0,201,122,0.2); --red: #e04545; --red-glow: rgba(224,69,69,0.15);
+            --text: #eaeaea; --text-secondary: #999999; --border: rgba(255,255,255,0.08);
+            --panel-glow: 0 0 40px rgba(0,201,122,0.1), 0 0 80px rgba(224,69,69,0.06);
+            --panel-border: rgba(255,255,255,0.06); --input-bg: rgba(40,40,40,0.7);
+            --shimmer-color: rgba(0,201,122,0.2);
+        }
+        .shimmer-text {
+            background: linear-gradient(120deg, var(--text) 0%, var(--text) 40%, var(--shimmer-color) 50%, var(--text) 60%, var(--text) 100%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmerSlide 3s ease-in-out infinite;
+        }
+        @keyframes shimmerSlide { 0% { background-position: 200% center; } 100% { background-position: -200% center; } }
+        body {
+            font-family: 'Inter', sans-serif; background: var(--bg-glossy); background-attachment: fixed;
+            color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 40px 20px 80px; position: relative; overflow-x: hidden;
+        }
+        body::before, body::after {
+            content: ''; position: fixed; border-radius: 50%;
+            filter: blur(80px); opacity: 0.4; pointer-events: none; z-index: 0;
+        }
+        body::before { width: 500px; height: 500px; background: radial-gradient(circle, rgba(0,150,80,0.2), transparent 70%); top: -100px; right: -100px; }
+        body::after { width: 400px; height: 400px; background: radial-gradient(circle, rgba(200,40,40,0.15), transparent 70%); bottom: -50px; left: -50px; }
+
+        .back-arrow {
+            position: fixed; top: 20px; left: 20px; width: 40px; height: 40px; border-radius: 50%;
+            background: var(--surface); border: 1px solid var(--border); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 100;
+            backdrop-filter: blur(10px); text-decoration: none; transition: all 0.3s;
+        }
+        .back-arrow:hover { box-shadow: var(--panel-glow); }
+        .back-arrow svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+
+        .container {
+            position: relative; z-index: 1; max-width: 560px; width: 100%;
+            background: var(--surface); backdrop-filter: blur(25px); border-radius: 24px;
+            border: 1px solid var(--panel-border); box-shadow: var(--panel-glow);
+            padding: 50px 40px; animation: fadeIn 0.6s ease-out;
+        }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+        .header { text-align: center; margin-bottom: 36px; }
+        .header h1 { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; margin-bottom: 12px; }
+        .header p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5; }
+
+        .stats-bar {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px;
+        }
+        .stats-bar .sb-item {
+            background: var(--input-bg); border-radius: 14px; padding: 14px; text-align: center;
+            border: 1px solid var(--border);
+        }
+        .sb-value { font-size: 1.5rem; font-weight: 700; color: var(--green); }
+        .sb-label { font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px; }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text); font-size: 0.95rem; }
+        input[type="text"], input[type="email"] {
+            width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px;
+            background: var(--input-bg); font-size: 16px; color: var(--text); font-family: 'Inter', sans-serif;
+            transition: all 0.3s;
+        }
+        input[type="text"]:focus, input[type="email"]:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+
+        .interest-group { margin-bottom: 24px; }
+        .interest-group label.group-label { margin-bottom: 12px; font-weight: 600; }
+        .interest-options { display: flex; flex-wrap: wrap; gap: 10px; }
+        .interest-option {
+            display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+            background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
+            cursor: pointer; transition: all 0.3s; user-select: none;
+        }
+        .interest-option:hover { border-color: var(--green); }
+        .interest-option input { display: none; }
+        .interest-option.checked { background: var(--green-glow); border-color: var(--green); color: var(--green); }
+        .interest-icon { font-size: 1.2rem; }
+        .interest-label { font-size: 0.9rem; font-weight: 500; }
+
+        .submit-btn {
+            width: 100%; padding: 16px; background: var(--green-glow); color: var(--green); border: 1px solid var(--green);
+            border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: all 0.3s;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        }
+        .submit-btn:hover { box-shadow: 0 0 20px var(--green-glow); transform: translateY(-2px); }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .success-card {
+            display: none; text-align: center; padding: 40px 20px;
+        }
+        .success-card .check-icon {
+            width: 64px; height: 64px; border-radius: 50%; background: var(--green-glow);
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
+        }
+        .success-card .check-icon svg { width: 32px; height: 32px; fill: var(--green); }
+        .success-card h2 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 12px; }
+        .success-card p { color: var(--text-secondary); line-height: 1.5; }
+        .referral-box {
+            margin-top: 20px; padding: 16px; background: var(--input-bg); border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .referral-box label { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; }
+        .referral-code {
+            font-size: 1.2rem; font-weight: 700; color: var(--green); letter-spacing: 2px;
+            user-select: all; cursor: pointer;
+        }
+
+        .msg-box {
+            padding: 14px 18px; border-radius: 12px; margin-bottom: 16px; font-size: 0.95rem;
+        }
+        .msg-box.error { background: var(--red-glow); color: var(--red); border: 1px solid var(--red); }
+
+        .back-link { text-align: center; margin-top: 24px; }
+        .back-link a { color: var(--text-secondary); text-decoration: none; font-size: 0.95rem; }
+        .back-link a:hover { color: var(--green); }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-solid);
+            border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 48px;
+            padding: 10px 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); z-index: 1000;
+        }
+        .bottom-nav a {
+            display: flex; flex-direction: column; align-items: center; text-decoration: none;
+            color: var(--text-secondary); font-size: 0.7rem; font-weight: 500; padding: 4px 16px;
+            -webkit-tap-highlight-color: transparent; gap: 4px; transition: color 0.2s;
+        }
+        .bottom-nav a.active { color: var(--green); }
+        .bottom-nav a:hover { color: var(--green); }
+        .bottom-nav a svg { width: 22px; height: 22px; fill: currentColor; }
+
+        @media (max-width: 768px) {
+            .container { padding: 40px 28px; }
+            .header h1 { font-size: 1.8rem; }
+            .stats-bar { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 30px 20px; border-radius: 20px; }
+            .header h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <a href="welcome.html" class="back-arrow" aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </a>
+
+    <div class="container">
+        <div class="header">
+            <h1 class="shimmer-text">Join the Waitlist</h1>
+            <p>Be the first to know when new features launch. Sign up to get early access to judging, trading, and more.</p>
+        </div>
+
+        <div class="stats-bar" id="statsBar">
+            <div class="sb-item"><div class="sb-value" id="statTotal">--</div><div class="sb-label">Signed Up</div></div>
+            <div class="sb-item"><div class="sb-value" id="statJudges">--</div><div class="sb-label">Want to Judge</div></div>
+            <div class="sb-item"><div class="sb-value" id="statTraders">--</div><div class="sb-label">Want to Trade</div></div>
+        </div>
+
+        <div id="formSection">
+            <form id="waitlistForm">
+                <div class="form-group">
+                    <label for="wlEmail">Email *</label>
+                    <input type="email" id="wlEmail" name="email" required placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="wlName">Name</label>
+                    <input type="text" id="wlName" name="name" placeholder="Your name">
+                </div>
+
+                <div class="interest-group">
+                    <label class="group-label">I'm interested in...</label>
+                    <div class="interest-options">
+                        <label class="interest-option" onclick="toggleInterest(this)">
+                            <input type="checkbox" name="wants_to_judge">
+                            <span class="interest-icon">&#9878;</span>
+                            <span class="interest-label">Judging</span>
+                        </label>
+                        <label class="interest-option" onclick="toggleInterest(this)">
+                            <input type="checkbox" name="wants_to_trade">
+                            <span class="interest-icon">&#9650;</span>
+                            <span class="interest-label">Trading</span>
+                        </label>
+                        <label class="interest-option" onclick="toggleInterest(this)">
+                            <input type="checkbox" name="wants_to_upload">
+                            <span class="interest-icon">&#9836;</span>
+                            <span class="interest-label">Uploading Music</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="wlReferral">Referral Code (optional)</label>
+                    <input type="text" id="wlReferral" name="referral_code" placeholder="Friend's referral code">
+                </div>
+
+                <div id="errorMsg"></div>
+                <button type="submit" class="submit-btn">Join Waitlist</button>
+            </form>
+        </div>
+
+        <div id="successSection" class="success-card">
+            <div class="check-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </div>
+            <h2>You're on the list!</h2>
+            <p>We'll send you an email when your features are ready. Share your referral code to move up the list.</p>
+            <div class="referral-box">
+                <label>Your Referral Code</label>
+                <div class="referral-code" id="myReferralCode"></div>
+            </div>
+        </div>
+
+        <div class="back-link"><a href="welcome.html">Back to home</a></div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="welcome.html"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+        <a href="player.html"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>Music</a>
+        <a href="email-settings.html"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.611 3.611 0 0112 15.6z"/></svg>Settings</a>
+    </nav>
+
+    <script>
+        const API = window.location.origin;
+
+        function toggleInterest(el) {
+            const cb = el.querySelector('input[type="checkbox"]');
+            cb.checked = !cb.checked;
+            el.classList.toggle('checked', cb.checked);
+        }
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const res = await fetch(API + '/api/judging/waitlist/stats');
+                const data = await res.json();
+                if (data.stats) {
+                    document.getElementById('statTotal').textContent = data.stats.total || 0;
+                    document.getElementById('statJudges').textContent = data.stats.judges || 0;
+                    document.getElementById('statTraders').textContent = data.stats.traders || 0;
+                }
+            } catch (err) {
+                console.error('Failed to load stats');
+            }
+        }
+
+        document.getElementById('waitlistForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('.submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Joining...';
+            document.getElementById('errorMsg').innerHTML = '';
+
+            const email = document.getElementById('wlEmail').value;
+            const name = document.getElementById('wlName').value;
+            const referral_code = document.getElementById('wlReferral').value || undefined;
+            const wants_to_judge = e.target.querySelector('[name="wants_to_judge"]').checked;
+            const wants_to_trade = e.target.querySelector('[name="wants_to_trade"]').checked;
+            const wants_to_upload = e.target.querySelector('[name="wants_to_upload"]').checked;
+
+            try {
+                const res = await fetch(API + '/api/judging/waitlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, name, wants_to_judge, wants_to_trade, wants_to_upload, referral_code })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    document.getElementById('formSection').style.display = 'none';
+                    document.getElementById('successSection').style.display = 'block';
+                    if (data.entry && data.entry.referral_code) {
+                        document.getElementById('myReferralCode').textContent = data.entry.referral_code;
+                    }
+                    loadStats();
+                } else {
+                    document.getElementById('errorMsg').innerHTML =
+                        '<div class="msg-box error">' + (data.error || 'Failed to join waitlist') + '</div>';
+                    btn.disabled = false;
+                    btn.textContent = 'Join Waitlist';
+                }
+            } catch (err) {
+                document.getElementById('errorMsg').innerHTML =
+                    '<div class="msg-box error">Network error. Please try again.</div>';
+                btn.disabled = false;
+                btn.textContent = 'Join Waitlist';
+            }
+        });
+
+        // Theme
+        (function() {
+            var old = localStorage.getItem('theme');
+            if (old && !localStorage.getItem('themePreference')) {
+                localStorage.setItem('themePreference', old);
+                localStorage.removeItem('theme');
+            }
+            var pref = localStorage.getItem('themePreference') || 'system';
+            if (pref === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            else if (pref === 'light') document.documentElement.setAttribute('data-theme', 'light');
+            else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.setAttribute('data-theme', 'light');
+        })();
+
+        loadStats();
+    </script>
+</body>
+</html>
