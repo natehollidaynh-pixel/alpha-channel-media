@@ -728,4 +728,264 @@ router.patch('/notifications/read-all', authenticateToken, async (req, res) => {
   }
 });
 
+// ========================================
+// SESSION MANAGEMENT (ADMIN)
+// ========================================
+
+// PATCH /sessions/:id/start — Admin: start a session (set to live)
+router.patch('/sessions/:id/start', authenticateMaster, async (req, res) => {
+  const db = req.app.locals.db;
+  const { trading_window_minutes } = req.body;
+
+  try {
+    const session = await db.query('SELECT id, status FROM judging_sessions WHERE id = $1', [req.params.id]);
+    if (session.rows.length === 0) return res.status(404).json({ error: 'Session not found' });
+    if (session.rows[0].status !== 'scheduled') {
+      return res.status(400).json({ error: 'Session is not in scheduled state' });
+    }
+
+    const tradingEnd = trading_window_minutes
+      ? new Date(Date.now() + trading_window_minutes * 60 * 1000)
+      : null;
+
+    const result = await db.query(
+      `UPDATE judging_sessions SET status = 'live', actual_start = NOW(), trading_window_end = $1
+       WHERE id = $2 RETURNING *`,
+      [tradingEnd, req.params.id]
+    );
+
+    res.json({ session: result.rows[0] });
+  } catch (err) {
+    console.error('Start session error:', err);
+    res.status(500).json({ error: 'Failed to start session' });
+  }
+});
+
+// POST /sessions/:id/settle — Admin: settle session and resolve trades
+router.post('/sessions/:id/settle', authenticateMaster, async (req, res) => {
+  const db = req.app.locals.db;
+  const sessionId = req.params.id;
+
+  try {
+    const session = await db.query(
+      'SELECT id, status FROM judging_sessions WHERE id = $1',
+      [sessionId]
+    );
+    if (session.rows.length === 0) return res.status(404).json({ error: 'Session not found' });
+    if (session.rows[0].status === 'completed') {
+      return res.status(400).json({ error: 'Session already settled' });
+    }
+
+    // Calculate final consensus from each judge's latest rating
+    const consensus = await db.query(
+      `SELECT AVG(sub.rating) as final_consensus, COUNT(DISTINCT sub.judge_id) as judge_count
+       FROM (
+         SELECT DISTINCT ON (judge_id) judge_id, rating
+         FROM judge_rating_snapshots
+         WHERE session_id = $1
+         ORDER BY judge_id, timestamp DESC
+       ) sub`,
+      [sessionId]
+    );
+
+    const finalConsensus = parseFloat(consensus.rows[0]?.final_consensus) || 0;
+    const judgeCount = parseInt(consensus.rows[0]?.judge_count) || 0;
+
+    // Update session to completed
+    await db.query(
+      `UPDATE judging_sessions SET status = 'completed', final_consensus = $1, judge_count = $2, end_time = NOW()
+       WHERE id = $3`,
+      [finalConsensus, judgeCount, sessionId]
+    );
+
+    // Get all pending trades for this session
+    const trades = await db.query(
+      `SELECT t.*, tr.id as trader_table_id
+       FROM trades t
+       JOIN traders tr ON t.trader_id = tr.id
+       WHERE t.session_id = $1 AND t.status = 'pending'`,
+      [sessionId]
+    );
+
+    let settled = 0;
+    for (const trade of trades.rows) {
+      const entry = parseFloat(trade.entry_sentiment);
+      const amount = parseFloat(trade.amount);
+      let outcome, payout;
+
+      if (Math.abs(finalConsensus - entry) < 0.5) {
+        outcome = 'push';
+        payout = amount;
+      } else if (trade.direction === 'over' && finalConsensus > entry) {
+        outcome = 'win';
+        payout = amount * 1.8;
+      } else if (trade.direction === 'under' && finalConsensus < entry) {
+        outcome = 'win';
+        payout = amount * 1.8;
+      } else {
+        outcome = 'loss';
+        payout = 0;
+      }
+
+      // Update trade record
+      await db.query(
+        `UPDATE trades SET status = 'settled', outcome = $1, final_sentiment = $2, payout = $3, settled_at = NOW()
+         WHERE id = $4`,
+        [outcome, finalConsensus, payout, trade.id]
+      );
+
+      // Update trader balance and stats
+      const profitLoss = payout - amount;
+      if (outcome === 'win') {
+        await db.query(
+          `UPDATE traders SET
+             play_money_balance = play_money_balance + $1,
+             winning_trades = winning_trades + 1,
+             current_streak = current_streak + 1,
+             best_streak = GREATEST(best_streak, current_streak + 1),
+             total_profit_loss = total_profit_loss + $2
+           WHERE id = $3`,
+          [payout, profitLoss, trade.trader_table_id]
+        );
+      } else if (outcome === 'loss') {
+        await db.query(
+          `UPDATE traders SET
+             losing_trades = losing_trades + 1,
+             current_streak = 0,
+             total_profit_loss = total_profit_loss - $1
+           WHERE id = $2`,
+          [amount, trade.trader_table_id]
+        );
+      } else {
+        // Push — return money, no stat change
+        await db.query(
+          'UPDATE traders SET play_money_balance = play_money_balance + $1 WHERE id = $2',
+          [payout, trade.trader_table_id]
+        );
+      }
+      settled++;
+    }
+
+    // Update judge session counts
+    const judgeIds = await db.query(
+      `SELECT DISTINCT judge_id FROM judge_rating_snapshots WHERE session_id = $1`,
+      [sessionId]
+    );
+    for (const row of judgeIds.rows) {
+      const ratingCount = await db.query(
+        'SELECT COUNT(*) as cnt FROM judge_rating_snapshots WHERE session_id = $1 AND judge_id = $2',
+        [sessionId, row.judge_id]
+      );
+      await db.query(
+        `UPDATE judges SET sessions_judged = sessions_judged + 1, total_ratings = total_ratings + $1 WHERE id = $2`,
+        [parseInt(ratingCount.rows[0].cnt), row.judge_id]
+      );
+    }
+
+    // Broadcast session ended via Socket.IO
+    const io = req.app.locals.io;
+    if (io) {
+      io.of('/judging').to(`session:${sessionId}`).emit('session-ended', {
+        sessionId,
+        finalConsensus: Math.round(finalConsensus * 100) / 100,
+        judgeCount,
+        tradesSettled: settled
+      });
+    }
+
+    res.json({
+      success: true,
+      finalConsensus: Math.round(finalConsensus * 100) / 100,
+      judgeCount,
+      tradesSettled: settled
+    });
+  } catch (err) {
+    console.error('Settle session error:', err);
+    res.status(500).json({ error: 'Failed to settle session' });
+  }
+});
+
+// ========================================
+// ANCHOR SONG MANAGEMENT (ADMIN)
+// ========================================
+
+// GET /admin/anchors — List all anchor songs
+router.get('/admin/anchors', authenticateMaster, async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    const result = await db.query(
+      `SELECT a.*, s.title, s.artist, s.audio_url, s.artwork_url
+       FROM anchor_songs a
+       JOIN songs s ON a.song_id = s.id
+       ORDER BY a.created_at DESC`
+    );
+    res.json({ anchors: result.rows });
+  } catch (err) {
+    console.error('Get anchors error:', err);
+    res.status(500).json({ error: 'Failed to get anchors' });
+  }
+});
+
+// POST /admin/anchors — Designate a song as anchor
+router.post('/admin/anchors', authenticateMaster, async (req, res) => {
+  const db = req.app.locals.db;
+  const { song_id, correct_rating, tolerance, genre, difficulty } = req.body;
+
+  try {
+    if (!song_id || correct_rating === undefined) {
+      return res.status(400).json({ error: 'song_id and correct_rating are required' });
+    }
+    const song = await db.query('SELECT id FROM songs WHERE id = $1', [song_id]);
+    if (song.rows.length === 0) return res.status(404).json({ error: 'Song not found' });
+
+    const existing = await db.query('SELECT id FROM anchor_songs WHERE song_id = $1', [song_id]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'This song is already an anchor' });
+    }
+
+    const result = await db.query(
+      `INSERT INTO anchor_songs (song_id, correct_rating, tolerance, genre, difficulty, active)
+       VALUES ($1, $2, $3, $4, $5, true)
+       RETURNING *`,
+      [song_id, correct_rating, tolerance || 10, genre || null, difficulty || 'medium']
+    );
+    res.status(201).json({ anchor: result.rows[0] });
+  } catch (err) {
+    console.error('Create anchor error:', err);
+    res.status(500).json({ error: 'Failed to create anchor' });
+  }
+});
+
+// DELETE /admin/anchors/:id — Remove an anchor
+router.delete('/admin/anchors/:id', authenticateMaster, async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    const result = await db.query('DELETE FROM anchor_songs WHERE id = $1 RETURNING id', [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Anchor not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete anchor error:', err);
+    res.status(500).json({ error: 'Failed to delete anchor' });
+  }
+});
+
+// GET /admin/sessions — List all sessions for admin management
+router.get('/admin/sessions', authenticateMaster, async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    const result = await db.query(
+      `SELECT js.*, s.title as song_title, s.artist as song_artist, s.artwork_url,
+              (SELECT COUNT(*) FROM trades WHERE session_id = js.id) as trade_count
+       FROM judging_sessions js
+       JOIN songs s ON js.song_id = s.id
+       ORDER BY js.created_at DESC
+       LIMIT 100`
+    );
+    res.json({ sessions: result.rows });
+  } catch (err) {
+    console.error('Admin sessions error:', err);
+    res.status(500).json({ error: 'Failed to get sessions' });
+  }
+});
+
 module.exports = router;

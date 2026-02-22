@@ -308,11 +308,14 @@
         <a href="email-settings.html"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.611 3.611 0 0112 15.6z"/></svg>Settings</a>
     </nav>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         const API = window.location.origin;
         let currentToken = null;
         let currentUser = null;
         let traderProfile = null;
+        let socket = null;
+        let liveSessionIds = [];
 
         function getAuthToken() {
             return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -389,7 +392,7 @@
                             '<div class="ts-meta"><h3>' + (s.title || s.song_title) + '</h3><p>' + s.song_artist + '</p></div>' +
                             '<span class="ts-status ' + (isOpen ? 'live' : 'closed') + '">' + (isOpen ? 'Open' : 'Closed') + '</span>' +
                         '</div>' +
-                        '<div class="ts-consensus"><div class="ts-consensus-val">' + consensus + '</div><div class="ts-consensus-label">Current Consensus</div></div>';
+                        '<div class="ts-consensus"><div class="ts-consensus-val" data-session-id="' + s.id + '">' + consensus + '</div><div class="ts-consensus-label">Current Consensus</div></div>';
 
                     if (isOpen) {
                         html += '<div class="trade-form">' +
@@ -402,11 +405,49 @@
                     html += '</div>';
                 });
                 document.getElementById('marketsList').innerHTML = html;
+
+                // Connect to Socket.IO for live consensus updates
+                connectMarketSocket(data.sessions.filter(s => s.status === 'live').map(s => s.id));
             } catch (err) {
                 document.getElementById('marketsList').innerHTML =
                     '<div class="card"><div class="empty-state">Failed to load markets.</div></div>';
             }
         }
+
+        function connectMarketSocket(sessionIds) {
+            if (!sessionIds.length || !currentToken) return;
+            liveSessionIds = sessionIds;
+
+            if (socket) { socket.disconnect(); }
+            socket = io('/judging', { auth: { token: currentToken } });
+            socket.on('connect', () => {
+                sessionIds.forEach(id => socket.emit('join-session', id));
+            });
+            socket.on('consensus-update', (data) => {
+                // Update any matching consensus display on the page
+                var el = document.querySelector('.ts-consensus-val[data-session-id]');
+                // Check all consensus elements
+                document.querySelectorAll('.ts-consensus-val[data-session-id]').forEach(el => {
+                    el.textContent = Math.round(data.consensus);
+                });
+            });
+            socket.on('session-ended', (data) => {
+                // Refresh markets and trades when a session settles
+                loadMarkets();
+                loadActiveTrades();
+                loadTraderProfile();
+            });
+            socket.on('connect_error', (err) => {
+                console.error('Socket connection error:', err.message);
+            });
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (socket) {
+                liveSessionIds.forEach(id => socket.emit('leave-session', id));
+                socket.disconnect();
+            }
+        });
 
         async function placeTrade(sessionId) {
             const direction = document.getElementById('dir-' + sessionId).value;
